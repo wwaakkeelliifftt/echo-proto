@@ -54,13 +54,15 @@ dependencies {
     // Kotlin Extensions and Coroutines support for Room
     implementation "androidx.room:room-ktx:2.4.2"
 
-    // Retrofit
-    implementation "com.squareup.retrofit2:retrofit:2.9.0"
-    implementation ('com.squareup.retrofit2:converter-simplexml:2.9.0') {
-        exclude module: 'stax'
-        exclude module: 'stax-api'
-        exclude module: 'xpp3'
-    }
+    // rss-xml parser with network layer
+    implementation "com.prof18.rssparser:rssparser:4.0.2"
+    implementation(group: 'org.ogce', name: 'xpp3', version: '1.1.6')
+
+    // recycler view + swipe to refresh
+    implementation "androidx.recyclerview:recyclerview:1.2.1"
+    implementation "androidx.swiperefreshlayout:swiperefreshlayout:1.1.0"
+    // viewPager2
+    implementation "androidx.viewpager2:viewpager2:1.0.0"
 
     // Coroutines
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.0'
@@ -69,6 +71,7 @@ dependencies {
     // Coroutine Lifecycle Scopes
     implementation "androidx.lifecycle:lifecycle-viewmodel-ktx:2.4.1"
     implementation "androidx.lifecycle:lifecycle-runtime-ktx:2.4.1"
+    implementation "androidx.lifecycle:lifecycle-livedata-ktx:2.4.1"
     // ?
 //    implementation 'android.arch.lifecycle:extensions:1.1.1'
 

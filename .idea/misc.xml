@@ -3,7 +3,30 @@
   <component name="DesignSurface">
     <option name="filePathToZoomLevelMap">
       <map>
+        <entry key="app/src/main/res/drawable/ic_audio_full_tab_feed.xml" value="0.1545" />
+        <entry key="app/src/main/res/drawable/ic_menu_pause.xml" value="0.1545" />
+        <entry key="app/src/main/res/drawable/ic_menu_play.xml" value="0.1545" />
         <entry key="app/src/main/res/layout/activity_main.xml" value="0.16893115942028986" />
+        <entry key="app/src/main/res/layout/activity_main_coordinator.xml" value="0.23412628173828126" />
+        <entry key="app/src/main/res/layout/activity_search.xml" value="0.17889492753623187" />
+        <entry key="app/src/main/res/layout/bottom_playback.xml" value="0.3533843994140625" />
+        <entry key="app/src/main/res/layout/dropdown_items_search.xml" value="0.1203125" />
+        <entry key="app/src/main/res/layout/fragment_downloads.xml" value="0.16893115942028986" />
+        <entry key="app/src/main/res/layout/fragment_episode_detail.xml" value="0.16893115942028986" />
+        <entry key="app/src/main/res/layout/fragment_feed_all.xml" value="0.16893115942028986" />
+        <entry key="app/src/main/res/layout/fragment_feed_personal.xml" value="0.16893115942028986" />
+        <entry key="app/src/main/res/layout/fragment_logs.xml" value="0.16893115942028986" />
+        <entry key="app/src/main/res/layout/fragment_query.xml" value="0.16893115942028986" />
+        <entry key="app/src/main/res/layout/fragment_queue.xml" value="0.1546875" />
+        <entry key="app/src/main/res/layout/fragment_tab_channel_feed.xml" value="0.16893115942028986" />
+        <entry key="app/src/main/res/layout/item_episode.xml" value="0.25990675990675993" />
+        <entry key="app/src/main/res/menu/menu_appbar.xml" value="0.2578125" />
+        <entry key="app/src/main/res/menu/menu_appbar_search.xml" value="0.1921875" />
+        <entry key="app/src/main/res/menu/menu_bottom_appbar.xml" value="0.2578125" />
+        <entry key="app/src/main/res/menu/menu_bottom_navigation.xml" value="0.2578125" />
+        <entry key="app/src/main/res/menu/menu_top_appbar.xml" value="0.2986623128255209" />
+        <entry key="app/src/main/res/xml/dropdown_search_items.xml" value="0.1203125" />
+        <entry key="app/src/main/res/xml/searchable.xml" value="0.17889492753623187" />
       </map>
     </option>
   </component>

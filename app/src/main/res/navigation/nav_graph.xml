@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/feedFragment">
+
+    <fragment
+        android:id="@+id/feedFragment"
+        android:name="com.example.echo_proto.ui.fragments.FeedFragment"
+        android:label="FeedFragment">
+        <action
+            android:id="@+id/action_feedAllFragment_to_episodeDetailFragment"
+            app:destination="@id/episodeDetailFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/queueFragment"
+        android:name="com.example.echo_proto.ui.fragments.QueueFragment"
+        android:label="QueueFragment" >
+        <action
+            android:id="@+id/action_queryFragment_to_episodeDetailFragment"
+            app:destination="@id/episodeDetailFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/episodeDetailFragment"
+        android:name="com.example.echo_proto.ui.fragments.EpisodeDetailFragment"
+        android:label="EpisodeDetailFragment" />
+
+
+</navigation>

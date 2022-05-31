@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="echo_appbar_height">56dp</dimen>
+    <dimen name="echo_appbar_height_x2">112dp</dimen>
+
+    <dimen name="dp_nano">1dp</dimen>
+    <dimen name="dp_micro_less">2dp</dimen>
+    <dimen name="dp_micro">4dp</dimen>
+    <dimen name="dp_small_less">6dp</dimen>
+    <dimen name="dp_small">8dp</dimen>
+    <dimen name="dp_medium_less">12dp</dimen>
+    <dimen name="dp_medium">16dp</dimen>
+    <dimen name="dp_large_less">24dp</dimen>
+    <dimen name="dp_large">32dp</dimen>
+
+</resources>
