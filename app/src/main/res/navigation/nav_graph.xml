@@ -5,28 +5,27 @@
     android:id="@+id/nav_graph"
     app:startDestination="@id/feedFragment">
 
+
+    <fragment
+        android:id="@+id/channelsFragment"
+        android:name="com.example.echo_proto.ui.fragments.ChannelsFragment"
+        android:label="ChannelsFragment"
+        tools:layout="@layout/fragment_channels" />
+    <fragment
+        android:id="@+id/downloadsFragment"
+        android:name="com.example.echo_proto.ui.fragments.DownloadsFragment"
+        android:label="DownloadsFragment"
+        tools:layout="@layout/fragment_downloads" />
     <fragment
         android:id="@+id/feedFragment"
         android:name="com.example.echo_proto.ui.fragments.FeedFragment"
-        android:label="FeedFragment">
-        <action
-            android:id="@+id/action_feedAllFragment_to_episodeDetailFragment"
-            app:destination="@id/episodeDetailFragment" />
-    </fragment>
-
+        android:label="FeedFragment"
+        tools:layout="@layout/fragment_feed" />
     <fragment
         android:id="@+id/queueFragment"
         android:name="com.example.echo_proto.ui.fragments.QueueFragment"
-        android:label="QueueFragment" >
-        <action
-            android:id="@+id/action_queryFragment_to_episodeDetailFragment"
-            app:destination="@id/episodeDetailFragment" />
-    </fragment>
-
-    <fragment
-        android:id="@+id/episodeDetailFragment"
-        android:name="com.example.echo_proto.ui.fragments.EpisodeDetailFragment"
-        android:label="EpisodeDetailFragment" />
+        android:label="QueueFragment"
+        tools:layout="@layout/fragment_queue" />
 
 
 </navigation>

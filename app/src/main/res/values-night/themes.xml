@@ -8,15 +8,28 @@
         <!-- Secondary brand color. -->
         <item name="colorSecondary">@color/yellow_light</item>
         <item name="colorSecondaryVariant">@color/yellow_light</item>
-        <item name="colorOnSecondary">@color/teal_200</item>
+        <item name="colorOnSecondary">@color/pink_a400</item>
         <!-- Status bar color. -->
         <item name="android:statusBarColor" tools:targetApi="l">?attr/colorOnPrimary</item>
-        <!-- Customize your theme here. -->
 
+        <!-- Customize your theme here. -->
+        <item name="android:colorBackground">@color/gray_900</item>
+        <item name="android:textColor">@color/gray_400</item>
 
 
     </style>
+
+    <style name="BottomSheetDialog" parent="Animation.Design.BottomSheetDialog">
+        <item name="android:windowEnterAnimation">@anim/slide_in_bottom</item>
+        <item name="android:windowExitAnimation">@anim/slide_out_bottom</item>
+    </style>
+
+
+
+
 </resources>
+
+
 
 
 <!--    &lt;!&ndash; Primary brand color. &ndash;&gt;-->

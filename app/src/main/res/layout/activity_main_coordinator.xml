@@ -8,31 +8,22 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
-<!--    <androidx.core.widget.NestedScrollView-->
-<!--        android:layout_width="match_parent"-->
-<!--        android:layout_height="match_parent"-->
-<!--        app:layout_behavior="@string/appbar_scrolling_view_behavior">-->
 
-    <androidx.fragment.app.FragmentContainerView
+    <fragment
         android:id="@+id/nav_host_fragment_container"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_marginTop="@dimen/echo_appbar_height"
         android:layout_marginBottom="@dimen/echo_appbar_height_x2"
+
         android:name="androidx.navigation.fragment.NavHostFragment"
         app:defaultNavHost="true"
         app:navGraph="@navigation/nav_graph"/>
 
-    <ProgressBar
-        android:id="@+id/progress_bar"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"/>
-
     <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
         android:layout_height="@dimen/echo_appbar_height">
-        
+
         <androidx.appcompat.widget.Toolbar
             android:id="@+id/toolbar"
             app:title="toolbar"

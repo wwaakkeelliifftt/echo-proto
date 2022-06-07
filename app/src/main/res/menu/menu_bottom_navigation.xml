@@ -1,19 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
-    <item android:id="@+id/action_query"
+    <item android:id="@+id/queueFragment"
         android:title="@string/menu_bottom_query"
         android:contentDescription="@string/menu_bottom_query_description"
         android:icon="@drawable/ic_menu_query"/>
-    <item android:id="@+id/action_feed"
+    <item android:id="@+id/feedFragment"
         android:title="@string/menu_bottom_feed"
         android:contentDescription="@string/menu_bottom_feed_description"
         android:icon="@drawable/ic_menu_feed" />
-    <item android:id="@+id/action_full_tab_feed"
+    <item android:id="@+id/channelsFragment"
         android:title="@string/menu_bottom_full_tab_feed"
         android:contentDescription="@string/menu_bottom_full_tab_feed_description"
         android:icon="@drawable/ic_menu_full_tab_feed" />
-    <item android:id="@+id/action_downloads"
+    <item android:id="@+id/downloadsFragment"
         android:title="@string/menu_bottom_downloads"
         android:contentDescription="@string/menu_bottom_downloads_description"
         android:icon="@drawable/ic_menu_downloads"/>

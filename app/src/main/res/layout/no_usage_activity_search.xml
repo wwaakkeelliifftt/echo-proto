@@ -12,7 +12,7 @@
             android:id="@+id/searchToolbar"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            app:menu="@menu/menu_appbar_search">
+            app:menu="@menu/menu_top_host_activity">
 
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/etSearchPlaceholder"

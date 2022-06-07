@@ -7,9 +7,11 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import com.example.echo_proto.databinding.ItemEpisodeBinding
 import com.example.echo_proto.domain.model.Episode
+import com.example.echo_proto.util.getDateFromLong
+import com.example.echo_proto.util.getTimeFromSeconds
 import timber.log.Timber
 
-class FeedAdapter() : RecyclerView.Adapter<FeedAdapter.FeedViewHolder>() {
+class FeedAdapter : RecyclerView.Adapter<FeedAdapter.FeedViewHolder>() {
 
     inner class FeedViewHolder(val binding: ItemEpisodeBinding) : RecyclerView.ViewHolder(binding.root)
 
@@ -23,11 +25,6 @@ class FeedAdapter() : RecyclerView.Adapter<FeedAdapter.FeedViewHolder>() {
         }
     }
     private val listDiffer = AsyncListDiffer(this, diffCallback)
-
-    fun clear() {
-        listDiffer.submitList(emptyList())
-        notifyDataSetChanged()
-    }
 
     fun submitList(list: List<Episode>) {
         listDiffer.submitList(list)
@@ -48,8 +45,9 @@ class FeedAdapter() : RecyclerView.Adapter<FeedAdapter.FeedViewHolder>() {
         val view = holder.binding
 
         with(view) {
+            tvPubDateAndSize.text = episode.timestamp.getDateFromLong()
             tvTitle.text = episode.title
-            tvId.text = episode.id.toString()
+            tvTime.text = episode.duration.getTimeFromSeconds()
         }
 
     }

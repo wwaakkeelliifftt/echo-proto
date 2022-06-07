@@ -8,12 +8,13 @@ import com.example.echo_proto.domain.model.Episode
 data class EpisodeEntity(
     val title: String,
     val channel: String,
-    val timestamp: String,
+    val timestamp: Long,
     val description: String,
     val audioLink: String,
     val videoLink: String,
     val duration: String,
-    @PrimaryKey(autoGenerate = true) val id: Int? = null,
+    @PrimaryKey(autoGenerate = true)
+    val id: Int? = null,
     var isFavorite: Boolean = false,
     var isInQueue: Boolean = false,
     var hasListened: Boolean = false

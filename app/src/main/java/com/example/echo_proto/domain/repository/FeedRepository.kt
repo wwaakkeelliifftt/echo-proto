@@ -7,7 +7,9 @@ import kotlinx.coroutines.flow.Flow
 
 interface FeedRepository {
 
-    fun getRssFeed(): Flow<Resource<List<Episode>>>
+    fun getInitialFeedFromDatabase(): Flow<Resource<List<Episode>>>
 
     fun updateRssFeed(): Flow<Resource<List<Episode>>>
+
+    fun searchByQuery(string: String): Flow<Resource<List<Episode>>>
 }

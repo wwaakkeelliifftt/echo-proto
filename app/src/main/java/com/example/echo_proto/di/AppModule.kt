@@ -3,7 +3,7 @@ package com.example.echo_proto.di
 import android.app.Application
 import androidx.room.Room
 import com.example.echo_proto.data.local.FeedDatabase
-import com.example.echo_proto.data.remote.dto.FeedApi
+import com.example.echo_proto.data.remote.FeedApi
 import com.example.echo_proto.data.repository.FeedRepositoryImpl
 import com.example.echo_proto.domain.repository.FeedRepository
 import com.prof.rssparser.Parser
@@ -44,8 +44,8 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun getFeedRepository(db: FeedDatabase, parser: Parser): FeedRepository {
-        return FeedRepositoryImpl(db, parser)
+    fun getFeedRepository(db: FeedDatabase, api: FeedApi): FeedRepository {
+        return FeedRepositoryImpl(db, api)
     }
 
 }

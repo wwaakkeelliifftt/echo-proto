@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
-
     <item
         android:id="@+id/mabSearch"
         android:title="Search"
@@ -18,14 +17,5 @@
         android:title="Query fixer"
         android:icon="@drawable/ic_lock_open"
         app:showAsAction="always" />
-
-    <item
-        android:id="@+id/mabSettings"
-        android:title="Settings"
-        app:showAsAction="never" />
-    <item
-        android:id="@+id/mabAbout"
-        android:title="About this app"
-        app:showAsAction="never"/>
 
 </menu>

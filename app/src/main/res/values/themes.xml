@@ -2,21 +2,44 @@
     <!-- Base application theme. -->
     <style name="Theme.Echoproto" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <!-- Primary brand color. -->
-        <item name="colorPrimary">@color/yellow_medium</item>
-        <item name="colorPrimaryVariant">@color/yellow_dark</item>
-        <item name="colorOnPrimary">@color/gray_600</item>
+        <item name="colorPrimary">@color/blueGray_700</item>
+        <item name="colorPrimaryVariant">@color/blueGray_900</item>
+        <item name="colorOnPrimary">@color/gray_100</item>
         <!-- Secondary brand color. -->
-        <item name="colorSecondary">@color/yellow_light</item>
+        <item name="colorSecondary">@color/blueGray_400</item>
         <item name="colorSecondaryVariant">@color/yellow_x2_dark</item>
-        <item name="colorOnSecondary">@color/gray_300</item>
+        <item name="colorOnSecondary">@color/pink_a400</item>
         <!-- Status bar color. -->
         <item name="android:statusBarColor" tools:targetApi="l">?attr/colorPrimaryVariant</item>
         
         <!-- Customize your theme here. -->
+        <item name="android:colorBackground">@color/gray_200</item>
+        <item name="android:textColor">@color/gray_900</item>
+
+        <item name="alertDialogTheme">@style/AlertDialogTheme</item>
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+
         <item name="floatingActionButtonStyle">@style/FloatingActionButtonStyle</item>
-        
     </style>
 
+    <!--  styles for DialogFragment  -->
+    <style name="AlertDialogTheme" parent="ThemeOverlay.MaterialComponents.Dialog.Alert">
+        <item name="buttonBarPositiveButtonStyle">@style/PositiveButtonStyle</item>
+        <item name="buttonBarNegativeButtonStyle">@style/NegativeButtonStyle</item>
+    </style>
+    <style name="NegativeButtonStyle" parent="Widget.MaterialComponents.Button.TextButton.Dialog">
+        <item name="android:textColor">@color/colorAccent</item>
+    </style>
+    <style name="PositiveButtonStyle" parent="Widget.MaterialComponents.Button.TextButton.Dialog">
+        <item name="android:textColor">@color/colorAccent</item>
+    </style>
+
+    <!--    rounded corners at imageView into RecyclerView  -->
+    <style name="roundedCornerImageViewStile">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">5%</item>
+    </style>
 
 
     <!--    different shapes for FAB    -->
@@ -34,6 +57,5 @@
         <item name="cornerFamily">cut</item>
         <item name="cornerFamilyTopLeft">rounded</item>
     </style>
-
 
 </resources>

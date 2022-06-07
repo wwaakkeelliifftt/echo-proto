@@ -3,7 +3,7 @@ package com.example.echo_proto.domain.model
 data class Episode(
     val title: String,
     val channel: String,
-    val timestamp: String,
+    val timestamp: Long,
     val description: String,
     val audioLink: String,
     val videoLink: String,

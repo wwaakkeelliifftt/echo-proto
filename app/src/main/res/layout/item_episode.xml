@@ -1,35 +1,74 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="@dimen/echo_appbar_height"
-    android:background="@color/gray_900"
-    xmlns:app="http://schemas.android.com/apk/res-auto">
+    android:layout_height="82dp"
+    android:layout_margin="@dimen/dp_micro_less">
 
-    <TextView
-        android:id="@+id/tvId"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:padding="@dimen/dp_small"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        android:text="###" />
+        <ImageView
+            android:id="@+id/ivDragAndDrop"
+            android:layout_width="40dp"
+            android:layout_height="match_parent"
+            android:src="@drawable/ic_drag_indicator"
+            android:padding="@dimen/dp_micro"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:tint="@color/pink_a400" />
 
-    <TextView
-        android:id="@+id/tvTitle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:padding="@dimen/dp_small"
-        android:text="description"
-        android:scrollHorizontally="true"
-        app:layout_constraintStart_toEndOf="@id/tvId"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"/>
+        <TextView
+            android:id="@+id/tvPubDateAndSize"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="11sp"
+            android:text="date and size"
+            android:paddingVertical="@dimen/dp_micro"
+            app:layout_constraintStart_toEndOf="@id/ivDragAndDrop"
+            app:layout_constraintTop_toTopOf="@id/ivDragAndDrop"/>
 
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="@color/black"
-        app:layout_constraintBottom_toBottomOf="parent"/>
+        <TextView
+            android:id="@+id/tvTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingVertical="@dimen/dp_nano"
+            android:text="description"
+            android:textSize="14sp"
+            android:maxLines="2"
+            android:scrollHorizontally="true"
+            app:layout_constraintStart_toEndOf="@id/ivDragAndDrop"
+            app:layout_constraintTop_toBottomOf="@id/tvPubDateAndSize"
+            app:layout_constraintBottom_toTopOf="@id/tvTime"
+            android:paddingEnd="112dp"/>
+
+        <TextView
+            android:id="@+id/tvTime"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="11sp"
+            android:text="00:00:00"
+            android:paddingVertical="@dimen/dp_micro"
+            android:layout_marginBottom="@dimen/dp_micro"
+            app:layout_constraintStart_toEndOf="@id/ivDragAndDrop"
+            app:layout_constraintBottom_toBottomOf="@id/ivDragAndDrop" />
+
+        <ImageView
+            android:id="@+id/btnPlayPause"
+            android:layout_width="52dp"
+            android:layout_height="52dp"
+            android:src="@drawable/ic_menu_play"
+            android:padding="@dimen/dp_small_less"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:tint="@color/pink_a400"/>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/black"
+            app:layout_constraintBottom_toBottomOf="parent"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
+
