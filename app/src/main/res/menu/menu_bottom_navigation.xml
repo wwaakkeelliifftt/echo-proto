@@ -5,7 +5,7 @@
         android:title="@string/menu_bottom_query"
         android:contentDescription="@string/menu_bottom_query_description"
         android:icon="@drawable/ic_menu_query"/>
-    <item android:id="@+id/feedFragment"
+    <item android:id="@+id/hostFeedPager"
         android:title="@string/menu_bottom_feed"
         android:contentDescription="@string/menu_bottom_feed_description"
         android:icon="@drawable/ic_menu_feed" />

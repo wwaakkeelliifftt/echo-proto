@@ -4,42 +4,26 @@
         <!-- Primary brand color. -->
         <item name="colorPrimary">@color/yellow_medium</item>
         <item name="colorPrimaryVariant">@color/yellow_x2_dark</item>
-        <item name="colorOnPrimary">@color/black</item>
+        <item name="colorOnPrimary">@color/yellow_light</item>
         <!-- Secondary brand color. -->
-        <item name="colorSecondary">@color/yellow_light</item>
-        <item name="colorSecondaryVariant">@color/yellow_light</item>
-        <item name="colorOnSecondary">@color/pink_a400</item>
+        <item name="colorSecondary">@color/blueGray_100</item>
+        <item name="colorSecondaryVariant">@color/black</item>
+        <item name="colorOnSecondary">@color/gray_500</item>
         <!-- Status bar color. -->
-        <item name="android:statusBarColor" tools:targetApi="l">?attr/colorOnPrimary</item>
+        <item name="android:statusBarColor" tools:targetApi="l">@color/black</item>
 
         <!-- Customize your theme here. -->
         <item name="android:colorBackground">@color/gray_900</item>
-        <item name="android:textColor">@color/gray_400</item>
+        <item name="android:textColor">@color/gray_200</item>
+        <item name="colorOnSurface">@color/yellow_x2_dark</item>
+        <item name="actionModeBackground">@color/sea_700</item>
 
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+        <item name="windowActionModeOverlay">true</item>
 
     </style>
-
-    <style name="BottomSheetDialog" parent="Animation.Design.BottomSheetDialog">
-        <item name="android:windowEnterAnimation">@anim/slide_in_bottom</item>
-        <item name="android:windowExitAnimation">@anim/slide_out_bottom</item>
-    </style>
-
-
 
 
 </resources>
 
-
-
-
-<!--    &lt;!&ndash; Primary brand color. &ndash;&gt;-->
-<!--<item name="colorPrimary">@color/purple_200</item>-->
-<!--<item name="colorPrimaryVariant">@color/purple_700</item>-->
-<!--<item name="colorOnPrimary">@color/black</item>-->
-<!--    &lt;!&ndash; Secondary brand color. &ndash;&gt;-->
-<!--<item name="colorSecondary">@color/teal_200</item>-->
-<!--<item name="colorSecondaryVariant">@color/teal_200</item>-->
-<!--<item name="colorOnSecondary">@color/black</item>-->
-<!--    &lt;!&ndash; Status bar color. &ndash;&gt;-->
-<!--<item name="android:statusBarColor" tools:targetApi="l">?attr/colorPrimaryVariant</item>-->
-<!--    &lt;!&ndash; Customize your theme here. &ndash;&gt;-->

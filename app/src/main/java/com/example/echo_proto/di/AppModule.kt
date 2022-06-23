@@ -1,15 +1,19 @@
 package com.example.echo_proto.di
 
 import android.app.Application
+import android.content.Context
+import android.content.SharedPreferences
 import androidx.room.Room
 import com.example.echo_proto.data.local.FeedDatabase
 import com.example.echo_proto.data.remote.FeedApi
 import com.example.echo_proto.data.repository.FeedRepositoryImpl
 import com.example.echo_proto.domain.repository.FeedRepository
+import com.example.echo_proto.util.Constants
 import com.prof.rssparser.Parser
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
@@ -46,6 +50,15 @@ object AppModule {
     @Singleton
     fun getFeedRepository(db: FeedDatabase, api: FeedApi): FeedRepository {
         return FeedRepositoryImpl(db, api)
+    }
+
+    @Provides
+    @Singleton
+    fun provideSharedPreference(@ApplicationContext app: Context): SharedPreferences {
+        return app.getSharedPreferences(
+            Constants.SHARED_PREFERENCES_NAME,
+            Context.MODE_PRIVATE
+        )
     }
 
 }

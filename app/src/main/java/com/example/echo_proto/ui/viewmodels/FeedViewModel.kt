@@ -21,23 +21,21 @@ class FeedViewModel @Inject constructor(
 ): ViewModel() {
 
     private val _rssFeed = MutableLiveData(listOf<Episode>())
-    val rssFeed: LiveData<List<Episode>> =  _rssFeed
+    val rssFeed: LiveData<List<Episode>> get() = _rssFeed
 
     private val _snackbarMessage = MutableLiveData("")
-    val snackbarMessage: LiveData<String> = _snackbarMessage
+    val snackbarMessage: LiveData<String> get() =  _snackbarMessage
 
     private val _isDatabaseEmptyDialog = MutableLiveData(false)
     val isDatabaseEmptyDialog: LiveData<Boolean> get() = _isDatabaseEmptyDialog
 
-    private val _searchQuery = MutableLiveData("")
-    val searchQuery: LiveData<String> get() = _searchQuery
+    // todo: circle progress indicator
+    private val _isLoading = MutableLiveData(true)
+    val isLoading: LiveData<Boolean> get() = _isLoading
 
-    private val _isFeedLock = MutableLiveData(false)
-    val isFeedLock: LiveData<Boolean> get() = _isFeedLock
-
-    fun getFeed(): Boolean {
+    fun updateFeedRss(): Boolean {
         viewModelScope.launch {
-            val result = repository.updateRssFeed()
+            val result = repository.updateFeedRss()
             result.collect { resource ->
                 when (resource) {
                     is Resource.Loading -> Timber.d("..RSS FEED is LOADING with UPDATE")
@@ -49,9 +47,9 @@ class FeedViewModel @Inject constructor(
         return false
     }
 
-    private fun getInitialFeedFromDatabase() {
+    private fun getInitialFeedRssFromDb() {
         viewModelScope.launch {
-            val result = repository.getInitialFeedFromDatabase()
+            val result = repository.getInitialFeedRssFromDatabase()
             result.collect { resource ->
                 when (resource) {
                     is Resource.Loading -> Timber.d("LOADING RSS from DATABASE with init load")
@@ -69,36 +67,66 @@ class FeedViewModel @Inject constructor(
     }
 
     init {
-        getInitialFeedFromDatabase()
+        getInitialFeedRssFromDb()
     }
 
     fun initDatabaseMessageSuccess() = _isDatabaseEmptyDialog.postValue(false)
 
-    fun feedLockerUpdate() {
-        val revert = isFeedLock.value?.let { !it }
-        _isFeedLock.postValue(revert)
+    // for individual context menu
+    fun changeEpisodeInQueueStatus(position: Int, source: LiveData<List<Episode>>) {
+        viewModelScope.launch {
+            val episode = source.value?.get(position)
+            repository.changeEpisodeQueueStatus(episode!!.id)
+        }
     }
 
-    fun updateSearchByQuery(query: String) {
+    fun searchByQuery(query: String) {
         viewModelScope.launch {
             delay(666L)
-            val result = repository.searchByQuery(query)
-            result.collect { resource ->
+            repository.searchByQuery(query).collect { resource ->
                 when (resource) {
                     is Resource.Loading -> Timber.d("QUERY LOADING ->> $query")
                     is Resource.Success -> {
-                        Timber.d("QUERY SUCCESS ->> $query")
-                        _rssFeed.postValue(resource.data)
-                        _searchQuery.postValue(query)
+                        val result = resource.data!!
+                        _rssFeed.postValue(result)
                     }
                     is Resource.Error -> {
-                        Timber.d("QUERY ERROR ->> $query")
-                        _rssFeed.postValue(emptyList())
-                        delay(5000L)
+                        Timber.d("QUERY ERROR ->> $query \n\n ${Constants.DATABASE_SEARCH_QUERY_RESULT_IS_EMPTY}")
+                        _rssFeed.postValue(resource.data)
+                        delay(2222L)
                         // probably doesn't need error message, because we get "error" at every new letter in query
                         _snackbarMessage.postValue(Constants.DATABASE_SEARCH_QUERY_RESULT_IS_EMPTY)
                     }
                 }
+            }
+        }
+    }
+
+    fun selectEpisodeField(position: Int) {
+        _rssFeed.value?.get(position).let { episode ->
+            val newEpisodeState = episode!!.copy(isSelected = !episode.isSelected)
+            val newFeedList = _rssFeed.value as MutableList     // todo: check this approach for correct/ok ???
+            Timber.d("${newFeedList.hashCode()}  ===  ${_rssFeed.value.hashCode()}")
+            newFeedList[position] = newEpisodeState
+            _rssFeed.postValue(newFeedList)
+        }
+    }
+
+    fun unselectAllFields() {
+        val newFeedList = mutableListOf<Episode>()
+        _rssFeed.value?.forEach { episode ->
+            episode.isSelected = false
+            newFeedList.add(episode)
+        }
+        _rssFeed.postValue(newFeedList)
+        Timber.d("-----UNSELECTED-----")
+    }
+
+    fun addSelectedEpisodesToQueue() {
+        viewModelScope.launch {
+            val toQueueList = _rssFeed.value?.filter { it.isSelected } ?: emptyList()
+            toQueueList.forEach { episode ->
+                repository.changeEpisodeQueueStatus(episode.id)
             }
         }
     }

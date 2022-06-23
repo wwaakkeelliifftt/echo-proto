@@ -3,19 +3,34 @@
   <component name="DesignSurface">
     <option name="filePathToZoomLevelMap">
       <map>
+        <entry key="app/src/main/res/drawable/bottom_nav_ic_tint_day.xml" value="0.1345" />
+        <entry key="app/src/main/res/drawable/bottom_nav_ic_tint_night.xml" value="0.1345" />
+        <entry key="app/src/main/res/drawable/bottom_navigation_icon_tint.xml" value="0.1345" />
+        <entry key="app/src/main/res/drawable/ic_audio_forward_10.xml" value="0.1345" />
         <entry key="app/src/main/res/drawable/ic_audio_full_tab_feed.xml" value="0.1545" />
+        <entry key="app/src/main/res/drawable/ic_delete.xml" value="0.1345" />
         <entry key="app/src/main/res/drawable/ic_fab_play_large.xml" value="0.1345" />
+        <entry key="app/src/main/res/drawable/ic_image_holder.xml" value="0.1345" />
+        <entry key="app/src/main/res/drawable/ic_launcher_background.xml" value="0.1345" />
+        <entry key="app/src/main/res/drawable/ic_lock_close.xml" value="0.1345" />
+        <entry key="app/src/main/res/drawable/ic_menu_feed.xml" value="0.1345" />
         <entry key="app/src/main/res/drawable/ic_menu_pause.xml" value="0.1545" />
         <entry key="app/src/main/res/drawable/ic_menu_play.xml" value="0.1545" />
         <entry key="app/src/main/res/drawable/ic_menu_query.xml" value="0.1345" />
         <entry key="app/src/main/res/drawable/ic_play.xml" value="0.1345" />
+        <entry key="app/src/main/res/drawable/ic_remove.xml" value="0.1345" />
         <entry key="app/src/main/res/drawable/shape_rounded.xml" value="0.1345" />
         <entry key="app/src/main/res/layout/NO_USAGE_activity_search.xml" value="0.17889492753623187" />
-        <entry key="app/src/main/res/layout/activity_main.xml" value="0.29646106664685234" />
+        <entry key="app/src/main/res/layout/activity_main.xml" value="0.25" />
         <entry key="app/src/main/res/layout/activity_main_coordinator.xml" value="0.23412628173828126" />
         <entry key="app/src/main/res/layout/activity_search.xml" value="0.17889492753623187" />
-        <entry key="app/src/main/res/layout/bottom_playback.xml" value="0.23025207519531252" />
+        <entry key="app/src/main/res/layout/bottom_playback.xml" value="0.25" />
+        <entry key="app/src/main/res/layout/detail_playback_control_fragment.xml" value="0.17905711695376247" />
+        <entry key="app/src/main/res/layout/detail_playback_description_fragment.xml" value="0.17905711695376247" />
+        <entry key="app/src/main/res/layout/detail_playback_fragment.xml" value="0.1" />
         <entry key="app/src/main/res/layout/dropdown_items_search.xml" value="0.1203125" />
+        <entry key="app/src/main/res/layout/fragment_audioplayer_description.xml" value="0.17905711695376247" />
+        <entry key="app/src/main/res/layout/fragment_audioplayer_detail.xml" value="0.17905711695376247" />
         <entry key="app/src/main/res/layout/fragment_channels.xml" value="0.17889492753623187" />
         <entry key="app/src/main/res/layout/fragment_downloads.xml" value="0.16893115942028986" />
         <entry key="app/src/main/res/layout/fragment_episode_detail.xml" value="0.16893115942028986" />
@@ -28,13 +43,23 @@
         <entry key="app/src/main/res/layout/fragment_tab_channel_feed.xml" value="0.16893115942028986" />
         <entry key="app/src/main/res/layout/item_episode.xml" value="0.37478991596638656" />
         <entry key="app/src/main/res/layout/no_usage_activity_search.xml" value="0.17889492753623187" />
+        <entry key="app/src/main/res/layout/viewpager_audioplayer_host.xml" value="0.17905711695376247" />
+        <entry key="app/src/main/res/layout/viewpager_detail_playback_host.xml" value="0.17905711695376247" />
+        <entry key="app/src/main/res/layout/viewpager_feed_host.xml" value="0.1" />
         <entry key="app/src/main/res/menu/menu_appbar.xml" value="0.2578125" />
         <entry key="app/src/main/res/menu/menu_appbar_search.xml" value="0.1921875" />
         <entry key="app/src/main/res/menu/menu_bottom_appbar.xml" value="0.2578125" />
         <entry key="app/src/main/res/menu/menu_bottom_navigation.xml" value="0.2578125" />
+        <entry key="app/src/main/res/menu/menu_feed_action_mode.xml" value="0.2116289012398461" />
+        <entry key="app/src/main/res/menu/menu_popup_feed.xml" value="0.2116289012398461" />
         <entry key="app/src/main/res/menu/menu_top_appbar.xml" value="0.2986623128255209" />
+        <entry key="app/src/main/res/menu/menu_top_channels.xml" value="0.2116289012398461" />
+        <entry key="app/src/main/res/menu/menu_top_downloads.xml" value="0.2116289012398461" />
+        <entry key="app/src/main/res/menu/menu_top_feed.xml" value="0.2116289012398461" />
         <entry key="app/src/main/res/menu/menu_top_feed_fragment.xml" value="0.2578125" />
+        <entry key="app/src/main/res/menu/menu_top_feed_personal.xml" value="0.2116289012398461" />
         <entry key="app/src/main/res/menu/menu_top_host_activity.xml" value="0.2578125" />
+        <entry key="app/src/main/res/menu/menu_top_queue.xml" value="0.2116289012398461" />
         <entry key="app/src/main/res/xml/dropdown_search_items.xml" value="0.1203125" />
         <entry key="app/src/main/res/xml/searchable.xml" value="0.17889492753623187" />
       </map>

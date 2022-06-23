@@ -18,8 +18,9 @@ fun String?.getTimeInMillisFromString(): Long {
     }
 }
 
+// todo: add size parser
 fun Long.getDateFromLong(): String {
-    val sdf = SimpleDateFormat("dd.MM.yy  \u00B7  HH:mm", Locale.ROOT)
+    val sdf = SimpleDateFormat("dd.MM.yy  \u00B7  HH:mm  ·  ?..mb", Locale.ROOT)
     val date = Calendar.getInstance().also { it.timeInMillis = this }
     return sdf.format(date.time)
 }

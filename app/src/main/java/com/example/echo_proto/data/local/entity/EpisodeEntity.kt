@@ -17,6 +17,7 @@ data class EpisodeEntity(
     val id: Int? = null,
     var isFavorite: Boolean = false,
     var isInQueue: Boolean = false,
+    var indexInQueue: Int = -1,
     var hasListened: Boolean = false
 ) {
     fun toEpisode(): Episode =
@@ -31,6 +32,7 @@ data class EpisodeEntity(
             id = id ?: -1,
             isFavorite = isFavorite,
             isInQueue = isInQueue,
+            indexInQueue = indexInQueue,
             hasListened = hasListened
         )
 }

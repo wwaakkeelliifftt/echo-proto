@@ -2,23 +2,26 @@
     <!-- Base application theme. -->
     <style name="Theme.Echoproto" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <!-- Primary brand color. -->
-        <item name="colorPrimary">@color/blueGray_700</item>
+        <item name="colorPrimary">@color/blueGray_600</item>
         <item name="colorPrimaryVariant">@color/blueGray_900</item>
-        <item name="colorOnPrimary">@color/gray_100</item>
+        <item name="colorOnPrimary">@color/blueGray_300</item>
         <!-- Secondary brand color. -->
-        <item name="colorSecondary">@color/blueGray_400</item>
-        <item name="colorSecondaryVariant">@color/yellow_x2_dark</item>
-        <item name="colorOnSecondary">@color/pink_a400</item>
+        <item name="colorSecondary">@color/blueGray_100</item>
+        <item name="colorSecondaryVariant">@color/white</item>
+        <item name="colorOnSecondary">@color/blueGray_400</item>
         <!-- Status bar color. -->
-        <item name="android:statusBarColor" tools:targetApi="l">?attr/colorPrimaryVariant</item>
+        <item name="android:statusBarColor" tools:targetApi="l">@color/black</item>
         
         <!-- Customize your theme here. -->
-        <item name="android:colorBackground">@color/gray_200</item>
+
+        <item name="android:colorBackground">@color/white</item>
         <item name="android:textColor">@color/gray_900</item>
+        <item name="colorOnSurface">@color/gray_800</item>
 
         <item name="alertDialogTheme">@style/AlertDialogTheme</item>
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
+        <item name="windowActionModeOverlay">true</item>
 
         <item name="floatingActionButtonStyle">@style/FloatingActionButtonStyle</item>
     </style>

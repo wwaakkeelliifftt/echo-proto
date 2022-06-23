@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/nav_graph"
-    app:startDestination="@id/feedFragment">
+    app:startDestination="@id/hostFeedPager">
 
 
     <fragment
@@ -17,15 +17,15 @@
         android:label="DownloadsFragment"
         tools:layout="@layout/fragment_downloads" />
     <fragment
-        android:id="@+id/feedFragment"
-        android:name="com.example.echo_proto.ui.fragments.FeedFragment"
-        android:label="FeedFragment"
-        tools:layout="@layout/fragment_feed" />
-    <fragment
         android:id="@+id/queueFragment"
         android:name="com.example.echo_proto.ui.fragments.QueueFragment"
         android:label="QueueFragment"
         tools:layout="@layout/fragment_queue" />
+    <fragment
+        android:id="@+id/hostFeedPager"
+        android:name="com.example.echo_proto.ui.fragments.HostFeedPager"
+        android:label="HostFeedPager"
+        tools:layout="@layout/viewpager_feed_host"/>
 
 
 </navigation>

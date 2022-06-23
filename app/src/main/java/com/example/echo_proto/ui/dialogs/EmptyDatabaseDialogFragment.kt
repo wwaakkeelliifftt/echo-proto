@@ -1,4 +1,4 @@
-package com.example.echo_proto.ui.fragments
+package com.example.echo_proto.ui.dialogs
 
 import android.app.Dialog
 import android.os.Bundle

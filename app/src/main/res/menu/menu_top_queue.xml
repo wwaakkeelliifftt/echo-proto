@@ -2,20 +2,22 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
     <item
-        android:id="@+id/mabSearch"
+        android:id="@+id/mabQueueSearch"
         android:title="Search"
         android:icon="@drawable/ic_search"
         app:showAsAction="always|collapseActionView"
         app:actionViewClass="androidx.appcompat.widget.SearchView" />
     <item
-        android:id="@+id/mabUpdateFeed"
-        android:title="Update"
-        android:icon="@drawable/ic_refresh"
-        app:showAsAction="always"/>
-    <item
-        android:id="@+id/mabFixQuery"
-        android:title="Query fixer"
+        android:id="@+id/mabQueueFix"
+        android:title="Fix queue"
         android:icon="@drawable/ic_lock_open"
         app:showAsAction="always" />
-
+    <item
+        android:id="@+id/mabSettings"
+        android:title="Settings"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/mabAbout"
+        android:title="About this app"
+        app:showAsAction="never"/>
 </menu>

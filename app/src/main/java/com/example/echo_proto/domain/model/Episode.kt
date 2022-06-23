@@ -11,5 +11,7 @@ data class Episode(
     val id: Int,
     val isFavorite: Boolean,
     val isInQueue: Boolean,
-    val hasListened: Boolean
+    val indexInQueue: Int,
+    val hasListened: Boolean,
+    var isSelected: Boolean = false
 )

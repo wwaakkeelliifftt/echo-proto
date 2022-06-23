@@ -7,19 +7,20 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.res.ResourcesCompat
 import androidx.navigation.findNavController
 import androidx.navigation.ui.setupWithNavController
 import com.example.echo_proto.databinding.ActivityMainBinding
+import com.example.echo_proto.ui.fragments.ChannelsFragment
+import com.example.echo_proto.ui.fragments.DownloadsFragment
+import com.example.echo_proto.ui.fragments.HostFeedPager
+import com.example.echo_proto.ui.fragments.QueueFragment
 import com.example.echo_proto.ui.viewmodels.FeedViewModel
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import dagger.hilt.android.AndroidEntryPoint
-import timber.log.Timber
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
 
-//    private lateinit var binding: ActivityMainCoordinatorBinding
     private lateinit var binding: ActivityMainBinding
 
     private val viewModel by viewModels<FeedViewModel>()
@@ -28,7 +29,6 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
 
         binding = ActivityMainBinding.inflate(layoutInflater)
-//        binding = ActivityMainCoordinatorBinding.inflate(layoutInflater)
         setContentView(binding.root)
         setSupportActionBar(binding.toolbar)
 
@@ -41,13 +41,12 @@ class MainActivity : AppCompatActivity() {
         }
 
         val bs = BottomSheetBehavior.from(binding.bottomSheetContainer).apply {
-            peekHeight = resources.getDimension(R.dimen.echo_bottom_sheet_peekHeight).toInt()
+            peekHeight = resources.getDimension(R.dimen.echo_appbar_height_x2).toInt()
             state = BottomSheetBehavior.STATE_COLLAPSED
         }
         binding.bottomSheetContainer.setOnClickListener {
             bs.state = BottomSheetBehavior.STATE_EXPANDED
         }
-
 
         val searchItems = resources.getStringArray(R.array.autoCompleteSearchItems)
 //        (binding.etSearchPlaceholder.editText as? MaterialAutoCompleteTextView)?.setSimpleItems(searchItems)
@@ -67,12 +66,6 @@ class MainActivity : AppCompatActivity() {
         when (item.itemId) {
             R.id.mabSettings -> Toast.makeText(this, "menu: Settings", Toast.LENGTH_SHORT).show()
             R.id.mabAbout -> Toast.makeText(this, "menu: About", Toast.LENGTH_SHORT).show()
-
-            R.id.mabFixQuery -> {
-                Toast.makeText(this, "FixQuery", Toast.LENGTH_SHORT).show()
-                item.icon = ResourcesCompat.getDrawable(resources, R.drawable.ic_lock_close, null)
-            }
-//            R.id.mabUpdateFeed -> Toast.makeText(this, "Update list", Toast.LENGTH_SHORT).show()
         }
         return true
     }

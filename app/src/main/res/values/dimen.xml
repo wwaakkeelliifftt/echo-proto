@@ -3,7 +3,7 @@
     <dimen name="echo_appbar_height">56dp</dimen>
     <dimen name="echo_appbar_height_x2">112dp</dimen>
     <dimen name="echo_appbar_height_x3">168dp</dimen>
-    <dimen name="echo_bottom_sheet_peekHeight">130dp</dimen>
+<!--    <dimen name="echo_bottom_sheet_peekHeight">130dp -> use 112dp </dimen>-->
 
     <dimen name="dp_nano">1dp</dimen>
     <dimen name="dp_micro_less">2dp</dimen>
