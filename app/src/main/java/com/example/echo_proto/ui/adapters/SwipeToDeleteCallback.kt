@@ -3,26 +3,22 @@ package com.example.echo_proto.ui.adapters
 import android.content.Context
 import android.graphics.*
 import android.graphics.drawable.ColorDrawable
-import android.graphics.drawable.Drawable
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.LiveData
 import androidx.lifecycle.ViewModel
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
 import com.example.echo_proto.R
-import com.example.echo_proto.domain.model.Episode
-import com.example.echo_proto.ui.viewmodels.FeedViewModel
 import com.example.echo_proto.ui.viewmodels.QueueViewModel
 import timber.log.Timber
 
 abstract class SwipeToDeleteCallback(context: Context):
     ItemTouchHelper.SimpleCallback(ItemTouchHelper.ACTION_STATE_IDLE, ItemTouchHelper.LEFT) {
 
-    private val iconDelete = ContextCompat.getDrawable(context, R.drawable.ic_delete)!!
+    private val iconDelete = ContextCompat.getDrawable(context, R.drawable.button_ic_delete)!!
     private val intrinsicWidth = iconDelete.intrinsicWidth
     private val intrinsicHeight = iconDelete.intrinsicHeight
     private val background = ColorDrawable()
-    private val backgroundColor = Color.parseColor("#F50057")
+    private val backgroundColor = Color.parseColor("#FFBB86FC")
     private val clearPaint = Paint().apply { xfermode = PorterDuffXfermode(PorterDuff.Mode.CLEAR) }
 
     override fun onChildDraw(
@@ -73,10 +69,10 @@ abstract class SwipeToDeleteCallback(context: Context):
 
 }
 
-abstract class SwipeToDeleteCallback_Queue(icon: Drawable, private val sourceViewModel: ViewModel):
+abstract class SwipeToDeleteCallback_Queue(context: Context, private val sourceViewModel: ViewModel):
     ItemTouchHelper.Callback() {
 
-    private val iconDelete = icon
+    private val iconDelete = ContextCompat.getDrawable(context, R.drawable.button_ic_delete)!!
     private val intrinsicWidth = iconDelete.intrinsicWidth
     private val intrinsicHeight = iconDelete.intrinsicHeight
     private val background = ColorDrawable()
@@ -164,8 +160,9 @@ abstract class SwipeToDeleteCallback_Queue(icon: Drawable, private val sourceVie
         recyclerView.adapter?.notifyItemMoved(fromPosition, toPosition)
         val size = recyclerView.adapter?.itemCount
         Timber.d("IN LIST -> $size item")
-        newList.forEach {
-            Timber.d("NEW_ORDER_LIST::${it.title}")
+        newList.forEachIndexed { index, episode ->
+            Timber.d("NEW_ORDER_LIST::${episode.title}")
+            sourceViewModel.updateEpisodeIndex(episodeId = episode.id, newIndex = index)
         }
         return true
     }

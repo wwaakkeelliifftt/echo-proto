@@ -7,10 +7,10 @@
 
 
     <fragment
-        android:id="@+id/channelsFragment"
-        android:name="com.example.echo_proto.ui.fragments.ChannelsFragment"
+        android:id="@+id/hostChannelsPager"
+        android:name="com.example.echo_proto.ui.fragments.HostChannelsPager"
         android:label="ChannelsFragment"
-        tools:layout="@layout/fragment_channels" />
+        tools:layout="@layout/viewpager_channels_host" />
     <fragment
         android:id="@+id/downloadsFragment"
         android:name="com.example.echo_proto.ui.fragments.DownloadsFragment"
@@ -27,5 +27,12 @@
         android:label="HostFeedPager"
         tools:layout="@layout/viewpager_feed_host"/>
 
+    <action
+        android:id="@+id/globalActionToEpisodeDetailFragment"
+        app:destination="@id/episodeDetailFragment" />
+    <fragment
+        android:id="@+id/episodeDetailFragment"
+        android:name="com.example.echo_proto.ui.fragments.EpisodeDetailFragment"
+        tools:layout="@layout/fragment_episode_detail" />
 
 </navigation>

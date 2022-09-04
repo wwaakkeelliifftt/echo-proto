@@ -15,11 +15,11 @@
         android:paddingHorizontal="@dimen/dp_micro" >
 
             <TextView
-                android:id="@+id/babTvEpisodeInfo"
+                android:id="@+id/tvTitle"
                 android:layout_width="0dp"
                 android:layout_height="30dp"
                 android:gravity="center_vertical"
-                android:text="Стихийный Плющев. Речь в Совете Федерации, Путин в госпитале, Хороший Русский Кот. (2022-27-05)"
+                android:text="--заглушка, пока не активируется эпизод-- Стихийный Плющев. Речь в Совете Федерации, Путин в госпитале, Хороший Русский Кот. (2022-27-05)"
                 android:focusable="true"
                 android:focusableInTouchMode="true"
                 android:ellipsize="marquee"
@@ -34,46 +34,46 @@
                 app:layout_constraintEnd_toStartOf="@id/ivPlayPause"/>
 
             <TextView
-                android:id="@+id/babTvTimerEpisodeStart"
+                android:id="@+id/tv_current_time"
                 android:layout_width="wrap_content"
                 android:layout_height="24dp"
                 android:text="00:00:00"
                 android:textSize="11sp"
                 android:textColor="?colorOnSecondary"
-                app:layout_constraintTop_toBottomOf="@id/babTvEpisodeInfo"
+                app:layout_constraintTop_toBottomOf="@id/tvTitle"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintBottom_toBottomOf="parent"/>
 
             <TextView
-                android:id="@+id/babTvTimerDivider"
+                android:id="@+id/tvTimerDivider"
                 android:layout_width="wrap_content"
                 android:layout_height="24dp"
                 android:text="//"
                 android:textSize="11dp"
                 android:textColor="?colorOnSecondary"
                 android:paddingHorizontal="8dp"
-                app:layout_constraintTop_toBottomOf="@id/babTvEpisodeInfo"
-                app:layout_constraintStart_toEndOf="@id/babTvTimerEpisodeStart"
+                app:layout_constraintTop_toBottomOf="@id/tvTitle"
+                app:layout_constraintStart_toEndOf="@id/tv_current_time"
                 app:layout_constraintBottom_toBottomOf="parent" />
 
             <TextView
-                android:id="@+id/babTvTimerEpisodeTotal"
+                android:id="@+id/tv_total_time"
                 android:layout_width="wrap_content"
                 android:layout_height="24dp"
                 android:text="00:00:00"
                 android:textSize="11sp"
                 android:textColor="?colorOnSecondary"
-                app:layout_constraintStart_toEndOf="@id/babTvTimerDivider"
+                app:layout_constraintStart_toEndOf="@id/tvTimerDivider"
                 app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/babTvEpisodeInfo"/>
+                app:layout_constraintTop_toBottomOf="@id/tvTitle"/>
 
         <ImageView
             android:id="@+id/ivPlayPause"
             android:layout_width="54dp"
             android:layout_height="54dp"
-            android:src="@drawable/ic_play"
+            android:src="@drawable/ic_state_play"
             android:padding="@dimen/dp_small"
-            app:layout_constraintStart_toEndOf="@id/babTvEpisodeInfo"
+            app:layout_constraintStart_toEndOf="@id/tvTitle"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
@@ -82,10 +82,10 @@
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     <com.google.android.material.progressindicator.LinearProgressIndicator
-        android:id="@+id/babLinearProgressBar"
+        android:id="@+id/progressBar"
         android:layout_width="match_parent"
         app:trackColor="?colorPrimaryVariant"
-        app:indicatorColor="?colorPrimary"
+        app:indicatorColor="?indicatorColor"
         android:layout_height="wrap_content"/>
 
 </LinearLayout>

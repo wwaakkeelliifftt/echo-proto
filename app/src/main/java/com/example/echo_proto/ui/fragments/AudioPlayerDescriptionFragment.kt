@@ -7,6 +7,7 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import com.example.echo_proto.databinding.FragmentAudioplayerDescriptionBinding
 import dagger.hilt.android.AndroidEntryPoint
+import timber.log.Timber
 
 @AndroidEntryPoint
 class AudioPlayerDescriptionFragment : Fragment() {
@@ -17,6 +18,11 @@ class AudioPlayerDescriptionFragment : Fragment() {
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         _binding = FragmentAudioplayerDescriptionBinding.inflate(layoutInflater)
         return binding.root
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        Timber.d("\n\nLAUNCH ------>>>>>    AudioPlayerDescriptionFragment    <<<<<----------\n\n")
     }
 
     override fun onDestroyView() {

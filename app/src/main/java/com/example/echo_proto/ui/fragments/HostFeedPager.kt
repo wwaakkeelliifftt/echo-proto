@@ -1,12 +1,9 @@
 package com.example.echo_proto.ui.fragments
 
 import android.os.Bundle
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
+import android.view.*
 import androidx.fragment.app.Fragment
 import com.example.echo_proto.databinding.ViewpagerFeedHostBinding
-import com.example.echo_proto.ui.adapters.DepthPageTransformer
 import com.example.echo_proto.ui.adapters.ViewPagerFeedAdapter
 import com.example.echo_proto.ui.adapters.ZoomOutPageTransformer
 import com.google.android.material.tabs.TabLayoutMediator
@@ -39,6 +36,7 @@ class HostFeedPager: Fragment() {
         binding.viewPagerFeedHost.apply {
             adapter = feedHostPagerAdapter
             setPageTransformer(ZoomOutPageTransformer())
+            offscreenPageLimit = fragments.size
         }
         TabLayoutMediator(binding.tabLayoutFeedHost, binding.viewPagerFeedHost) { tab, position ->
             tab.text = feedHostPagerAdapter.fragments[position]::class.java.simpleName

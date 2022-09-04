@@ -1,5 +1,6 @@
 package com.example.echo_proto.ui.viewmodels
 
+import android.content.SharedPreferences
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -16,8 +17,11 @@ import javax.inject.Inject
 
 @HiltViewModel
 class QueueViewModel @Inject constructor(
-    private val repository: FeedRepository
-) :ViewModel() {
+    private val repository: FeedRepository,
+    private val sharedPreferences: SharedPreferences
+) :ViewModel(), ViewModelScopeState {
+
+    override val scopeState = ViewModelState.Queue
 
     private val _rssQueue = MutableLiveData(listOf<Episode>())
     val rssQueue: LiveData<List<Episode>> get() = _rssQueue
@@ -27,7 +31,7 @@ class QueueViewModel @Inject constructor(
 
     fun updateQueueRss(): Boolean {
         viewModelScope.launch {
-            repository.updateQueueRss().collect { resource ->
+            repository.getRssQueueFromDatabase().collect { resource ->
                 when (resource) {
                     is Resource.Loading -> {}
                     is Resource.Success -> {
@@ -53,18 +57,21 @@ class QueueViewModel @Inject constructor(
         _isLockedQueue.postValue(revert)
     }
 
-    fun updateEpisodeIndex(itemId: Int, newIndex: Int) {
+    fun updateEpisodeIndex(episodeId: Int, newIndex: Int) {
         viewModelScope.launch {
-            repository.changeEpisodeQueueIndex(id = itemId, newPositionIndex = newIndex)
+            repository.changeEpisodeQueueIndex(id = episodeId, newPositionIndex = newIndex)
         }
     }
+
     fun changeEpisodeInQueueStatus(position: Int, source: LiveData<List<Episode>>) {
         viewModelScope.launch {
             val episode = source.value?.get(position)
-            repository.changeEpisodeQueueStatus(episode!!.id)
-            repository.updateQueueRss().collect { resource ->
-                if (resource is Resource.Success) {
-                    _rssQueue.postValue(resource.data)
+            if (episode != null) {
+                repository.changeEpisodeQueueStatus(id = episode.id)
+                repository.getRssQueueFromDatabase().collect { resource ->
+                    if (resource is Resource.Success) {
+                        _rssQueue.postValue(resource.data)
+                    }
                 }
             }
         }
@@ -87,6 +94,12 @@ class QueueViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    fun navigateToDetailWithSharedPref(episodeId: Int) {
+        sharedPreferences.edit()
+            .putInt(Constants.SHARED_PREFERENCE_EPISODE_DETAIL_ID_KEY, episodeId)
+            .apply()
     }
 
 }

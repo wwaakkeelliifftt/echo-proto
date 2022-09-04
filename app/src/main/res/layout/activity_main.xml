@@ -19,6 +19,7 @@
         app:navGraph="@navigation/nav_graph"/>
 
     <com.google.android.material.appbar.AppBarLayout
+        android:id="@+id/root_appBar"
         android:layout_width="match_parent"
         android:layout_height="@dimen/echo_appbar_height">
 
@@ -57,8 +58,12 @@
                 android:layout_height="match_parent"
                 android:orientation="vertical">
 
-                <include layout="@layout/bottom_playback" />
-                <include layout="@layout/fragment_audioplayer_detail" />
+                <include
+                    android:id="@+id/bottom_playback"
+                    layout="@layout/bottom_playback" />
+                <include
+                    android:id="@+id/player"
+                    layout="@layout/fragment_audioplayer_detail" />
 
             </LinearLayout>
         </FrameLayout>

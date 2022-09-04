@@ -23,12 +23,8 @@ class AudioPlayerDetailFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        var desc = ""
-        (0..200).forEach { desc += "description " }
-        Timber.d(desc)
-        binding.tvDescription.setOnClickListener {
-            Toast.makeText(requireContext(), desc, Toast.LENGTH_SHORT).show()
-        }
+        Timber.d("\n\nLAUNCH ------>>>>>    AudioPlayerDetailFragment    <<<<<----------\n\n")
+
     }
 
     override fun onDestroyView() {

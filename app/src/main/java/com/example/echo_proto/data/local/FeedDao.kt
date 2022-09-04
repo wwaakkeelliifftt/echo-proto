@@ -21,16 +21,28 @@ interface FeedDao {
     @Query("SELECT * FROM episodes_table ORDER BY timestamp DESC")
     suspend fun getAllFeed(): List<EpisodeEntity>
 
+    // special list for exoplayer ??
+    @Query("SELECT * FROM episodes_table WHERE isDownloaded = 1")
+    suspend fun getDownloadedEpisodes(): List<EpisodeEntity>
+
+    @Query("SELECT * FROM episodes_table WHERE isInQueue = 1")
+    suspend fun getQueueFeed(): List<EpisodeEntity>
+
+    @Query("SELECT * FROM episodes_table " +
+            "WHERE title LIKE '%' || lower(:channelName) || '%' " +
+            "ORDER BY timestamp DESC")
+    suspend fun getChannelFeed(channelName: String): List<EpisodeEntity>
+
     @Query("SELECT * FROM episodes_table " +
             "WHERE title LIKE '%' || lower(:query) || '%' " +
             "OR description LIKE '%' || lower(:query) || '%' " +
             "ORDER BY timestamp DESC")
     suspend fun searchByQuery(query: String): List<EpisodeEntity>
 
-    @Query("SELECT * FROM episodes_table WHERE isInQueue = 1")
-    suspend fun getQueueFeed(): List<EpisodeEntity>
-
     @Query("SELECT * FROM episodes_table WHERE id = :id")
     suspend fun getEpisodeById(id: Int): EpisodeEntity
+
+    @Query("SELECT * FROM episodes_table WHERE id = :id")
+    fun getFlowEpisodeById(id: Int): Flow<EpisodeEntity>
 
 }

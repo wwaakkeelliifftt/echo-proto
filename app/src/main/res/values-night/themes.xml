@@ -1,14 +1,17 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
+    <!--  todo -> .NoActionBar ??  -->
     <style name="Theme.Echoproto" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <!-- Primary brand color. -->
         <item name="colorPrimary">@color/yellow_medium</item>
         <item name="colorPrimaryVariant">@color/yellow_x2_dark</item>
         <item name="colorOnPrimary">@color/yellow_light</item>
         <!-- Secondary brand color. -->
-        <item name="colorSecondary">@color/blueGray_100</item>
+        <item name="colorSecondary">@color/blueGray_200</item>
         <item name="colorSecondaryVariant">@color/black</item>
-        <item name="colorOnSecondary">@color/gray_500</item>
+        <item name="colorOnSecondary">@color/gray_400</item>
+        <item name="colorTertiary">@color/gray_900</item>
+        <item name="colorOnPrimarySurface">@color/gray_900</item>
         <!-- Status bar color. -->
         <item name="android:statusBarColor" tools:targetApi="l">@color/black</item>
 
@@ -16,12 +19,19 @@
         <item name="android:colorBackground">@color/gray_900</item>
         <item name="android:textColor">@color/gray_200</item>
         <item name="colorOnSurface">@color/yellow_x2_dark</item>
-        <item name="actionModeBackground">@color/sea_700</item>
 
+        <item name="indicatorColor">@color/yellow_medium</item>
+        <item name="actionModeBackground">@color/sea_700</item>
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
         <item name="windowActionModeOverlay">true</item>
 
+    </style>
+
+    <!--  Filter Chips  -->
+    <style name="FilterChips" parent="Widget.MaterialComponents.Chip.Action">
+        <item name="android:animateLayoutChanges">true</item>
+        <item name="chipBackgroundColor">@color/gray_500</item>
     </style>
 
 

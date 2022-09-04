@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<menu xmlns:android="http://schemas.android.com/apk/res/android"
+<menu xmlns:tools="http://schemas.android.com/tools"
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
     <item
         android:id="@+id/mabFeedPersSearch"
@@ -13,4 +14,12 @@
         android:icon="@drawable/ic_filter"
         android:iconTint="@color/pink_a400"
         app:showAsAction="always" />
+    <item
+        android:id="@+id/mabSettings"
+        android:title="Settings"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/mabAbout"
+        android:title="About this app"
+        app:showAsAction="never"/>
 </menu>

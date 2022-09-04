@@ -1,11 +1,11 @@
 <resources>
 <!--    <string name="app_name">echo-proto</string>-->
-    <string name="app_name"> </string>
+    <string name="app_name">echo?</string>
 
 
     <!--  bottom menu items  -->
-    <string name="menu_bottom_query">Очередь</string>
-    <string name="menu_bottom_query_description">Episodes query</string>
+    <string name="menu_bottom_queue">Очередь</string>
+    <string name="menu_bottom_queue_description">Episodes query</string>
     <string name="menu_bottom_feed">Лента</string>
     <string name="menu_bottom_feed_description">Personal managed feed</string>
     <string name="menu_bottom_play">Play</string>
@@ -14,5 +14,8 @@
     <string name="menu_bottom_full_tab_feed_description">Episodes feed separated by channel name</string>
     <string name="menu_bottom_downloads">Загрузки</string>
     <string name="menu_bottom_downloads_description">Downloads with log page</string>
+
+    <string name="notification_channel_name">Echo Podcast Player Channel</string>
+    <string name="notification_channel_description">Shows the currently playing podcast</string>
 
 </resources>

@@ -4,10 +4,14 @@ import android.app.Application
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.room.Room
+import com.example.echo_proto.data.local.FeedDao
 import com.example.echo_proto.data.local.FeedDatabase
 import com.example.echo_proto.data.remote.FeedApi
 import com.example.echo_proto.data.repository.FeedRepositoryImpl
+import com.example.echo_proto.data.repository.MediaServiceContentRepositoryImpl
 import com.example.echo_proto.domain.repository.FeedRepository
+import com.example.echo_proto.domain.repository.MediaServiceContentRepository
+import com.example.echo_proto.exoplayer.MediaServiceConnection
 import com.example.echo_proto.util.Constants
 import com.prof.rssparser.Parser
 import dagger.Module
@@ -48,6 +52,10 @@ object AppModule {
 
     @Provides
     @Singleton
+    fun provideFeedDatabaseDao(database: FeedDatabase): FeedDao = database.dao
+
+    @Provides
+    @Singleton
     fun getFeedRepository(db: FeedDatabase, api: FeedApi): FeedRepository {
         return FeedRepositoryImpl(db, api)
     }
@@ -56,9 +64,21 @@ object AppModule {
     @Singleton
     fun provideSharedPreference(@ApplicationContext app: Context): SharedPreferences {
         return app.getSharedPreferences(
-            Constants.SHARED_PREFERENCES_NAME,
+            Constants.SHARED_PREFERENCES_INIT_KEY,
             Context.MODE_PRIVATE
         )
+    }
+
+    @Provides
+    @Singleton
+    fun provideMediaServiceConnection(@ApplicationContext app: Context): MediaServiceConnection {
+        return MediaServiceConnection(app)
+    }
+
+    @Provides
+    @Singleton
+    fun provideMediaServiceRepository(database: FeedDatabase): MediaServiceContentRepository {
+        return MediaServiceContentRepositoryImpl(database)
     }
 
 }

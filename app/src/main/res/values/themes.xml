@@ -1,14 +1,17 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
+    <!--  todo -> .NoActionBar ??  -->
     <style name="Theme.Echoproto" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <!-- Primary brand color. -->
         <item name="colorPrimary">@color/blueGray_600</item>
-        <item name="colorPrimaryVariant">@color/blueGray_900</item>
-        <item name="colorOnPrimary">@color/blueGray_300</item>
+        <item name="colorPrimaryVariant">@color/blueGray_700</item>
+        <item name="colorOnPrimary">@color/blueGray_100</item>
         <!-- Secondary brand color. -->
-        <item name="colorSecondary">@color/blueGray_100</item>
+        <item name="colorSecondary">@color/blueGray_200</item>
         <item name="colorSecondaryVariant">@color/white</item>
         <item name="colorOnSecondary">@color/blueGray_400</item>
+        <item name="colorTertiary">@color/gray_50</item>
+        <item name="colorOnPrimarySurface">@color/blueGray_100</item>
         <!-- Status bar color. -->
         <item name="android:statusBarColor" tools:targetApi="l">@color/black</item>
         
@@ -16,8 +19,10 @@
 
         <item name="android:colorBackground">@color/white</item>
         <item name="android:textColor">@color/gray_900</item>
-        <item name="colorOnSurface">@color/gray_800</item>
+        <item name="colorOnSurface">@color/blueGray_800</item>
 
+        <item name="indicatorColor">@color/blueGray_400</item>
+        <item name="actionModeBackground">@color/pink_a200</item>
         <item name="alertDialogTheme">@style/AlertDialogTheme</item>
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
@@ -42,6 +47,19 @@
     <style name="roundedCornerImageViewStile">
         <item name="cornerFamily">rounded</item>
         <item name="cornerSize">5%</item>
+    </style>
+
+    <!--    -->
+    <style name="CheckBoxStateButton" parent="Widget.Material3.Button.OutlinedButton.Icon">
+        <item name="android:textSize">12sp</item>
+        <item name="background">@color/blueGray_200</item>
+        <item name="colorOutline">@color/pink_a400</item>
+        <item name="strokeWidth">3dp</item>
+    </style>
+
+    <!--  Filter Chips  -->
+    <style name="FilterChips" parent="Widget.MaterialComponents.Chip.Action">
+        <item name="android:animateLayoutChanges">true</item>
     </style>
 
 

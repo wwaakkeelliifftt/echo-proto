@@ -2,7 +2,12 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
     <item
-        android:id="@+id/mabList"
+        android:id="@+id/mabChannelUpdate"
+        android:title="Update"
+        android:icon="@drawable/ic_refresh"
+        app:showAsAction="always"/>
+    <item
+        android:id="@+id/mabChannelFavourites"
         android:title="list"
         android:icon="@drawable/ic_favourite"
         app:showAsAction="ifRoom" />

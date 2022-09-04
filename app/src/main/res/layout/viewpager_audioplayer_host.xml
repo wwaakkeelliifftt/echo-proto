@@ -8,9 +8,9 @@
     <androidx.viewpager2.widget.ViewPager2
         android:id="@+id/vpAudioPlayer"
         android:layout_width="match_parent"
-        android:layout_height="700dp"
+        android:layout_height="500dp"
         android:background="@color/pink_50"
-        android:orientation="horizontal"
+        android:orientation="vertical"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="@id/playerContainer"/>
 

@@ -3,8 +3,7 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="88dp"
-
+    android:layout_height="92dp"
     android:background="?android:colorBackground">
 
         <FrameLayout
@@ -14,89 +13,116 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toStartOf="@id/tvTitle">
+            app:layout_constraintEnd_toStartOf="@id/btnNavigateToEpisodeDetail">
                 <ImageView
                     android:layout_width="@dimen/dp_large_less"
                     android:layout_height="match_parent"
                     android:src="@drawable/ic_drag_indicator"
                     android:layout_margin="@dimen/dp_small"
-                    app:tint="@color/pink_a200" />
+                    app:tint="@color/sea_400" />
         </FrameLayout>
 
-        <TextView
-            android:id="@+id/tvPubDateAndSize"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textSize="12sp"
-            android:text="date and size"
-            android:alpha="0.6"
-            android:paddingVertical="@dimen/dp_micro"
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/btnNavigateToEpisodeDetail"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
             app:layout_constraintStart_toEndOf="@id/dragAndDrop"
-            app:layout_constraintTop_toTopOf="@id/dragAndDrop"/>
+            app:layout_constraintEnd_toStartOf="@id/btnPlayPause">
 
-        <TextView
-            android:id="@+id/tvSelected"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="false"
-            android:textSize="12sp"
-            android:alpha="0.8"
-            android:paddingVertical="@dimen/dp_micro"
-            android:background="@color/sea_100"
-            app:layout_constraintTop_toTopOf="@id/dragAndDrop"
-            app:layout_constraintEnd_toStartOf="@id/tvPosition"/>
+                <TextView
+                    android:id="@+id/tvPubDateAndSize"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="14sp"
+                    android:text="date and size"
+                    android:alpha="0.6"
+                    android:paddingVertical="@dimen/dp_micro"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"/>
 
-        <TextView
-            android:id="@+id/tvTitle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:paddingVertical="@dimen/dp_nano"
-            android:text="description"
-            android:textSize="16sp"
-            android:maxLines="2"
-            android:scrollHorizontally="true"
-            app:layout_constraintStart_toEndOf="@id/dragAndDrop"
-            app:layout_constraintTop_toBottomOf="@id/tvPubDateAndSize"
-            app:layout_constraintBottom_toTopOf="@id/tvTime"
-            android:paddingEnd="120dp"/>
+                <LinearLayout
+                    android:id="@+id/llStateContainer"
+                    android:layout_width="wrap_content"
+                    android:layout_height="0dp"
+                    android:orientation="horizontal"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="@id/tvPubDateAndSize"
+                    app:layout_constraintEnd_toEndOf="parent">
+                        <ImageView
+                            android:id="@+id/ivFavorite"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:src="@drawable/ic_favorite_heart"
+                            android:padding="@dimen/dp_micro_less"
+                            android:alpha="0.1"
+                            app:tint="@color/pink_a400" />
+                        <ImageView
+                            android:id="@+id/ivQueue"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:src="@drawable/ic_queue_playlist"
+                            android:padding="@dimen/dp_micro_less"
+                            app:tint="@color/purple_200" />
+                        <ImageView
+                            android:id="@+id/ivSelected"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:src="@drawable/ic_check_circle"
+                            android:padding="@dimen/dp_micro_less"
+                            app:tint="@color/sea_700" />
+                </LinearLayout>
 
-        <TextView
-            android:id="@+id/tvTime"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textSize="12sp"
-            android:text="00:00:00"
-            android:alpha="0.6"
-            android:paddingVertical="@dimen/dp_micro"
-            android:layout_marginBottom="@dimen/dp_micro"
-            app:layout_constraintStart_toEndOf="@id/dragAndDrop"
-            app:layout_constraintBottom_toBottomOf="@id/dragAndDrop" />
+                <TextView
+                    android:id="@+id/tvTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingVertical="@dimen/dp_nano"
+                    android:text="description"
+                    android:textSize="17sp"
+                    android:maxLines="2"
+                    android:scrollHorizontally="true"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/tvPubDateAndSize"
+                    app:layout_constraintBottom_toTopOf="@id/tvTime" />
 
-        <TextView
-            android:id="@+id/tvPosition"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="\??"
-            android:textSize="@dimen/dp_medium_less"
-            android:textColor="@color/pink_a400"
-            android:padding="@dimen/dp_small"
-            android:background="@color/pink_50"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toTopOf="@id/tvIndex"
-            app:layout_constraintEnd_toStartOf="@+id/btnPlayPause" />
+                <TextView
+                    android:id="@+id/tvTime"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="14sp"
+                    android:text="00:00:00"
+                    android:alpha="0.6"
+                    android:paddingVertical="@dimen/dp_micro"
+                    android:layout_marginBottom="@dimen/dp_micro"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent" />
 
-        <TextView
-            android:id="@+id/tvIndex"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="\??"
-            android:textSize="@dimen/dp_medium_less"
-            android:textColor="@color/gray_900"
-            android:padding="@dimen/dp_small"
-            android:background="@color/yellow_light"
-            app:layout_constraintTop_toBottomOf="@id/tvPosition"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toStartOf="@+id/btnPlayPause" />
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+<!--        <TextView-->
+<!--            android:id="@+id/tvPosition"-->
+<!--            android:layout_width="wrap_content"-->
+<!--            android:layout_height="wrap_content"-->
+<!--            android:text="\??"-->
+<!--            android:textSize="@dimen/dp_medium_less"-->
+<!--            android:textColor="@color/pink_a400"-->
+<!--            android:padding="@dimen/dp_micro"-->
+<!--            android:background="@color/pink_50"-->
+<!--            app:layout_constraintBottom_toTopOf="@id/tvIndex"-->
+<!--            app:layout_constraintEnd_toStartOf="@+id/btnPlayPause" />-->
+
+<!--        <TextView-->
+<!--            android:id="@+id/tvIndex"-->
+<!--            android:layout_width="wrap_content"-->
+<!--            android:layout_height="wrap_content"-->
+<!--            android:text="\??"-->
+<!--            android:textSize="12sp"-->
+<!--            android:textColor="@color/gray_900"-->
+<!--            android:padding="@dimen/dp_micro"-->
+<!--            android:background="@color/yellow_light"-->
+
+<!--            app:layout_constraintBottom_toBottomOf="parent"-->
+<!--            app:layout_constraintEnd_toStartOf="@+id/btnPlayPause" />-->
 
         <ImageView
             android:id="@+id/btnPlayPause"
@@ -104,6 +130,7 @@
             android:layout_height="52dp"
             android:src="@drawable/ic_menu_play"
             android:padding="@dimen/dp_micro"
+            android:layout_marginEnd="@dimen/dp_medium"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"

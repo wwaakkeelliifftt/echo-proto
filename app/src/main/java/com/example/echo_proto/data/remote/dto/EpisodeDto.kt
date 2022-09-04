@@ -1,12 +1,10 @@
 package com.example.echo_proto.data.remote.dto
 
 import com.example.echo_proto.data.local.entity.EpisodeEntity
-import java.time.Duration
-import kotlin.random.Random
 
 data class EpisodeDto(
    val title: String,
-   val channel: String,
+   val rssId: String,
    val timestamp: Long,
    val description: String,
    val audioLink: String,
@@ -16,7 +14,7 @@ data class EpisodeDto(
    fun toEpisodeEntity(): EpisodeEntity =
       EpisodeEntity(
          title = title,
-         channel = channel,
+         rssId = rssId,
          timestamp = timestamp,
          description = description,
          audioLink = audioLink,

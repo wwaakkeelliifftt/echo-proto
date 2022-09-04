@@ -1,5 +1,6 @@
 package com.example.echo_proto.ui.adapters
 
+import android.annotation.SuppressLint
 import android.view.*
 import androidx.recyclerview.widget.AsyncListDiffer
 import androidx.recyclerview.widget.DiffUtil
@@ -10,13 +11,22 @@ import com.example.echo_proto.util.getDateFromLong
 import com.example.echo_proto.util.getTimeFromSeconds
 import timber.log.Timber
 
-interface OnStartDragListener {
+//interface OnStartDragListener {
+//    fun onStartDrag(viewHolder: RecyclerView.ViewHolder)
+//    fun changeDragIconVisibilityAlpha(): Float
+//}
+
+interface ItemZoneTouchHandler {
+    val isDraggableFragment: Boolean
     fun onStartDrag(viewHolder: RecyclerView.ViewHolder)
     fun changeDragIconVisibilityAlpha(): Float
+    fun navigateToEpisodeDetailScreen(episode: Episode)
+    fun playPauseStateChanger(episode: Episode)
 }
 
 class FeedAdapter(
-    private val dragListener: OnStartDragListener?
+//    private val dragListener: OnStartDragListener?,
+    private val itemZoneHandler: ItemZoneTouchHandler?
 ) : RecyclerView.Adapter<FeedAdapter.FeedViewHolder>() {
 
     inner class FeedViewHolder(val binding: ItemEpisodeBinding) : RecyclerView.ViewHolder(binding.root)
@@ -48,6 +58,7 @@ class FeedAdapter(
         )
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     override fun onBindViewHolder(holder: FeedViewHolder, position: Int) {
         val episode = listDiffer.currentList[position]
         val view = holder.binding
@@ -56,18 +67,43 @@ class FeedAdapter(
             tvPubDateAndSize.text = episode.timestamp.getDateFromLong()
             tvTitle.text = episode.title
             tvTime.text = episode.duration.getTimeFromSeconds()
-            tvPosition.text = position.toString()
-            tvIndex.text = episode.indexInQueue.toString()
-            tvSelected.text = episode.isSelected.toString()
+
+            ivSelected.visibility = if (episode.isSelected) View.VISIBLE else View.INVISIBLE
+            ivQueue.visibility = if (episode.isInQueue) View.VISIBLE else View.INVISIBLE
+
+            btnNavigateToEpisodeDetail.setOnClickListener {
+                itemZoneHandler?.navigateToEpisodeDetailScreen(episode = episode)
+                Timber.d("onEpisodeNavClick: episode=${episode.title}")
+            }
+            btnPlayPause.setOnClickListener {
+                itemZoneHandler?.playPauseStateChanger(episode = episode)
+            }
+
+            if (itemZoneHandler?.isDraggableFragment == true) {
+                dragAndDrop.setOnTouchListener { v, event ->
+                    itemZoneHandler.onStartDrag(viewHolder = holder)
+                    false
+                }
+            }
 
             dragAndDrop.setOnTouchListener { v, event ->
-                dragListener?.let { it.onStartDrag(holder) }
+//                dragListener?.let { it.onStartDrag(holder) }
+                itemZoneHandler?.onStartDrag(holder)
                 false
             }
-            //            ivDragAndDrop.visibility = if (dragListener != null) View.VISIBLE else View.INVISIBLE
-//            dragAndDrop.visibility = dragListener?.changeDragIconVisibility() ?: View.INVISIBLE
-            dragAndDrop.alpha = dragListener?.changeDragIconVisibilityAlpha() ?: 0f
+//            dragAndDrop.alpha = dragListener?.changeDragIconVisibilityAlpha() ?: 0f
+            dragAndDrop.alpha = itemZoneHandler?.changeDragIconVisibilityAlpha() ?: 0f
+
+
+
+            // todo: possible to delete soon
+            setClickListener {
+                onItemClickListener?.invoke(episode)
+            }
         }
     }
+
+    private var onItemClickListener: ((Episode) -> Unit)? = null
+    fun setClickListener(listener: (Episode) -> Unit) { onItemClickListener = listener }
 
 }

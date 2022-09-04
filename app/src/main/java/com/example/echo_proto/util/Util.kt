@@ -3,6 +3,7 @@ package com.example.echo_proto.util
 import timber.log.Timber
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.time.Duration.Companion.hours
 
 fun String?.getTimeInMillisFromString(): Long {
     if (this == null) {
@@ -20,9 +21,16 @@ fun String?.getTimeInMillisFromString(): Long {
 
 // todo: add size parser
 fun Long.getDateFromLong(): String {
-    val sdf = SimpleDateFormat("dd.MM.yy  \u00B7  HH:mm  ·  ?..mb", Locale.ROOT)
+    val sdf = SimpleDateFormat("dd.MM.yy  ·  HH:mm", Locale.ROOT) //  \u00B7  HH:mm  ·  ?..mb", Locale.ROOT)
     val date = Calendar.getInstance().also { it.timeInMillis = this }
     return sdf.format(date.time)
+}
+
+fun Long.getCurrentTimeFromLong(): String {
+    val sdf = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
+    sdf.timeZone = TimeZone.getTimeZone("UTC")
+    val data = Calendar.getInstance().also { it.timeInMillis = this }
+    return sdf.format(data.time)
 }
 
 fun Int.getTimeFromSeconds(): String {
