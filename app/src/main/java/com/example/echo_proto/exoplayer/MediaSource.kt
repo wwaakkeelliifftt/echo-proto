@@ -1,11 +1,13 @@
 package com.example.echo_proto.exoplayer
 
+import android.media.browse.MediaBrowser
 import android.support.v4.media.MediaBrowserCompat
 import android.support.v4.media.MediaBrowserCompat.MediaItem.FLAG_PLAYABLE
 import android.support.v4.media.MediaDescriptionCompat
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.MediaMetadataCompat.*
 import androidx.core.net.toUri
+import androidx.media.MediaBrowserCompatUtils
 import com.example.echo_proto.data.local.FeedDatabase
 import com.example.echo_proto.domain.model.Episode
 import com.example.echo_proto.exoplayer.State.*
@@ -14,6 +16,7 @@ import com.google.android.exoplayer2.MediaItem
 import com.google.android.exoplayer2.source.ConcatenatingMediaSource
 import com.google.android.exoplayer2.source.ProgressiveMediaSource
 import com.google.android.exoplayer2.upstream.DefaultDataSource
+import com.google.android.exoplayer2.util.MimeTypes
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import timber.log.Timber
@@ -70,16 +73,21 @@ class MediaSource @Inject constructor(
             val mediaItem = MediaItem.fromUri(
                 if (episode.isDownloaded) episode.downloadUrl else episode.audioLink
             )
+                .buildUpon()
+                .setMimeType(MimeTypes.AUDIO_MPEG)
+                .build()
+
             Timber.d("\n\t\tAS_MEDIA_SOURCE::title=${episode.title},\n\t\t" +
                     "isDownloaded=${episode.isDownloaded},\n\t\t" +
                     "mp3=${episode.downloadUrl},\n\t\t" +
                     "web=${episode.audioLink}\n\t\t" +
                     "mediaItem=${mediaItem}\n\t\t" +
-                    "mediaItem/title=${mediaItem.mediaMetadata.title}")
+                    "mediaItem/metadata/title=${mediaItem.mediaMetadata.title}\n\t\t" +
+                    "mediaItem/metadata/description=${mediaItem.mediaMetadata.description}\n\t\t" +
+                    "mediaItem/metadata(full)=${mediaItem.mediaMetadata}")
+
             val mediaSource = ProgressiveMediaSource.Factory(dataSourceFactory)
-                .createMediaSource(
-                    MediaItem.fromUri(episode.audioLink)
-                )
+                .createMediaSource(mediaItem)
             concatenatingMediaSource.addMediaSource(mediaSource)
         }
         return concatenatingMediaSource
@@ -93,6 +101,17 @@ class MediaSource @Inject constructor(
             .setMediaId(episode.mediaId)
             .setDescription(episode.description)
             .build()
+
+        Timber.d("MediaItem:Episode:" +
+                "audioLink=${episode.audioLink}\n" +
+                "audioLinkToUri=${episode.audioLink.toUri()}" +
+                "episode=$episode")
+//        MediaItem.Builder()
+//            .setMimeType(MimeTypes.APPLICATION_M3U8)
+//            .setUri(episode.audioLink.toUri())
+//            .setMediaId(episode.mediaId)
+//            .build()
+
         MediaBrowserCompat.MediaItem(description, FLAG_PLAYABLE)
     }.toMutableList()
 

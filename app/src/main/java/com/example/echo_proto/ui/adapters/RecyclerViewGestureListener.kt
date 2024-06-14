@@ -53,7 +53,7 @@ class RecyclerItemClickListener(
     private var mGestureDetector: GestureDetector = GestureDetector(
         recyclerView.context,
         object : GestureDetector.SimpleOnGestureListener() {
-            override fun onSingleTapConfirmed(event: MotionEvent?): Boolean {
+            override fun onSingleTapConfirmed(event: MotionEvent): Boolean {
                 if (event != null) {
                     val child = recyclerView.findChildViewUnder(event.x, event.y)
                     if (child != null && mListener != null) {
@@ -69,7 +69,7 @@ class RecyclerItemClickListener(
                 }
             }
 
-            override fun onDoubleTap(e: MotionEvent?): Boolean {
+            override fun onDoubleTap(e: MotionEvent): Boolean {
                 val child = recyclerView.findChildViewUnder(e!!.x, e!!.y)
                 if (child != null && mListener != null) {
                     mListener.onDoubleTap(child, recyclerView.getChildAdapterPosition(child))
