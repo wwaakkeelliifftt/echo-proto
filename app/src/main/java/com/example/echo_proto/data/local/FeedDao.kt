@@ -1,6 +1,7 @@
 package com.example.echo_proto.data.local
 
 import androidx.room.Dao
+import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
@@ -45,4 +46,6 @@ interface FeedDao {
     @Query("SELECT * FROM episodes_table WHERE id = :id")
     fun getFlowEpisodeById(id: Int): Flow<EpisodeEntity>
 
+    @Delete
+    suspend fun deleteEpisode(episode: EpisodeEntity)
 }

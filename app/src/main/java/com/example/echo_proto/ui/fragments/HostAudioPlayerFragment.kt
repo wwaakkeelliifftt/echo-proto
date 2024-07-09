@@ -15,6 +15,7 @@ import com.example.echo_proto.databinding.ViewpagerAudioplayerHostBinding
 import com.example.echo_proto.ui.adapters.ViewPagerFeedAdapter
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import dagger.hilt.android.AndroidEntryPoint
+import timber.log.Timber
 
 @AndroidEntryPoint
 class HostAudioPlayerFragment : FragmentActivity() {
@@ -26,10 +27,12 @@ class HostAudioPlayerFragment : FragmentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?, persistentState: PersistableBundle?) {
         super.onCreate(savedInstanceState, persistentState)
+        Timber.d("ViewPagerAudioPlayer::onCreate::start")
         _binding = ViewpagerAudioplayerHostBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
         setupViewPager()
+        Timber.d("ViewPagerAudioPlayer::onCreate::end")
     }
 
     private fun setupViewPager() {
@@ -44,6 +47,7 @@ class HostAudioPlayerFragment : FragmentActivity() {
         return binding.root
     }
 
+    @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
 //        super.onBackPressed()
         Toast.makeText(this, "PRESS BACK", Toast.LENGTH_SHORT).show()

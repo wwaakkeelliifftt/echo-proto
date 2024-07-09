@@ -3,7 +3,9 @@ package com.example.echo_proto.di
 import android.app.Application
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.hilt.work.HiltWorkerFactory
 import androidx.room.Room
+import androidx.work.WorkManager
 import com.example.echo_proto.data.local.FeedDao
 import com.example.echo_proto.data.local.FeedDatabase
 import com.example.echo_proto.data.remote.FeedApi
@@ -11,6 +13,9 @@ import com.example.echo_proto.data.repository.FeedRepositoryImpl
 import com.example.echo_proto.data.repository.MediaServiceContentRepositoryImpl
 import com.example.echo_proto.domain.repository.FeedRepository
 import com.example.echo_proto.domain.repository.MediaServiceContentRepository
+import com.example.echo_proto.domain.worker.DownloadRepository
+import com.example.echo_proto.domain.worker.DownloadRepositoryImpl
+import com.example.echo_proto.domain.worker.DownloadWorker
 import com.example.echo_proto.exoplayer.MediaServiceConnection
 import com.example.echo_proto.util.Constants
 import com.prof.rssparser.Parser
@@ -19,6 +24,10 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
+import timber.log.Timber
+import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
 
 @Module
@@ -80,5 +89,29 @@ object AppModule {
     fun provideMediaServiceRepository(database: FeedDatabase): MediaServiceContentRepository {
         return MediaServiceContentRepositoryImpl(database)
     }
+
+    @Provides
+    @Singleton
+    fun provideOkHttpClient(): OkHttpClient {
+        val interceptor = HttpLoggingInterceptor()
+        interceptor.level = HttpLoggingInterceptor.Level.BODY
+
+        return OkHttpClient.Builder()
+            .connectTimeout(10, TimeUnit.SECONDS)
+            .addInterceptor(interceptor)
+            .build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideDownloadRepository(
+        okHttpClient: OkHttpClient,
+        db: FeedDatabase,
+        @ApplicationContext app: Context
+    ): DownloadRepository {
+        return DownloadRepositoryImpl(okHttpClient, db, app)
+    }
+
+
 
 }

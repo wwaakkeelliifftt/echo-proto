@@ -9,8 +9,12 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
+import androidx.work.Data
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
 import com.example.echo_proto.databinding.FragmentEpisodeDetailBinding
 import com.example.echo_proto.domain.model.Episode
+import com.example.echo_proto.domain.worker.DownloadWorker
 import com.example.echo_proto.ui.viewmodels.EpisodeDetailViewModel
 import com.example.echo_proto.ui.viewmodels.MainViewModel
 import com.example.echo_proto.util.Resource
@@ -75,6 +79,7 @@ class EpisodeDetailFragment : Fragment() {
             btnDownload.isChecked = episode.isDownloaded
             btnDownload.setOnClickListener {
                 Toast.makeText(requireContext(), "start download", Toast.LENGTH_SHORT).show()
+                downloadEpisode(episodeId = episode.id)
             }
 
             // need to check this "check-state"
@@ -87,6 +92,17 @@ class EpisodeDetailFragment : Fragment() {
 
         }
 
+    }
+
+    private fun downloadEpisode(episodeId: Int) {
+        val request = OneTimeWorkRequestBuilder<DownloadWorker>()
+            .setInputData(
+                Data.Builder()
+                    .putInt(DownloadWorker.KEY_CONTENT_URI, episodeId)
+                    .build()
+            )
+            .build()
+        val x = WorkManager.getInstance(requireContext()).enqueue(request)
     }
 
     override fun onDestroyView() {

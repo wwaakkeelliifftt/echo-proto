@@ -14,6 +14,7 @@ class MediaPlayerEventListener(
         Toast.makeText(mediaService, "Error was happened. ::eventListener", Toast.LENGTH_LONG).show()
     }
 
+    @Deprecated("Deprecated in Java")
     override fun onPlayerStateChanged(playWhenReady: Boolean, playbackState: Int) {
         super.onPlayerStateChanged(playWhenReady, playbackState)
         if (playbackState == Player.STATE_READY && !playWhenReady) {

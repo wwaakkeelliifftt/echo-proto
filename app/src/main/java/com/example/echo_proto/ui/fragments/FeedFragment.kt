@@ -40,7 +40,7 @@ class FeedFragment : Fragment(), ItemZoneTouchHandler {
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         _binding = FragmentFeedBinding.inflate(layoutInflater)
-//        setHasOptionsMenu(true)
+        setHasOptionsMenu(true)
         return binding.root
     }
 

@@ -131,6 +131,7 @@ class MainActivity : AppCompatActivity() {
             if (metadataEpisode == null) return@observe
             metadataEpisode.description.mediaId?.toInt()?.let { id ->
                 mainViewModel.getCurrentPlayEpisode(id = id)
+                Timber.d("MainActivity::subscribeToObservers:mediaId=$id")
             }
 //            currentPLayingEpisode = metadataEpisode.toPlayerInfoEpisode()
         }
@@ -267,7 +268,7 @@ class MainActivity : AppCompatActivity() {
         when (item.itemId) {
             R.id.mabSettings -> Toast.makeText(this, "menu: Settings", Toast.LENGTH_SHORT).show()
             R.id.mabAbout -> Snackbar.make(
-                window.decorView, //<- works but not exactly!
+                window.decorView.rootView, //<- works but not exactly!
                 "menu: About",
                 Snackbar.LENGTH_LONG
             ).show()

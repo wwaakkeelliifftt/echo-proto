@@ -6,7 +6,7 @@
     android:background="@color/pink_a200">
 
     <TextView
-        android:id="@+id/tvDescription"
+        android:id="@+id/tvPlayerDescription"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="DESCRIPTION THIS"

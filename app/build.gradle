@@ -57,6 +57,9 @@ dependencies {
     // rss-xml parser with network layer
     implementation "com.prof18.rssparser:rssparser:4.0.2"
     implementation(group: 'org.ogce', name: 'xpp3', version: '1.1.6')
+    // okio (okhttp buffers)
+    implementation("com.squareup.okio:okio:2.10.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.10.0")
 
     // recycler view + swipe to refresh
     implementation "androidx.recyclerview:recyclerview:1.2.1"
@@ -96,8 +99,8 @@ dependencies {
     kapt "com.google.dagger:hilt-android-compiler:2.40.5"
     implementation "androidx.hilt:hilt-lifecycle-viewmodel:1.0.0-alpha03"
     kapt "androidx.hilt:hilt-compiler:1.0.0"
-//    implementation 'androidx.hilt:hilt-navigation-fragment:1.0.0'
-//    implementation 'androidx.hilt:hilt-work:1.0.0'
+    implementation 'androidx.hilt:hilt-navigation-fragment:1.0.0'
+    implementation 'androidx.hilt:hilt-work:1.0.0'
 
     // Work Manager
     implementation "androidx.work:work-runtime-ktx:2.7.1"
