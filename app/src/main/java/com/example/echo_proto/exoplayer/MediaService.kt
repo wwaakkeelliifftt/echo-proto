@@ -21,6 +21,7 @@ import com.google.android.exoplayer2.ext.mediasession.TimelineQueueNavigator
 import com.google.android.exoplayer2.upstream.DefaultDataSource
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.*
+import timber.log.Timber
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -113,13 +114,27 @@ class MediaService : MediaBrowserServiceCompat() {
         episodeTimePosition: Long,
         playNow: Boolean
     ) {
-        val currentEpisodeIndex = if (currentPlayingEpisode == null) 0 else episodes.indexOf(episodeToPlay)
-        exoPlayer.apply {
-            setMediaSource(mediaSource.asMediaSource(dataSourceFactory = dataSourceFactory))
-            prepare()
-            seekTo(currentEpisodeIndex, 0L)
-            playWhenReady = playNow
+        val currentEpisodeIndex = episodes.indexOfFirst { it.id == episodeToPlay?.id }
+        if (currentEpisodeIndex != -1) {
+            exoPlayer.apply {
+                setMediaSource(mediaSource.asMediaSource(dataSourceFactory = dataSourceFactory))
+                prepare()
+                seekTo(currentEpisodeIndex, episodeTimePosition)
+                playWhenReady = playNow
+            }
+        } else {
+            // Обработка случая, когда эпизод не найден
+            Timber.e("Episode not found in the list")
         }
+
+       /** old version*/
+//        val currentEpisodeIndex = if (currentPlayingEpisode == null) 0 else episodes.indexOf(episodeToPlay)
+//        exoPlayer.apply {
+//            setMediaSource(mediaSource.asMediaSource(dataSourceFactory = dataSourceFactory))
+//            prepare()
+//            seekTo(currentEpisodeIndex, 0L)
+//            playWhenReady = playNow
+//        }
     }
 
     fun setPlayerSpeed(speed: Float) {

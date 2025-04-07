@@ -17,8 +17,10 @@ class MediaPlayerEventListener(
     @Deprecated("Deprecated in Java")
     override fun onPlayerStateChanged(playWhenReady: Boolean, playbackState: Int) {
         super.onPlayerStateChanged(playWhenReady, playbackState)
+        Timber.d("Player state changed: playWhenReady=$playWhenReady, playbackState=$playbackState")
         if (playbackState == Player.STATE_READY && !playWhenReady) {
             mediaService.stopForeground(false)
+            Timber.d("Player state changed: ::if (playbackState == Player.STATE_READY && !playWhenReady)::  ->  mediaService.stopForeground(false)\n")
         }
     }
 
