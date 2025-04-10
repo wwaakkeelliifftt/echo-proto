@@ -12,7 +12,6 @@ import com.example.echo_proto.util.getTimeInMillisFromString
 import com.prof.rssparser.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.stateIn
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -90,13 +89,13 @@ class FeedRepositoryImpl @Inject constructor(
             val channelFullFeed = api.getFullChannelsFeed()
             val emptyListFlag = insertApiResponseToDatabase(channelFullFeed)
             if (emptyListFlag) {
-                emit(Resource.Error(data = emptyList(), message = Constants.EMPTY_SERVER_RESPONSE))
+                emit(Resource.Error(data = emptyList(), message = Constants.ERROR_EMPTY_SERVER_RESPONSE))
             } else {
                 val episodesList = db.dao.getAllFeed().map { it.toEpisode() }
                 emit(Resource.Success(data = episodesList))
             }
         } catch (e: Exception) {
-            emit(Resource.Error(message = Constants.NETWORK_ERROR))
+            emit(Resource.Error(message = Constants.ERROR_NETWORK))
         }
     }
 
@@ -163,13 +162,13 @@ class FeedRepositoryImpl @Inject constructor(
             val channelRss = api.getChannelFeed(channel.url)
             val emptyListFlag = insertApiResponseToDatabase(channelRss)
             if (emptyListFlag) {
-                emit(Resource.Error(data = emptyList(), message = Constants.EMPTY_SERVER_RESPONSE))
+                emit(Resource.Error(data = emptyList(), message = Constants.ERROR_EMPTY_SERVER_RESPONSE))
             } else {
                 val episodesList = db.dao.getChannelFeed(channelName = channel.name).map { it.toEpisode() }
                 emit(Resource.Success(data = episodesList))
             }
         } catch (e: Exception) {
-            emit(Resource.Error(data = emptyList(), message = Constants.NETWORK_ERROR))
+            emit(Resource.Error(data = emptyList(), message = Constants.ERROR_NETWORK))
         }
     }
 

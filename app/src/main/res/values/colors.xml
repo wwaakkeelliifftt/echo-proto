@@ -1,5 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- -->
+    <color name="ic_launcher_background">#ebd52c</color>
+
+    <!-- Snackbar color palette -->
+        <!-- 1/2 for errors -->
+    <color name="snackbar_error_background">#FF5252</color>
+    <color name="snackbar_error_text">#FFFFFF</color>
+    <color name="snackbar_action_text">#FFEB3B</color>
+        <!-- 2/2 for info -->
+    <color name="snackbar_info_background">#2196F3</color>
+    <color name="snackbar_info_text">#FFFFFF</color>
+
+
     <color name="purple_200">#FFBB86FC</color>
     <color name="purple_500">#FF6200EE</color>
     <color name="purple_700">#FF3700B3</color>

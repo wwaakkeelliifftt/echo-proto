@@ -56,7 +56,12 @@ class MediaServiceConnection(context: Context) {
         override fun onSessionEvent(event: String?, extras: Bundle?) {
             super.onSessionEvent(event, extras)
             when (event) {
-                Constants.NETWORK_ERROR -> _networkError.postValue(Event(Resource.Error(message = Constants.NETWORK_ERROR)))
+                Constants.ERROR_NETWORK -> _networkError.postValue(Event(Resource.Error(message = Constants.SNACKBAR_EVENT_NETWORK_ERROR)))
+                Constants.ERROR_HTTP -> { } // todo: nado pridumat' obrabotku eventov s oshibkami
+                Constants.EVENT_AUDIO_UNAVAILABLE -> {
+                    val title = extras?.get("title") ?: "no-title"
+                    _networkError.postValue(Event(Resource.Error(message = Constants.SNACKBAR_EVENT_NO_FILE_ON_SERVER + "\n$title")))
+                }
             }
         }
         override fun onSessionDestroyed() = mediaBrowserConnectionCallback.onConnectionSuspended()

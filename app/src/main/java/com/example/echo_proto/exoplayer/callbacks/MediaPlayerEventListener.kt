@@ -1,17 +1,36 @@
 package com.example.echo_proto.exoplayer.callbacks
 
+
+import android.os.Bundle
+import android.support.v4.media.session.MediaSessionCompat
 import android.widget.Toast
 import com.example.echo_proto.exoplayer.MediaService
+import com.example.echo_proto.util.Constants
 import com.google.android.exoplayer2.*
+
 import timber.log.Timber
 
 class MediaPlayerEventListener(
-    private val mediaService: MediaService
+    private val mediaService: MediaService,
+    private val mediaSession: MediaSessionCompat
 ): Player.Listener {
 
     override fun onPlayerError(error: PlaybackException) {
         super.onPlayerError(error)
         Toast.makeText(mediaService, "Error was happened. ::eventListener", Toast.LENGTH_LONG).show()
+
+        val bundle = Bundle().apply {
+            putString("errorCode", error.errorCodeName)
+            error.cause?.message?.let { putString("details", it) }
+        }
+        when (error.errorCode) {
+            PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED -> {
+                mediaSession.sendSessionEvent(Constants.ERROR_NETWORK, bundle)
+            }
+            PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS -> {
+                mediaSession.sendSessionEvent(Constants.ERROR_HTTP, bundle)
+            }
+        }
     }
 
     @Deprecated("Deprecated in Java")

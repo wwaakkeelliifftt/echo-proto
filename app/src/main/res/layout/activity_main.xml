@@ -8,6 +8,14 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
+    <!-- невидимый якорь для Snackbar -->
+    <View
+        android:id="@+id/snackbar_anchor"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_anchor="@id/bottom_navigation_view"
+        app:layout_anchorGravity="top|center"/>
+
     <fragment
         android:id="@+id/nav_host_fragment_container"
         android:layout_width="match_parent"

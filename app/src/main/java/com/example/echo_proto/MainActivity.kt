@@ -1,24 +1,26 @@
 package com.example.echo_proto
 
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.support.v4.media.session.PlaybackStateCompat
 import android.view.Menu
 import android.view.MenuItem
+import android.view.MotionEvent
 import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.marginBottom
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.findNavController
-import androidx.navigation.ui.AppBarConfiguration
-import androidx.navigation.ui.NavigationUI
 import androidx.navigation.ui.setupWithNavController
 import com.example.echo_proto.databinding.ActivityMainBinding
 import com.example.echo_proto.domain.model.Episode
 import com.example.echo_proto.exoplayer.isPlaying
 import com.example.echo_proto.ui.viewmodels.MainViewModel
 import com.example.echo_proto.util.Resource
+import com.example.echo_proto.util.SnackbarHelper
 import com.example.echo_proto.util.getCurrentTimeFromLong
 import com.example.echo_proto.util.getDateFromLong
 import com.example.echo_proto.util.getTimeFromSeconds
@@ -126,6 +128,10 @@ class MainActivity : AppCompatActivity() {
         })
     }
 
+    private fun unsubscribeObservers() {
+
+    }
+
     private fun subscribeToObservers() {
         mainViewModel.currentPlayingEpisodeFromMediaServiceConnection.observe(this) { metadataEpisode ->
             if (metadataEpisode == null) return@observe
@@ -168,14 +174,16 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
-        mainViewModel.networkError.observe(this) {
-            it?.getContentIfNotHandled()?.let { result ->
+        mainViewModel.networkError.observe(this) { event ->
+            event?.getContentIfNotHandled()?.let { result ->
                 when (result) {
-                    is Resource.Error -> Snackbar.make(
-                        binding.root,
-                        result.message ?: "network error was happened..",
-                        Snackbar.LENGTH_LONG
-                    ).show()
+                    is Resource.Error -> {
+                        SnackbarHelper.showError(
+                            binding.rootLayout,
+                            binding.snackbarAnchor,
+                            result.message ?: "some error was happened.."
+                        )
+                    }
                     else -> Unit
                 }
             }
@@ -276,4 +284,26 @@ class MainActivity : AppCompatActivity() {
         return true
     }
 
+    private fun removeObservers() {
+
+    }
+
+    override fun onDestroy() {
+        removeObservers()
+        super.onDestroy()
+    }
+
 }
+
+//private fun snackbarAutoCloseWithHandler(snackbar: Snackbar, delayMills: Long) {
+//    val handler = Handler(Looper.getMainLooper())
+//    val runnable = { snackbar.dismiss() }
+//    handler.postDelayed(runnable, delayMills)
+//
+//    // if snackbar was closed by user
+//    snackbar.addCallback(object : Snackbar.Callback() {
+//        override fun onDismissed(transientBottomBar: Snackbar?, event: Int) {
+//            handler.removeCallbacks(runnable)
+//        }
+//    })
+//}

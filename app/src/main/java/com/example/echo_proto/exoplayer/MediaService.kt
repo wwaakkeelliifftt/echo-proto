@@ -8,11 +8,11 @@ import android.support.v4.media.MediaBrowserCompat
 import android.support.v4.media.MediaDescriptionCompat
 import android.support.v4.media.session.MediaSessionCompat
 import androidx.media.MediaBrowserServiceCompat
-import androidx.preference.PreferenceManager
 import com.example.echo_proto.domain.model.Episode
 import com.example.echo_proto.exoplayer.callbacks.MediaPlayerNotificationListener
 import com.example.echo_proto.exoplayer.callbacks.MediaPlayerEventListener
 import com.example.echo_proto.util.Constants
+import com.example.echo_proto.util.NetworkUtils
 import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.PlaybackParameters
 import com.google.android.exoplayer2.Player
@@ -69,12 +69,14 @@ class MediaService : MediaBrowserServiceCompat() {
 
         val mediaPlaybackPreparer = MediaPlaybackPreparer(mediaSource = mediaSource) {
             currentPlayingEpisode = it
-            preparePlayer(
-                episodes = mediaSource.episodes,
-                episodeToPlay = currentPlayingEpisode,
-                episodeTimePosition = currentPlayingEpisode?.stopListeningAt ?: 0L, //sharedPreferences.getLong(Constants.SHARED_PREFERENCE_LAST_EPISODE_PAUSE_TIME_KEY, 0L),
-                playNow = true
-            )
+            serviceScope.launch {
+                preparePlayer(
+                    episodes = mediaSource.episodes,
+                    episodeToPlay = currentPlayingEpisode,
+                    episodeTimePosition = currentPlayingEpisode?.stopListeningAt ?: 0L, //sharedPreferences.getLong(Constants.SHARED_PREFERENCE_LAST_EPISODE_PAUSE_TIME_KEY, 0L),
+                    playNow = true
+                )
+            }
         }
 
         mediaSessionConnector = MediaSessionConnector(mediaSession).apply {
@@ -83,7 +85,7 @@ class MediaService : MediaBrowserServiceCompat() {
             setPlayer(exoPlayer)
         }
 
-        mediaPlayerEventListener = MediaPlayerEventListener(this)
+        mediaPlayerEventListener = MediaPlayerEventListener(this, mediaSession)
         exoPlayer.addListener(mediaPlayerEventListener)
         mediaNotificationManager.showNotification(exoPlayer)
     }
@@ -108,37 +110,54 @@ class MediaService : MediaBrowserServiceCompat() {
 
 
 
-    private fun preparePlayer(
+    private suspend fun preparePlayer(
         episodes: List<Episode>,
         episodeToPlay: Episode?,
         episodeTimePosition: Long,
         playNow: Boolean
     ) {
         val currentEpisodeIndex = episodes.indexOfFirst { it.id == episodeToPlay?.id }
-        if (currentEpisodeIndex != -1) {
-            exoPlayer.apply {
-                setMediaSource(mediaSource.asMediaSource(dataSourceFactory = dataSourceFactory))
-                prepare()
-                seekTo(currentEpisodeIndex, episodeTimePosition)
-                playWhenReady = playNow
-            }
-        } else {
-            // Обработка случая, когда эпизод не найден
+        if (currentEpisodeIndex == -1) {
             Timber.e("Episode not found in the list")
+            return
         }
 
-       /** old version*/
-//        val currentEpisodeIndex = if (currentPlayingEpisode == null) 0 else episodes.indexOf(episodeToPlay)
-//        exoPlayer.apply {
-//            setMediaSource(mediaSource.asMediaSource(dataSourceFactory = dataSourceFactory))
-//            prepare()
-//            seekTo(currentEpisodeIndex, 0L)
-//            playWhenReady = playNow
-//        }
+        val episodeUrl = episodes[currentEpisodeIndex].audioLink
+        if (!NetworkUtils.isUrlAvailable(episodeUrl)) {
+            Timber.e("Media URL is not available: $episodeUrl")
+            mediaSession.sendSessionEvent(Constants.EVENT_AUDIO_UNAVAILABLE, Bundle().apply {
+                putString("title", episodes[currentEpisodeIndex].title)
+            })
+            return
+        }
+
+        exoPlayer.apply {
+            setMediaSource(mediaSource.asMediaSource(dataSourceFactory = dataSourceFactory))
+            prepare()
+            seekTo(currentEpisodeIndex, episodeTimePosition)
+            playWhenReady = playNow
+        }
     }
 
     fun setPlayerSpeed(speed: Float) {
         exoPlayer.playbackParameters = PlaybackParameters(speed)
+    }
+
+    /** mozhet v prepare i dobavit' obertku scope ? */
+    fun startPlayback(episode: Episode) {
+        serviceScope.launch {
+            preparePlayer(
+                episodes = mediaSource.episodes,
+                episodeToPlay = episode,
+                episodeTimePosition = 0L,
+                playNow = true
+            )
+        }
+    }
+    /** mozhet i ne nado stop otsyuda ? */
+    fun stopPlayback() {
+        exoPlayer.stop()
+        stopForeground(true)
     }
 
     // we set root/parent to the "default" const value
@@ -152,34 +171,50 @@ class MediaService : MediaBrowserServiceCompat() {
     ) {
         when (parentId) {
             Constants.MEDIA_ROOT_ID -> {
-                val resultSent = mediaSource.whenReady { isInitialized ->
-                    if (isInitialized) {
-                        result.sendResult(mediaSource.asMediaItems())
-                        if (!isPlayerInitialized && mediaSource.episodes.isNotEmpty()) {
-                            val lastEpisodeId = sharedPreferences.getString(Constants.SHARED_PREFERENCE_LAST_EPISODE_ID_KEY, "") ?: ""
-                            val pauseTimePosition = sharedPreferences.getLong(Constants.SHARED_PREFERENCE_LAST_EPISODE_PAUSE_TIME_KEY, 0)
-                            preparePlayer(
-                                mediaSource.episodes,
-                                if (lastEpisodeId.isNotEmpty()) {
-                                    mediaSource.episodes.find { it.mediaId == lastEpisodeId }
-                                }  else mediaSource.episodes[0],
-                                pauseTimePosition,
-                                false
-                            )
-                            isPlayerInitialized = true
-                        }
-                    } else {
-                        mediaSession.sendSessionEvent(Constants.NETWORK_ERROR, null) // message to MediaServiceConnection
-                        result.sendResult(null)
+                    mediaSource.whenReady { isInitialized ->
+                    if (!isInitialized || mediaSource.episodes.isEmpty()) {
+                        sendError(result, "No episodes available")
+                        return@whenReady
+                    }
+
+                    result.sendResult(mediaSource.asMediaItems())
+                    startPlaybackFromLastPosition()
+
                     }
                 }
-                if (!resultSent) {
-                    result.detach()
-                }
-            }
             // hz.. maybe we need implementation for each list of episodes
             Constants.MEDIA_QUEUE_ID -> {}
             Constants.MEDIA_FEED_ID -> {}
         }
+    }
+
+    private fun startPlaybackFromLastPosition() {
+        if (isPlayerInitialized) return
+
+        val lastEpisodeId = sharedPreferences.getString(Constants.SHARED_PREFERENCE_LAST_EPISODE_ID_KEY, "")
+        val lastPosition = sharedPreferences.getLong(Constants.SHARED_PREFERENCE_LAST_EPISODE_PAUSE_TIME_KEY, 0L)
+
+        val episode = lastEpisodeId?.takeIf { it.isNotBlank() }
+            ?.let { id -> mediaSource.episodes.find { it.mediaId == id } }
+            ?: mediaSource.episodes.firstOrNull()
+
+        episode?.let {
+            serviceScope.launch {
+                preparePlayer(
+                    episodes = mediaSource.episodes,
+                    episodeToPlay = it,
+                    episodeTimePosition = lastPosition,
+                    playNow = false
+                )
+                isPlayerInitialized = true
+            }
+        }
+    }
+
+    private fun sendError(result: Result<*>, message: String) {
+        mediaSession.sendSessionEvent(Constants.ERROR_EVENT, Bundle().apply {
+            putString("message", message)
+        })
+        result.sendResult(null)
     }
 }

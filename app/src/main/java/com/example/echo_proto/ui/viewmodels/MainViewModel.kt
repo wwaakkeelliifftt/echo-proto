@@ -50,12 +50,15 @@ class MainViewModel @Inject constructor(
     private val _currentPlayerPosition = MutableLiveData<Long>()
     val currentPlayerPosition: LiveData<Long> get() = _currentPlayerPosition
 
+    private val _mediaSessionEventForSnackbar = MutableLiveData<String?>()
+    val mediaSessionEventForSnackbar: LiveData<String?> get() = _mediaSessionEventForSnackbar
+
     init {
         // ? nado li
         _mediaId.value = sharedPreferences.getString(Constants.SHARED_PREFERENCE_MEDIA_ID_KEY, Constants.MEDIA_ROOT_ID)
         _currentFragmentViewModelState.postValue(ViewModelState.Queue)
 
-        // check when ok for launch
+        // check when ok for launch todo: endless cycle inside. need to refactor with flow-combine
         updateCurrentPlayerPosition()
 
         // think, that's @_mediaItems load episodes to exoPlayer
@@ -209,6 +212,22 @@ class MainViewModel @Inject constructor(
     }
 
     private fun updateCurrentPlayerPosition() {
+//        viewModelScope.launch {
+//            combine(
+//                mediaServiceConnection.playbackState,
+//                mediaServiceConnection.currentPlayingEpisode
+//            ) { playbackState, metadata ->
+//                Pair(
+//                    playbackState?.currentStatePosition ?: 0L,
+//                    metadata?.getLong(MediaMetadataCompat.METADATA_KEY_DURATION) ?: 0
+//                )
+//            }.collect { (position, duration) ->
+//                _currentPlayerPosition.postValue(position)
+//                _currentEpisodeDuration.postValue(duration)
+//            }
+//        }
+
+        // old version
         viewModelScope.launch {
             while (true) {
                 if (playbackState.value == null) {
