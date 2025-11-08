@@ -9,14 +9,14 @@
         <!-- Secondary brand color. -->
         <item name="colorSecondary">@color/blueGray_200</item>
         <item name="colorSecondaryVariant">@color/black</item>
-        <item name="colorOnSecondary">@color/gray_400</item>
+        <item name="colorOnSecondary">@color/sea_700</item>
         <item name="colorTertiary">@color/gray_900</item>
         <item name="colorOnPrimarySurface">@color/gray_900</item>
         <!-- Status bar color. -->
         <item name="android:statusBarColor" tools:targetApi="l">@color/black</item>
 
         <!-- Customize your theme here. -->
-        <item name="android:colorBackground">@color/gray_900</item>
+        <item name="android:colorBackground">@color/gray_1000</item>
         <item name="android:textColor">@color/gray_200</item>
         <item name="colorOnSurface">@color/yellow_x2_dark</item>
 

@@ -14,7 +14,7 @@ fun String?.getTimeInMillisFromString(): Long {
         val result = format.parse(this)
         result.time
     } catch (e: Exception) {
-        Timber.d("Exception ------->>>> ${e.message}\n\n${e.printStackTrace()}")
+        Timber.d(e, "Exception ------->>>> ${e.message}\n\n${e.printStackTrace()}")
         System.currentTimeMillis()
     }
 }

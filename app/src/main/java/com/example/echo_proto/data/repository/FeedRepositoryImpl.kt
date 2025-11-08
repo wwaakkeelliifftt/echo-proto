@@ -12,6 +12,7 @@ import com.example.echo_proto.util.getTimeInMillisFromString
 import com.prof.rssparser.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -109,17 +110,15 @@ class FeedRepositoryImpl @Inject constructor(
         emit(Resource.Error(data = emptyList(), message = Constants.DATABASE_SEARCH_QUERY_RESULT_IS_EMPTY))
     }
 
-    override fun getRssQueueFromDatabase(): Flow<Resource<List<Episode>>> = flow {
-        emit(Resource.Loading())
-        val result = db.dao.getQueueFeed().map { it.toEpisode() }
-        if (result.isNotEmpty()) {
-            emit(Resource.Success(data = result))
-            return@flow
-        } else if (result.isEmpty()) {
-            emit(Resource.Success(data = emptyList()))
+    override fun getRssQueueFromDatabase(): Flow<Resource<List<Episode>>> = db.dao.getQueueFeedFlow()
+        .map { episodeEntities ->
+            val result = episodeEntities.map { it.toEpisode() }
+            if (result.isNotEmpty()) {
+                Resource.Success(data = result)
+            } else {
+                Resource.Success(data = emptyList())
+            }
         }
-        emit((Resource.Error(data = emptyList(), message = Constants.DATABASE_QUEUE_EMPTY)))
-    }
 
     // todo: need fix with for-loop validate queue - because true order go shuffle ---- USE POSITION
     override suspend fun changeEpisodeQueueStatus(id: Int) {

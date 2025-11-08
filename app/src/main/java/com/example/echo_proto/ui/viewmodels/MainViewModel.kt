@@ -10,8 +10,10 @@ import com.example.echo_proto.exoplayer.*
 import com.example.echo_proto.util.Constants
 import com.example.echo_proto.util.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.channels.awaitClose
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -93,14 +95,15 @@ class MainViewModel @Inject constructor(
     }
 
     fun refreshPlayerPlaylist() {
-        mediaServiceConnection.unsubscribe(Constants.MEDIA_ROOT_ID, object : MediaBrowserCompat.SubscriptionCallback() {})
-        mediaServiceConnection.subscribe(Constants.MEDIA_ROOT_ID, object : MediaBrowserCompat.SubscriptionCallback() {
+        // Обновляем подписку на MEDIA_QUEUE_ID для обновления MediaSource и плейлиста
+        mediaServiceConnection.unsubscribe(Constants.MEDIA_QUEUE_ID, object : MediaBrowserCompat.SubscriptionCallback() {})
+        mediaServiceConnection.subscribe(Constants.MEDIA_QUEUE_ID, object : MediaBrowserCompat.SubscriptionCallback() {
             override fun onChildrenLoaded(
                 parentId: String,
                 children: MutableList<MediaBrowserCompat.MediaItem>
             ) {
                 super.onChildrenLoaded(parentId, children)
-                // todo.. mozhet voobshe ne nuzhny eti mediaItems
+                Timber.d("Queue playlist refreshed: ${children.size} items")
             }
         })
     }
@@ -164,6 +167,7 @@ class MainViewModel @Inject constructor(
             repository.getEpisodeById(id = id).collect { result ->
                 when (result) {
                     is Resource.Success -> _currentEpisodeFromDb.postValue(result.data!!)
+                    else -> {}
                 }
             }
         }
@@ -194,6 +198,10 @@ class MainViewModel @Inject constructor(
         // replace mediaItem.mediaId with unique id of episode. probably it can be @videoLink param
         Timber.d("::::::isPrepared=$isPrepared")
         Timber.d("\nPLAY-LOG::::::mediaItemId/uri=${mediaItem.id} \n title=${mediaItem.title}\n\n")
+        
+        // Обновляем подписку перед воспроизведением, чтобы получить актуальный список
+        refreshPlayerPlaylist()
+        
         if (isPrepared && mediaItem.mediaId ==
             currentPlayingEpisodeFromMediaServiceConnection.value?.getString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID)) {
             playbackState.value?.let { playbackState ->
@@ -212,38 +220,35 @@ class MainViewModel @Inject constructor(
     }
 
     private fun updateCurrentPlayerPosition() {
-//        viewModelScope.launch {
-//            combine(
-//                mediaServiceConnection.playbackState,
-//                mediaServiceConnection.currentPlayingEpisode
-//            ) { playbackState, metadata ->
-//                Pair(
-//                    playbackState?.currentStatePosition ?: 0L,
-//                    metadata?.getLong(MediaMetadataCompat.METADATA_KEY_DURATION) ?: 0
-//                )
-//            }.collect { (position, duration) ->
-//                _currentPlayerPosition.postValue(position)
-//                _currentEpisodeDuration.postValue(duration)
-//            }
-//        }
-
-        // old version
         viewModelScope.launch {
+            // Периодически опрашиваем позицию из MediaController напрямую
             while (true) {
-                if (playbackState.value == null) {
-                    Timber.d("\n\n---------->>>>>>> ERROR at PlaybackState==null in mainViewModel  <<<<<<<---------\n\n\n")
-                }
-                val position = playbackState.value?.currentStatePosition ?: 0L
-                if (currentPlayerPosition.value != position) {
-                    _currentPlayerPosition.postValue(position)
-                }
-                val duration = currentPlayingEpisodeFromMediaServiceConnection.value?.getLong(MediaMetadataCompat.METADATA_KEY_DURATION) ?: 0
-                if (currentEpisodeDuration.value != duration) {
-                    _currentEpisodeDuration.postValue(duration)
+                try {
+                    val playbackState = mediaServiceConnection.playbackState.value
+                    val position = playbackState?.currentStatePosition ?: 0L
+                    val metadata = currentPlayingEpisodeFromMediaServiceConnection.value
+                    val duration = metadata?.getLong(MediaMetadataCompat.METADATA_KEY_DURATION) ?: 0L
+
+                    if (currentPlayerPosition.value != position && position > 0) {
+                        _currentPlayerPosition.postValue(position)
+                    }
+                    if (currentEpisodeDuration.value != duration && duration > 0) {
+                        _currentEpisodeDuration.postValue(duration)
+                    }
+                } catch (e: Exception) {
+                    Timber.e(e, "Error updating player position")
                 }
                 delay(Constants.UPDATE_PLAYER_POSITION_INTERVAL)
             }
         }
+    }
+
+    private fun <T> LiveData<T>.asFlow(): Flow<T> = callbackFlow {
+        val observer = Observer<T> { value ->
+            value?.let { trySend(it) }
+        }
+        observeForever(observer)
+        awaitClose { removeObserver(observer) }
     }
 
 

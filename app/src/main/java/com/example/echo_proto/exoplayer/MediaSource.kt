@@ -38,7 +38,10 @@ class MediaSource @Inject constructor(
     private val onReadyListeners = mutableListOf<(Boolean) -> Unit>()
 
     var episodes = emptyList<Episode>()
-        private set // ?? ne fact
+        set(value) {
+            field = value
+            Timber.d("MediaSource episodes updated: ${value.size} episodes")
+        }
 
     private var state: State = STATE_CREATED
         set(value) {
@@ -65,6 +68,18 @@ class MediaSource @Inject constructor(
             else -> db.dao.getAllFeed().map { it.toEpisode() }
         }
         state = STATE_INITIALIZED
+    }
+
+    suspend fun refreshMediaData() = withContext(Dispatchers.IO) {
+        val result = db.dao.getQueueFeed()
+            .map { it.toEpisode() }
+            .sortedBy { it.indexInQueue }
+
+        episodes = when {
+            result.isNotEmpty() -> result
+            else -> db.dao.getAllFeed().map { it.toEpisode() }
+        }
+        Timber.d("MediaSource refreshed: ${episodes.size} episodes")
     }
 
     fun asMediaSource(dataSourceFactory: DefaultDataSource.Factory): ConcatenatingMediaSource {
@@ -104,8 +119,7 @@ class MediaSource @Inject constructor(
 
         Timber.d("MediaItem:Episode:" +
                 "audioLink=${episode.audioLink}\n" +
-                "audioLinkToUri=${episode.audioLink.toUri()}" +
-                "episode=$episode")
+                "audioLinkToUri=${episode.audioLink.toUri()}")
 //        MediaItem.Builder()
 //            .setMimeType(MimeTypes.APPLICATION_M3U8)
 //            .setUri(episode.audioLink.toUri())

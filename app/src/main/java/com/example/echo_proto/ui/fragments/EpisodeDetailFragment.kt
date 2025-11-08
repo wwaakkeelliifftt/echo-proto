@@ -1,5 +1,6 @@
 package com.example.echo_proto.ui.fragments
 
+import android.Manifest
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -9,9 +10,14 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
+import androidx.work.Constraints
 import androidx.work.Data
+import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.OutOfQuotaPolicy
+import androidx.work.WorkInfo
 import androidx.work.WorkManager
+import com.example.echo_proto.MainActivity
 import com.example.echo_proto.databinding.FragmentEpisodeDetailBinding
 import com.example.echo_proto.domain.model.Episode
 import com.example.echo_proto.domain.worker.DownloadWorker
@@ -19,7 +25,10 @@ import com.example.echo_proto.ui.viewmodels.EpisodeDetailViewModel
 import com.example.echo_proto.ui.viewmodels.MainViewModel
 import com.example.echo_proto.util.Resource
 import com.example.echo_proto.util.getDateFromLong
+import com.example.echo_proto.util.requestPermissionHelper
 import dagger.hilt.android.AndroidEntryPoint
+import timber.log.Timber
+import java.util.UUID
 
 @AndroidEntryPoint
 class EpisodeDetailFragment : Fragment() {
@@ -62,6 +71,7 @@ class EpisodeDetailFragment : Fragment() {
         val description = episode.description
         val date = episode.timestamp.getDateFromLong()
         val size = 66
+        val isDownloaded = episode.isDownloaded
 
         binding.apply {
             tvTitle.text = title
@@ -76,10 +86,17 @@ class EpisodeDetailFragment : Fragment() {
                 viewModel.changeEpisodeQueueStatus()
             }
 
-            btnDownload.isChecked = episode.isDownloaded
+            btnDownload.isChecked = isDownloaded
+            btnDownload.text = if (isDownloaded) "Delete" else "Download"
             btnDownload.setOnClickListener {
-                Toast.makeText(requireContext(), "start download", Toast.LENGTH_SHORT).show()
-                downloadEpisode(episodeId = episode.id)
+                Timber.d("EpisodeDetailFragment::btnDownload=${episode.isDownloaded}\n" +
+                        "audioLink=${episode.audioLink}\n" +
+                        "downloadUrl=${episode.downloadUrl}\n")
+                if (isDownloaded) {
+                    viewModel.deleteEpisodeFromDevice(episodeId = episode.id)
+                } else {
+                    downloadEpisode(episodeId = episode.id)
+                }
             }
 
             // need to check this "check-state"
@@ -95,6 +112,7 @@ class EpisodeDetailFragment : Fragment() {
     }
 
     private fun downloadEpisode(episodeId: Int) {
+        Timber.d("🕒 1. DOWN::EpisodeDetailFragment: downloadEpisode() called")
         val request = OneTimeWorkRequestBuilder<DownloadWorker>()
             .setInputData(
                 Data.Builder()
@@ -102,7 +120,40 @@ class EpisodeDetailFragment : Fragment() {
                     .build()
             )
             .build()
-        val x = WorkManager.getInstance(requireContext()).enqueue(request)
+
+        Timber.d("🕒 2. DOWN::EpisodeDetailFragment: WorkRequest created")
+        WorkManager.getInstance(requireContext()).enqueue(request)
+        Timber.d("🕒 3. DOWN::EpisodeDetailFragment: Work enqueued")
+        showDownloadProgress(request.id)
+        if (!viewModel.currentEpisode.value!!.isInQueue) {
+            viewModel.changeEpisodeQueueStatus()
+        }
+    }
+
+    private fun showDownloadProgress(id: UUID) {
+        WorkManager.getInstance(requireContext())
+            .getWorkInfoByIdLiveData(id)
+            .observe(this) { workInfo ->
+                when (workInfo?.state) {
+                    WorkInfo.State.ENQUEUED -> {
+                        binding.btnDownload.text = "Queued"
+                    }
+                    WorkInfo.State.RUNNING -> {
+                        val progress = workInfo.progress.getInt(DownloadWorker.PROGRESS, 0)
+                        binding.btnDownload.text = "$progress%"
+                        binding.progressBar.progress = progress
+                    }
+                    WorkInfo.State.SUCCEEDED -> {
+                        binding.btnDownload.text = "DELETE"
+                        binding.btnDownload.isChecked = true
+                    }
+                    WorkInfo.State.FAILED -> {
+                        binding.btnDownload.text = "Download"
+                        binding.btnDownload.isChecked = false
+                    }
+                    else -> Unit
+                }
+            }
     }
 
     override fun onDestroyView() {

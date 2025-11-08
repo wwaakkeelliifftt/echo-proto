@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.view.*
 import android.widget.Toast
 import androidx.appcompat.widget.SearchView
+import androidx.appcompat.widget.Toolbar
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
@@ -18,6 +19,7 @@ import com.example.echo_proto.databinding.FragmentFeedBinding
 import com.example.echo_proto.domain.model.Episode
 import com.example.echo_proto.ui.adapters.*
 import com.example.echo_proto.ui.dialogs.EmptyDatabaseDialogFragment
+import com.example.echo_proto.ui.view.ToolbarConfigurator
 import com.example.echo_proto.ui.viewmodels.FeedViewModel
 import com.example.echo_proto.ui.viewmodels.MainViewModel
 import com.example.echo_proto.util.Constants
@@ -26,7 +28,7 @@ import timber.log.Timber
 import javax.inject.Inject
 
 @AndroidEntryPoint
-class FeedFragment : Fragment(), ItemZoneTouchHandler {
+class FeedFragment : Fragment(), ItemZoneTouchHandler { //, ToolbarConfigurator {
 
     private var _binding: FragmentFeedBinding? = null
     private val binding get() = _binding!!
@@ -175,56 +177,15 @@ class FeedFragment : Fragment(), ItemZoneTouchHandler {
         val btnUpdateFeed = menu.findItem(R.id.mabFeedUpdate)
         btnUpdateFeed.setOnMenuItemClickListener {
             val done = viewModel.updateFeedRss()
-            if (done) { /** todo: make progress bar indicator for upload */ }
+            if (done) {
+                // TODO: make progress bar indicator for upload
+            }
             Timber.d("rabotaet update?")
             true
         }
 
         super.onPrepareOptionsMenu(menu)
     }
-
-//    override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
-//        inflater.inflate(R.menu.menu_top_feed, menu)
-//
-//        val searchItem: MenuItem = menu.findItem(R.id.mabFeedSearch)
-//        val searchView: SearchView = (searchItem.actionView as SearchView)
-//        searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
-//            override fun onQueryTextSubmit(query: String?): Boolean {
-//                if (!query.isNullOrEmpty()) {
-//                    viewModel.searchByQuery(query)
-//                }
-//                return true
-//            }
-//            override fun onQueryTextChange(query: String?): Boolean {
-//                if (!query.isNullOrEmpty()) {
-//                    viewModel.searchByQuery(query)
-//                } else if (query?.isEmpty() == true) {
-//                    viewModel.updateFeedRss()
-//                }
-//                return true
-//            }
-//        })
-//
-//        val btnUpdateFeed = menu.findItem(R.id.mabFeedUpdate)
-//        btnUpdateFeed.setOnMenuItemClickListener {
-//            val done = viewModel.updateFeedRss()
-//            if (done) { /** todo: make progress bar indicator for upload */ }
-//            Timber.d("rabotaet update?")
-//            true
-//        }
-//
-//        super.onCreateOptionsMenu(menu, inflater)
-//    }
-
-
-//    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-//        return when (item.itemId) {
-//            R.id.mabAbout -> { Timber.d("INTERCEPT FROM fragment"); true }
-//            R.id.mabFeedUpdate -> { Timber.d("HANDLE mabUpdateFeed"); true }
-//            R.id.mabFeedSearch -> { Timber.d("onCLick Search"); true }
-//            else -> super.onOptionsItemSelected(item)
-//        }
-//    }
 
     override fun onDestroyView() {
         super.onDestroyView()

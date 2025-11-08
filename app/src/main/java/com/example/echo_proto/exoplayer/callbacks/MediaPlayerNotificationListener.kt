@@ -51,7 +51,7 @@ class MediaPlayerNotificationListener(
         }
         return NotificationCompat.Builder(mediaService, "media_playback_channel")
             .setContentTitle("Echo Proto")
-            .setSmallIcon(com.example.echo_proto.R.drawable.ic_launcher_foreground) // Используйте существующую иконку
+            .setSmallIcon(com.example.echo_proto.R.drawable.ic_menu_play) // Используем рабочую иконку
             .build()
     }
 }

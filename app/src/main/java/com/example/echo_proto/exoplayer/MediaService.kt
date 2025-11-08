@@ -7,6 +7,7 @@ import android.os.Bundle
 import android.support.v4.media.MediaBrowserCompat
 import android.support.v4.media.MediaDescriptionCompat
 import android.support.v4.media.session.MediaSessionCompat
+import android.support.v4.media.session.PlaybackStateCompat
 import androidx.media.MediaBrowserServiceCompat
 import com.example.echo_proto.domain.model.Episode
 import com.example.echo_proto.exoplayer.callbacks.MediaPlayerNotificationListener
@@ -88,6 +89,45 @@ class MediaService : MediaBrowserServiceCompat() {
         mediaPlayerEventListener = MediaPlayerEventListener(this, mediaSession)
         exoPlayer.addListener(mediaPlayerEventListener)
         mediaNotificationManager.showNotification(exoPlayer)
+        
+        // Запускаем периодическое обновление позиции воспроизведения
+        startPeriodicPositionUpdate()
+    }
+
+    private fun startPeriodicPositionUpdate() {
+        serviceScope.launch {
+            while (true) {
+                try {
+                    val position = exoPlayer.currentPosition
+                    val state = exoPlayer.playbackState
+                    val playWhenReady = exoPlayer.playWhenReady
+                    
+                    val playbackState = when {
+                        state == Player.STATE_READY && playWhenReady -> PlaybackStateCompat.STATE_PLAYING
+                        state == Player.STATE_READY && !playWhenReady -> PlaybackStateCompat.STATE_PAUSED
+                        state == Player.STATE_BUFFERING -> PlaybackStateCompat.STATE_BUFFERING
+                        else -> PlaybackStateCompat.STATE_NONE
+                    }
+                    
+                    mediaSession.setPlaybackState(
+                        PlaybackStateCompat.Builder()
+                            .setState(playbackState, position, exoPlayer.playbackParameters.speed)
+                            .setActions(
+                                PlaybackStateCompat.ACTION_PLAY or
+                                PlaybackStateCompat.ACTION_PAUSE or
+                                PlaybackStateCompat.ACTION_PLAY_PAUSE or
+                                PlaybackStateCompat.ACTION_SKIP_TO_NEXT or
+                                PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS or
+                                PlaybackStateCompat.ACTION_SEEK_TO
+                            )
+                            .build()
+                    )
+                } catch (e: Exception) {
+                    Timber.e(e, "Error updating playback state position")
+                }
+                delay(Constants.UPDATE_PLAYER_POSITION_INTERVAL)
+            }
+        }
     }
 
     override fun onDestroy() {
@@ -154,6 +194,23 @@ class MediaService : MediaBrowserServiceCompat() {
             )
         }
     }
+
+    fun updatePlaylist() {
+        serviceScope.launch {
+            mediaSource.refreshMediaData()
+            // Обновляем плейлист ExoPlayer если он уже инициализирован
+            if (isPlayerInitialized && mediaSource.episodes.isNotEmpty()) {
+                val currentMediaItem = exoPlayer.currentMediaItemIndex
+                val currentPosition = exoPlayer.currentPosition
+                exoPlayer.setMediaSource(mediaSource.asMediaSource(dataSourceFactory = dataSourceFactory))
+                exoPlayer.prepare()
+                // Восстанавливаем позицию если возможно
+                if (currentMediaItem < mediaSource.episodes.size) {
+                    exoPlayer.seekTo(currentMediaItem, currentPosition)
+                }
+            }
+        }
+    }
     /** mozhet i ne nado stop otsyuda ? */
     fun stopPlayback() {
         exoPlayer.stop()
@@ -171,20 +228,50 @@ class MediaService : MediaBrowserServiceCompat() {
     ) {
         when (parentId) {
             Constants.MEDIA_ROOT_ID -> {
+                // Детach для асинхронной обработки
+                result.detach()
+                serviceScope.launch {
+                    mediaSource.refreshMediaData()
                     mediaSource.whenReady { isInitialized ->
-                    if (!isInitialized || mediaSource.episodes.isEmpty()) {
-                        sendError(result, "No episodes available")
-                        return@whenReady
-                    }
-
-                    result.sendResult(mediaSource.asMediaItems())
-                    startPlaybackFromLastPosition()
-
+                        if (!isInitialized || mediaSource.episodes.isEmpty()) {
+                            sendError(result, "No episodes available")
+                            return@whenReady
+                        }
+                        result.sendResult(mediaSource.asMediaItems())
+                        startPlaybackFromLastPosition()
                     }
                 }
-            // hz.. maybe we need implementation for each list of episodes
-            Constants.MEDIA_QUEUE_ID -> {}
-            Constants.MEDIA_FEED_ID -> {}
+            }
+            Constants.MEDIA_QUEUE_ID -> {
+                // Детach для асинхронной обработки
+                result.detach()
+                serviceScope.launch {
+                    mediaSource.refreshMediaData()
+                    mediaSource.whenReady { isInitialized ->
+                        if (!isInitialized || mediaSource.episodes.isEmpty()) {
+                            sendError(result, "No episodes in queue")
+                            return@whenReady
+                        }
+                        result.sendResult(mediaSource.asMediaItems())
+                        // Обновляем плейлист если уже инициализирован
+                        updatePlaylist()
+                    }
+                }
+            }
+            Constants.MEDIA_FEED_ID -> {
+                // Детach для асинхронной обработки
+                result.detach()
+                serviceScope.launch {
+                    mediaSource.refreshMediaData()
+                    mediaSource.whenReady { isInitialized ->
+                        if (!isInitialized || mediaSource.episodes.isEmpty()) {
+                            sendError(result, "No episodes available")
+                            return@whenReady
+                        }
+                        result.sendResult(mediaSource.asMediaItems())
+                    }
+                }
+            }
         }
     }
 

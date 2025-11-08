@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.echo_proto.domain.model.Episode
 import com.example.echo_proto.domain.repository.FeedRepository
+import com.example.echo_proto.domain.worker.DownloadRepository
 import com.example.echo_proto.util.Constants
 import com.example.echo_proto.util.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -19,7 +20,8 @@ import javax.inject.Inject
 @HiltViewModel
 class EpisodeDetailViewModel @Inject constructor(
     private val repository: FeedRepository,
-    private val sharedPreferences: SharedPreferences
+    private val sharedPreferences: SharedPreferences,
+    private val downloadRepository: DownloadRepository
 ) : ViewModel() {
 
     private val _currentEpisode = MutableLiveData<Episode>()
@@ -30,7 +32,7 @@ class EpisodeDetailViewModel @Inject constructor(
 
     init {
         val initialEpisodeId = sharedPreferences.getInt(Constants.SHARED_PREFERENCE_EPISODE_DETAIL_ID_KEY, 0)
-        Timber.d("initId=$initialEpisodeId")
+        Timber.d("EpisodeDetailViewModel::init::episodeId=$initialEpisodeId, title=$")
         getSelectedEpisode(initialEpisodeId)
     }
 
@@ -58,6 +60,15 @@ class EpisodeDetailViewModel @Inject constructor(
         }
     }
 
+    fun deleteEpisodeFromDevice(episodeId: Int) {
+        viewModelScope.launch {
+            downloadRepository.deleteEpisodeFromDeviceAndDatabase(episodeId)
+            getSelectedEpisode(episodeId)
+            if (currentEpisode.value!!.isInQueue) {
+                changeEpisodeQueueStatus()
+            }
+        }
+    }
 
 }
 

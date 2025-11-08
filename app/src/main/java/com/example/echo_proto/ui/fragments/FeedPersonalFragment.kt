@@ -37,7 +37,7 @@ class FeedPersonalFragment: Fragment(), ItemZoneTouchHandler {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setHasOptionsMenu(true)
+//        setHasOptionsMenu(true)
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -60,9 +60,9 @@ class FeedPersonalFragment: Fragment(), ItemZoneTouchHandler {
         }
 
         if (savedInstanceState != null) {
-            // todo: runtime crash because Fragment has constructor params. need to fix with @static companion fun
-//            val feedFilterListDialogFragment = parentFragmentManager.findFragmentByTag(Constants.FEED_FILTER_DIALOG_TAG)
-//                    as FeedFilterListDialogFragment?
+            // TODO: runtime crash because Fragment has constructor params. need to fix with @static companion fun
+            // val feedFilterListDialogFragment = parentFragmentManager.findFragmentByTag(Constants.FEED_FILTER_DIALOG_TAG)
+            //         as FeedFilterListDialogFragment?
         }
 
     }
@@ -86,37 +86,6 @@ class FeedPersonalFragment: Fragment(), ItemZoneTouchHandler {
         binding.swipeRefreshFeedPersonal.isRefreshing = stopRefresh
     }
 
-    override fun onPrepareOptionsMenu(menu: Menu) {
-        menu.clear()
-        activity?.menuInflater?.inflate(R.menu.menu_top_feed_personal, menu)
-
-        val searchItem = menu.findItem(R.id.mabFeedPersSearch)
-        val searchView = searchItem.actionView as SearchView
-        searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
-            override fun onQueryTextSubmit(query: String?): Boolean {
-                if (!query.isNullOrEmpty()) {
-                    viewModel.searchByQuery(query)
-                }
-                return true
-            }
-            override fun onQueryTextChange(newText: String?): Boolean {
-                if (!newText.isNullOrEmpty()) {
-                    viewModel.searchByQuery(newText)
-                } else if (newText?.isEmpty() == true) {
-                    viewModel.updateFeedRss()
-                }
-                return true
-            }
-        })
-        val btnFilter = menu.findItem(R.id.mabFeedPersFilter)
-        btnFilter.setOnMenuItemClickListener {
-            val dialog = FeedFilterListDialogFragment(requireContext())
-            dialog.show(childFragmentManager, Constants.FEED_FILTER_DIALOG_TAG)
-            true
-        }
-        super.onPrepareOptionsMenu(menu)
-    }
-
     override fun onPause() {
         super.onPause()
         viewModel.saveRssFeedPersonalFiltersIntoSharedPref()
@@ -135,5 +104,6 @@ class FeedPersonalFragment: Fragment(), ItemZoneTouchHandler {
     override fun navigateToEpisodeDetailScreen(episode: Episode) {
         Timber.d("FEED PERSONAL: navigateToEpisodeDetail")
     }
+    
     override fun playPauseStateChanger(episode: Episode) { }
 }

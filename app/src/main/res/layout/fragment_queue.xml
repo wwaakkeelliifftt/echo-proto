@@ -10,13 +10,6 @@
         android:layout_height="match_parent"
         android:orientation="vertical">
 
-        <androidx.appcompat.widget.Toolbar
-            android:id="@+id/queueToolbar"
-            android:elevation="@dimen/dp_medium_less"
-            android:background="@color/pink_a100"
-            android:layout_width="match_parent"
-            android:layout_height="@dimen/echo_appbar_height"/>
-
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recycler_view"
             android:layout_width="match_parent"
@@ -43,7 +36,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:paddingVertical="@dimen/dp_large"
-            android:text="Очеред пуста"
+            android:text="Плейлист пуст"
             android:textSize="@dimen/dp_medium"/>
     </LinearLayout>
 

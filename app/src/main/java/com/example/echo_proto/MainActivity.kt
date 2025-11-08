@@ -18,6 +18,7 @@ import androidx.navigation.ui.setupWithNavController
 import com.example.echo_proto.databinding.ActivityMainBinding
 import com.example.echo_proto.domain.model.Episode
 import com.example.echo_proto.exoplayer.isPlaying
+import com.example.echo_proto.ui.view.ToolbarConfigurator
 import com.example.echo_proto.ui.viewmodels.MainViewModel
 import com.example.echo_proto.util.Resource
 import com.example.echo_proto.util.SnackbarHelper
@@ -65,10 +66,6 @@ class MainActivity : AppCompatActivity() {
             when (destination.id) {
                 R.id.queueFragment -> {
                     Toast.makeText(this, "ON_QUEUE", Toast.LENGTH_SHORT).show()
-//                    binding.rootAppBar.removeAllViews()
-//                    binding.rootAppBar.addView(binding.toolbar)
-//                    setSupportActionBar(binding.toolbar)
-//                    NavigationUI.setupActionBarWithNavController(this, navController, appBarConfig)
                 }
                 R.id.hostFeedPager -> Toast.makeText(this, "ON_FEED_HOST", Toast.LENGTH_SHORT).show()
                 R.id.hostChannelsPager -> Toast.makeText(this, "ON_CHANNEL_HOST", Toast.LENGTH_SHORT).show()
@@ -196,14 +193,10 @@ class MainActivity : AppCompatActivity() {
                     is Resource.Loading -> Unit
                     is Resource.Error -> Unit
                     is Resource.Success -> {
-                        result.data?.let { episides ->
-                            // todo: bind episodes to..??
-                            if (currentPLayingEpisode == null && episides.isNotEmpty()) {
-//                                val initEpisode = episides[0]
-//                                currentPLayingEpisode = initEpisode
-//                                bindEpisodeData(episode = initEpisode)
-                            } else {
-
+                        result.data?.let { episodes ->
+                            // Episodes loaded from media service
+                            if (currentPLayingEpisode == null && episodes.isNotEmpty()) {
+                                // Could auto-play first episode here if needed
                             }
                         }
                     }
@@ -225,11 +218,6 @@ class MainActivity : AppCompatActivity() {
         val currentProgress = (ms / 1000).toInt()
         binding.player.seekBar.progress = currentProgress
         binding.bottomPlayback.progressBar.progress = currentProgress
-//        Timber.d("\n>>>>>>>>------------------------------------------\n" +
-//                "EPISODE_PROGRESS<Long>=$ms\n" +
-//                "EPISODE_PROGRESS<Int>=$currentProgress\n" +
-//                "player_seekbar<Int>=${binding.player.seekBar.progress}\n" +
-//                "bottom_seekbar<Int>=${binding.bottomPlayback.progressBar.progress}")
         val currentTime = ms.getCurrentTimeFromLong()
         Timber.d("-------->>>>>>>>curTime=$currentTime")
         binding.player.tvCurrentTime.text = currentTime

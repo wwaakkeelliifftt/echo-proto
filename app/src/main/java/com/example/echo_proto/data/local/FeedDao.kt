@@ -26,8 +26,11 @@ interface FeedDao {
     @Query("SELECT * FROM episodes_table WHERE isDownloaded = 1")
     suspend fun getDownloadedEpisodes(): List<EpisodeEntity>
 
-    @Query("SELECT * FROM episodes_table WHERE isInQueue = 1")
+    @Query("SELECT * FROM episodes_table WHERE isInQueue = 1 ORDER BY indexInQueue ASC")
     suspend fun getQueueFeed(): List<EpisodeEntity>
+
+    @Query("SELECT * FROM episodes_table WHERE isInQueue = 1 ORDER BY indexInQueue ASC")
+    fun getQueueFeedFlow(): Flow<List<EpisodeEntity>>
 
     @Query("SELECT * FROM episodes_table " +
             "WHERE title LIKE '%' || lower(:channelName) || '%' " +

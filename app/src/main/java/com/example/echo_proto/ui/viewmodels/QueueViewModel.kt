@@ -33,15 +33,21 @@ class QueueViewModel @Inject constructor(
         viewModelScope.launch {
             repository.getRssQueueFromDatabase().collect { resource ->
                 when (resource) {
-                    is Resource.Loading -> {}
-                    is Resource.Success -> {
-                        val filterResult = resource.data
-                            ?.filter { it.isInQueue }
-                            ?.sortedBy { it.indexInQueue }
-                        _rssQueue.postValue(filterResult)
-                        Timber.d("Episodes QUEUE list.size = ${filterResult?.size}")
+                    is Resource.Loading -> {
+                        // Загрузка данных
                     }
-                    is Resource.Error -> {}
+                    is Resource.Success -> {
+                        val sortedResult = resource.data
+                            ?.filter { it.isInQueue }
+                            ?.sortedBy { it.indexInQueue } ?: emptyList()
+                        _rssQueue.postValue(sortedResult)
+                        Timber.d("Episodes QUEUE list.size = ${sortedResult.size}")
+                        // Когда очередь обновляется, MediaSource автоматически обновится через Flow
+                    }
+                    is Resource.Error -> {
+                        Timber.e("Error loading queue: ${resource.message}")
+                        _rssQueue.postValue(emptyList())
+                    }
                 }
             }
         }
@@ -68,11 +74,7 @@ class QueueViewModel @Inject constructor(
             val episode = source.value?.get(position)
             if (episode != null) {
                 repository.changeEpisodeQueueStatus(id = episode.id)
-                repository.getRssQueueFromDatabase().collect { resource ->
-                    if (resource is Resource.Success) {
-                        _rssQueue.postValue(resource.data)
-                    }
-                }
+                // Очередь обновится автоматически через Flow в updateQueueRss()
             }
         }
     }

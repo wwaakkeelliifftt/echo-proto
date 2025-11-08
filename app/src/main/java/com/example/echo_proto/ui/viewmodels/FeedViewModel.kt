@@ -195,13 +195,25 @@ class FeedViewModel @Inject constructor(
     fun addSelectedEpisodesToQueue() {
         viewModelScope.launch {
             val toQueueList = rssFeed.value?.filter { it.isSelected } ?: emptyList()
-            toQueueList.forEachIndexed { index, episode ->
-                Timber.d("CHANGE_START: select=${episode.isSelected}, title=${episode.title}")
+            toQueueList.forEach { episode ->
+                Timber.d("ADD_TO_QUEUE: title=${episode.title}")
                 repository.changeEpisodeQueueStatus(episode.id)
             }
+            // Обновляем список после добавления в очередь
             repository.getRssFeedFromDatabase().collect { resource ->
-                if (resource is Resource.Success && resource.data != null) {
-                    _rssFeed.postValue(resource.data)
+                when (resource) {
+                    is Resource.Success -> {
+                        _rssFeed.postValue(resource.data ?: emptyList())
+                        // Останавливаем после первого успешного результата
+                        return@collect
+                    }
+                    is Resource.Error -> {
+                        Timber.e("Error updating feed after adding to queue: ${resource.message}")
+                        return@collect
+                    }
+                    is Resource.Loading -> {
+                        // Ждем результата
+                    }
                 }
             }
         }
