@@ -1,6 +1,6 @@
 package com.example.echo_proto.ui.viewmodels
 
-
+// todo - nado udalyat, kazhetsya. chushnoe reshenie
 interface ViewModelScopeState {
     val scopeState: ViewModelState
 }

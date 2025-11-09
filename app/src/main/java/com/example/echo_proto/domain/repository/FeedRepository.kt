@@ -17,6 +17,8 @@ interface FeedRepository {
 
     fun getRssQueueFromDatabase(): Flow<Resource<List<Episode>>>
 
+    fun getRssDownloadsFromDatabase(): Flow<Resource<List<Episode>>>
+
     fun searchByQuery(string: String): Flow<Resource<List<Episode>>>
 
     suspend fun changeEpisodeQueueStatus(id: Int)

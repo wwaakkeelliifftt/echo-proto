@@ -171,7 +171,15 @@ class FeedRepositoryImpl @Inject constructor(
         }
     }
 
-
+    override fun getRssDownloadsFromDatabase(): Flow<Resource<List<Episode>>> = db.dao.getDownloadedEpisodes()
+        .map { episodeEntities ->
+            val result = episodeEntities.map { it.toEpisode() }
+            if (result.isNotEmpty()) {
+                Resource.Success(result)
+            } else {
+                Resource.Success(emptyList())
+            }
+        }
 
 }
 

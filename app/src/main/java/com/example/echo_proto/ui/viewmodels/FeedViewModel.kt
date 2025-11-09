@@ -122,6 +122,8 @@ class FeedViewModel @Inject constructor(
                                 filterMass += result.data
                                     ?: emptyList(); Timber.d("SEARCH_SUCCESS=$query \nsize=${result.data?.size}")
                             }
+
+                            else -> Unit
                         }
                     }
                 }

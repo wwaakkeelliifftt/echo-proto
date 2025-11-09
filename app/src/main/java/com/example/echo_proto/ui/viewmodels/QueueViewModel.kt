@@ -21,6 +21,7 @@ class QueueViewModel @Inject constructor(
     private val sharedPreferences: SharedPreferences
 ) :ViewModel(), ViewModelScopeState {
 
+    // todo - nado udalyat, kazhetsya. chushnoe reshenie
     override val scopeState = ViewModelState.Queue
 
     private val _rssQueue = MutableLiveData(listOf<Episode>())
@@ -33,9 +34,7 @@ class QueueViewModel @Inject constructor(
         viewModelScope.launch {
             repository.getRssQueueFromDatabase().collect { resource ->
                 when (resource) {
-                    is Resource.Loading -> {
-                        // Загрузка данных
-                    }
+                    is Resource.Loading -> { }
                     is Resource.Success -> {
                         val sortedResult = resource.data
                             ?.filter { it.isInQueue }
