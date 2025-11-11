@@ -98,8 +98,11 @@ object AppModule {
         interceptor.level = HttpLoggingInterceptor.Level.BODY
 
         return OkHttpClient.Builder()
-            .connectTimeout(10, TimeUnit.SECONDS)
+            .connectTimeout(30, TimeUnit.SECONDS) // Увеличиваем таймаут соединения
+            .readTimeout(60, TimeUnit.SECONDS) // Увеличиваем таймаут чтения
+            .writeTimeout(60, TimeUnit.SECONDS) // Увеличиваем таймаут записи
             .addInterceptor(interceptor)
+            .retryOnConnectionFailure(true) // Включаем повторные попытки при ошибках соединения
             .build()
     }
 

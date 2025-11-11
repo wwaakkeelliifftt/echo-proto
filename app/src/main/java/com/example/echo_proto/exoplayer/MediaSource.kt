@@ -85,9 +85,20 @@ class MediaSource @Inject constructor(
     fun asMediaSource(dataSourceFactory: DefaultDataSource.Factory): ConcatenatingMediaSource {
         val concatenatingMediaSource = ConcatenatingMediaSource()
         episodes.forEach { episode ->
-            val mediaItem = MediaItem.fromUri(
-                if (episode.isDownloaded) episode.downloadUrl else episode.audioLink
-            )
+            // Преобразуем путь к локальному файлу в file:// URI для корректного воспроизведения
+            val mediaUri = if (episode.isDownloaded && episode.downloadUrl.isNotEmpty()) {
+                val file = java.io.File(episode.downloadUrl)
+                if (file.exists()) {
+                    android.net.Uri.fromFile(file)
+                } else {
+                    Timber.w("Downloaded file not found: ${episode.downloadUrl}, falling back to web URL")
+                    episode.audioLink.toUri()
+                }
+            } else {
+                episode.audioLink.toUri()
+            }
+            
+            val mediaItem = MediaItem.fromUri(mediaUri)
                 .buildUpon()
                 .setMimeType(MimeTypes.AUDIO_MPEG)
                 .build()
@@ -95,7 +106,8 @@ class MediaSource @Inject constructor(
             Timber.d("\n\t\tAS_MEDIA_SOURCE::title=${episode.title},\n\t\t" +
                     "isDownloaded=${episode.isDownloaded},\n\t\t" +
                     "mp3=${episode.downloadUrl},\n\t\t" +
-                    "web=${episode.audioLink}\n\t\t" +
+                    "web=${episode.audioLink},\n\t\t" +
+                    "mediaUri=${mediaUri}\n\t\t" +
                     "mediaItem=${mediaItem}\n\t\t" +
                     "mediaItem/metadata/title=${mediaItem.mediaMetadata.title}\n\t\t" +
                     "mediaItem/metadata/description=${mediaItem.mediaMetadata.description}\n\t\t" +
@@ -151,6 +163,34 @@ class MediaSource @Inject constructor(
                 }
             }
             else -> {}
+        }
+    }
+
+    suspend fun updateEpisodePosition(episodeId: Int, position: Long) {
+        withContext(Dispatchers.IO) {
+            db.dao.updateEpisodePosition(episodeId, position)
+            // Обновляем позицию в текущем списке эпизодов
+            episodes = episodes.map { episode ->
+                if (episode.id == episodeId) {
+                    episode.copy(stopListeningAt = position)
+                } else {
+                    episode
+                }
+            }
+        }
+    }
+
+    suspend fun markEpisodeAsListened(episodeId: Int) {
+        withContext(Dispatchers.IO) {
+            db.dao.markEpisodeAsListened(episodeId)
+            // Обновляем статус в текущем списке эпизодов
+            episodes = episodes.map { episode ->
+                if (episode.id == episodeId) {
+                    episode.copy(hasListened = true, stopListeningAt = 0, isInQueue = false, indexInQueue = -1)
+                } else {
+                    episode
+                }
+            }
         }
     }
 

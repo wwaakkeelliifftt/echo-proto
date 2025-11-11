@@ -33,11 +33,18 @@ class DownloadRepositoryImpl @Inject constructor(
         val file = makeEpisodeFilepath(episode)
 
         Timber.d("🕒 12. DOWN::DownloadRepositoryImpl: Creating HTTP request...")
-        val request = Request.Builder().url(episode.audioLink).build()
+        val requestStartTime = System.currentTimeMillis()
+        val request = Request.Builder()
+            .url(episode.audioLink)
+            .header("Accept", "audio/*")
+            .header("Accept-Encoding", "identity") // Отключаем сжатие для более быстрой загрузки
+            .build()
         Timber.d("🕒 13. DOWN::DownloadRepositoryImpl: Executing request...")
-        Timber.d("🕒 13.1 DOWN::DownloadRepositoryImpl: Request created at ${System.currentTimeMillis()}")
+        Timber.d("🕒 13.1 DOWN::DownloadRepositoryImpl: Request created at $requestStartTime")
+        
         val response = okHttpClient.newCall(request).execute()
-        Timber.d("🕒 13.2 DOWN::DownloadRepositoryImpl: Response received at ${System.currentTimeMillis()}")
+        val responseReceivedTime = System.currentTimeMillis()
+        Timber.d("🕒 13.2 DOWN::DownloadRepositoryImpl: Response received at $responseReceivedTime (${responseReceivedTime - requestStartTime} ms)")
         Timber.d("🕒 14. DOWN::DownloadRepositoryImpl: Got response, success: ${response.isSuccessful}")
 
         if (response.isSuccessful) {
@@ -47,25 +54,43 @@ class DownloadRepositoryImpl @Inject constructor(
                 var downloadedSize = 0L
                 Timber.d("🕒 15. DOWN::DownloadRepositoryImpl: Total size: $totalSize bytes")
 
+                val downloadStartTime = System.currentTimeMillis()
+                // Используем буфер большего размера для более быстрой загрузки
+                val buffer = ByteArray(64 * 1024) // 64KB вместо 8KB
+                var bytesRead: Int
+                var lastEmitTime = System.currentTimeMillis()
+                var progress = 0
+
+                Timber.d("🕒 16. DOWN::DownloadRepositoryImpl: Starting file copy...")
                 body.byteStream().use { input ->
                     FileOutputStream(file).use { output ->
-                        val buffer = ByteArray(8 * 1024)
-                        var bytesRead: Int
-
-                        Timber.d("🕒 16. DOWN::DownloadRepositoryImpl: Starting file copy...")
-                        var progress = 0
+                        // Эмитим начальный прогресс сразу
+                        emit(0)
+                        
                         while (input.read(buffer).also { bytesRead = it } != -1) {
                             output.write(buffer, 0, bytesRead)
                             downloadedSize += bytesRead
-                            val currentProgress = ((downloadedSize * 100) / totalSize).toInt()
-                            if (currentProgress > progress) {
+                            
+                            // Обновляем прогресс только каждые 500мс или при изменении на 1%
+                            val currentTime = System.currentTimeMillis()
+                            val currentProgress = if (totalSize > 0) {
+                                ((downloadedSize * 100) / totalSize).toInt()
+                            } else {
+                                0
+                            }
+                            
+                            // Эмитим прогресс если прошло больше 500мс или прогресс изменился на 1%+
+                            if (currentProgress > progress || (currentTime - lastEmitTime) > 500) {
                                 progress = currentProgress
+                                lastEmitTime = currentTime
+                                emit(progress.coerceIn(0, 99)) // Не эмитим 100% пока не закончится загрузка
                                 "$progress".toLogcat()
                             }
-                            emit(progress)
                         }
                     }
                 }
+                val downloadEndTime = System.currentTimeMillis()
+                Timber.d("🕒 16.1 DOWN::DownloadRepositoryImpl: File copy completed in ${downloadEndTime - downloadStartTime} ms")
             }
 
             Timber.d("🕒 17. DOWN::DownloadRepositoryImpl: Updating database...")

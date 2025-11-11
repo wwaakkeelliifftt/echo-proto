@@ -94,14 +94,12 @@ class MainViewModel @Inject constructor(
         })
     }
 
+    // kazhetsya luchshaya tochka dlya obnovleniya sostoyaniya budet pri dobavlenii v "ochered", no prikruchvat' li eto ko vsem fragmentam..
     fun refreshPlayerPlaylist() {
         // Обновляем подписку на MEDIA_QUEUE_ID для обновления MediaSource и плейлиста
         mediaServiceConnection.unsubscribe(Constants.MEDIA_QUEUE_ID, object : MediaBrowserCompat.SubscriptionCallback() {})
         mediaServiceConnection.subscribe(Constants.MEDIA_QUEUE_ID, object : MediaBrowserCompat.SubscriptionCallback() {
-            override fun onChildrenLoaded(
-                parentId: String,
-                children: MutableList<MediaBrowserCompat.MediaItem>
-            ) {
+            override fun onChildrenLoaded(parentId: String, children: MutableList<MediaBrowserCompat.MediaItem>) {
                 super.onChildrenLoaded(parentId, children)
                 Timber.d("Queue playlist refreshed: ${children.size} items")
             }
@@ -199,8 +197,11 @@ class MainViewModel @Inject constructor(
         Timber.d("::::::isPrepared=$isPrepared")
         Timber.d("\nPLAY-LOG::::::mediaItemId/uri=${mediaItem.id} \n title=${mediaItem.title}\n\n")
         
-        // Обновляем подписку перед воспроизведением, чтобы получить актуальный список
-        refreshPlayerPlaylist()
+        // УБРАНО: refreshPlayerPlaylist() не нужен здесь автоматически
+        // Плейлист обновляется только при переходе на QueueFragment (в onViewCreated)
+        // или при явном обновлении очереди. Это предотвращает множественные переинициализации
+        // плеера и лишние изменения состояния playbackState
+        // refreshPlayerPlaylist()
         
         if (isPrepared && mediaItem.mediaId ==
             currentPlayingEpisodeFromMediaServiceConnection.value?.getString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID)) {

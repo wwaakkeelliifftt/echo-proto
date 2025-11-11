@@ -7,6 +7,8 @@ import android.support.v4.media.session.PlaybackStateCompat
 import android.view.Menu
 import android.view.MenuItem
 import android.view.MotionEvent
+import android.view.animation.AccelerateDecelerateInterpolator
+import android.widget.ImageView
 import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
@@ -224,14 +226,42 @@ class MainActivity : AppCompatActivity() {
         binding.bottomPlayback.tvCurrentTime.text = currentTime
     }
 
+    private var previousPlaybackState: Boolean? = null
     private fun changePlayPauseImageState() {
-        if (playbackState?.isPlaying == true) {
-            binding.bottomPlayback.ivPlayPause.setImageResource(R.drawable.ic_state_pause)
-            binding.player.ivPlayPause.setImageResource(R.drawable.ic_menu_pause)
-        } else {
-            binding.bottomPlayback.ivPlayPause.setImageResource(R.drawable.ic_state_play)
-            binding.player.ivPlayPause.setImageResource(R.drawable.ic_menu_play)
+        val isPlaying = playbackState?.isPlaying == true
+
+        if (previousPlaybackState != isPlaying) {
+            previousPlaybackState = isPlaying
+
+            binding.bottomPlayback.ivPlayPause.animate().cancel()
+            binding.player.ivPlayPause.animate().cancel()
+
+            animatePlayPauseButton(
+                binding.bottomPlayback.ivPlayPause,
+                isPlaying,
+                fromBottomPlayback = true
+            )
+            animatePlayPauseButton(binding.player.ivPlayPause, isPlaying)
         }
+    }
+
+    private fun animatePlayPauseButton(imageView: ImageView, isPlaying: Boolean, fromBottomPlayback: Boolean = false) {
+        imageView.rotation = 0f
+
+        imageView.animate()
+            .rotation(180f)
+            .setDuration(300)
+            .setInterpolator(AccelerateDecelerateInterpolator())
+            .withEndAction {
+                imageView.rotation = 0f
+                val iconRes = if (isPlaying) {
+                    if (fromBottomPlayback) R.drawable.ic_state_pause else R.drawable.ic_menu_pause
+                } else {
+                    if (fromBottomPlayback) R.drawable.ic_state_play else R.drawable.ic_menu_play
+                }
+                imageView.setImageResource(iconRes)
+            }
+            .start()
     }
 
     private fun bindEpisodeData(episode: Episode) {

@@ -55,8 +55,12 @@ class QueueFragment : Fragment(), ItemZoneTouchHandler { //, ToolbarConfigurator
 
         setupRecyclerView()
         viewModel.updateQueueRss()
-        
-        // Обновляем подписку на MEDIA_QUEUE_ID для обновления MediaSource
+    }
+    
+    override fun onResume() {
+        super.onResume()
+        // Обновляем плейлист при возврате на фрагмент очереди
+        // updatePlaylist() в MediaService проверит, нужно ли реальное обновление
         mainViewModel.refreshPlayerPlaylist()
     }
 

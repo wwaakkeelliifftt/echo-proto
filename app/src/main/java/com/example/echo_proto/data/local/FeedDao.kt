@@ -49,6 +49,12 @@ interface FeedDao {
     @Query("SELECT * FROM episodes_table WHERE id = :id")
     fun getFlowEpisodeById(id: Int): Flow<EpisodeEntity>
 
+    @Query("UPDATE episodes_table SET stopListeningAt = :position WHERE id = :episodeId")
+    suspend fun updateEpisodePosition(episodeId: Int, position: Long)
+
+    @Query("UPDATE episodes_table SET hasListened = 1, stopListeningAt = 0, isInQueue = 0, indexInQueue = -1 WHERE id = :episodeId")
+    suspend fun markEpisodeAsListened(episodeId: Int)
+
     @Delete
     suspend fun deleteEpisode(episode: EpisodeEntity)
 }

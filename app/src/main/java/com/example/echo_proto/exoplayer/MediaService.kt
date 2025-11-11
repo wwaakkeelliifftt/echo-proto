@@ -35,6 +35,11 @@ class MediaService : MediaBrowserServiceCompat() {
 
     private val serviceJob = Job()
     private val serviceScope = CoroutineScope(Dispatchers.Main + serviceJob)
+    
+    // Переменные для отслеживания последнего состояния playbackState
+    // чтобы не обновлять его без необходимости
+    private var lastPlaybackState: Int = PlaybackStateCompat.STATE_NONE
+    private var lastPlaybackPosition: Long = 0L
 
     @Inject lateinit var mediaSource: MediaSource
     @Inject lateinit var dataSourceFactory: DefaultDataSource.Factory
@@ -109,19 +114,43 @@ class MediaService : MediaBrowserServiceCompat() {
                         else -> PlaybackStateCompat.STATE_NONE
                     }
                     
-                    mediaSession.setPlaybackState(
-                        PlaybackStateCompat.Builder()
-                            .setState(playbackState, position, exoPlayer.playbackParameters.speed)
-                            .setActions(
-                                PlaybackStateCompat.ACTION_PLAY or
-                                PlaybackStateCompat.ACTION_PAUSE or
-                                PlaybackStateCompat.ACTION_PLAY_PAUSE or
-                                PlaybackStateCompat.ACTION_SKIP_TO_NEXT or
-                                PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS or
-                                PlaybackStateCompat.ACTION_SEEK_TO
-                            )
-                            .build()
-                    )
+                    // Обновляем playbackState только если состояние или позиция действительно изменились
+                    // Используем порог для позиции (1 секунда), чтобы не обновлять слишком часто из-за небольших изменений
+                    val positionChanged = kotlin.math.abs(position - lastPlaybackPosition) > 1000
+                    val stateChanged = playbackState != lastPlaybackState
+                    
+                    if (stateChanged || positionChanged) {
+                        lastPlaybackState = playbackState
+                        lastPlaybackPosition = position
+                        
+                        mediaSession.setPlaybackState(
+                            PlaybackStateCompat.Builder()
+                                .setState(playbackState, position, exoPlayer.playbackParameters.speed)
+                                .setActions(
+                                    PlaybackStateCompat.ACTION_PLAY or
+                                    PlaybackStateCompat.ACTION_PAUSE or
+                                    PlaybackStateCompat.ACTION_PLAY_PAUSE or
+                                    PlaybackStateCompat.ACTION_SKIP_TO_NEXT or
+                                    PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS or
+                                    PlaybackStateCompat.ACTION_SEEK_TO
+                                )
+                                .build()
+                        )
+                        
+                        // Сохраняем позицию в БД каждые 5 секунд
+                        if (positionChanged && currentPlayingEpisode != null && playWhenReady) {
+                            val currentEpisodeId = currentPlayingEpisode?.id
+                            if (currentEpisodeId != null && position > 0) {
+                                // Сохраняем позицию в миллисекундах
+                                mediaSource.updateEpisodePosition(currentEpisodeId, position)
+                                // Также сохраняем в SharedPreferences для быстрого доступа
+                                sharedPreferences.edit()
+                                    .putString(Constants.SHARED_PREFERENCE_LAST_EPISODE_ID_KEY, currentEpisodeId.toString())
+                                    .putLong(Constants.SHARED_PREFERENCE_LAST_EPISODE_PAUSE_TIME_KEY, position)
+                                    .apply()
+                            }
+                        }
+                    }
                 } catch (e: Exception) {
                     Timber.e(e, "Error updating playback state position")
                 }
@@ -132,6 +161,24 @@ class MediaService : MediaBrowserServiceCompat() {
 
     override fun onDestroy() {
         super.onDestroy()
+        // Сохраняем последнюю позицию перед уничтожением сервиса
+        try {
+            val position = exoPlayer.currentPosition
+            val currentEpisodeId = currentPlayingEpisode?.id
+            if (currentEpisodeId != null && position > 0) {
+                // Используем runBlocking для синхронного сохранения
+                runBlocking(Dispatchers.IO) {
+                    mediaSource.updateEpisodePosition(currentEpisodeId, position)
+                }
+                sharedPreferences.edit()
+                    .putString(Constants.SHARED_PREFERENCE_LAST_EPISODE_ID_KEY, currentEpisodeId.toString())
+                    .putLong(Constants.SHARED_PREFERENCE_LAST_EPISODE_PAUSE_TIME_KEY, position)
+                    .apply()
+                Timber.d("MediaService: Saved playback position onDestroy: episodeId=$currentEpisodeId, position=$position")
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Error saving playback position onDestroy")
+        }
         serviceScope.cancel()
         exoPlayer.removeListener(mediaPlayerEventListener)
         exoPlayer.release()
@@ -139,7 +186,76 @@ class MediaService : MediaBrowserServiceCompat() {
 
     override fun onTaskRemoved(rootIntent: Intent?) {
         super.onTaskRemoved(rootIntent)
+        // Сохраняем позицию перед остановкой
+        try {
+            val position = exoPlayer.currentPosition
+            val currentEpisodeId = currentPlayingEpisode?.id
+            if (currentEpisodeId != null && position > 0) {
+                runBlocking(Dispatchers.IO) {
+                    mediaSource.updateEpisodePosition(currentEpisodeId, position)
+                }
+                sharedPreferences.edit()
+                    .putString(Constants.SHARED_PREFERENCE_LAST_EPISODE_ID_KEY, currentEpisodeId.toString())
+                    .putLong(Constants.SHARED_PREFERENCE_LAST_EPISODE_PAUSE_TIME_KEY, position)
+                    .apply()
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Error saving playback position onTaskRemoved")
+        }
         exoPlayer.stop()
+    }
+
+    fun onEpisodePlaybackEnded() {
+        serviceScope.launch {
+            try {
+                val currentEpisodeId = currentPlayingEpisode?.id
+                val currentEpisodeIndex = exoPlayer.currentMediaItemIndex
+                if (currentEpisodeId != null) {
+                    Timber.d("Episode playback ended: episodeId=$currentEpisodeId, index=$currentEpisodeIndex")
+                    // Помечаем эпизод как прослушанный и удаляем из очереди
+                    mediaSource.markEpisodeAsListened(currentEpisodeId)
+                    // Обновляем плейлист, убирая прослушанный эпизод
+                    mediaSource.refreshMediaData()
+                    
+                    // Обновляем плейлист в ExoPlayer после удаления прослушанного эпизода
+                    val wasPlaying = exoPlayer.isPlaying
+                    
+                    // Обновляем плейлист ExoPlayer
+                    if (mediaSource.episodes.isNotEmpty()) {
+                        exoPlayer.setMediaSource(mediaSource.asMediaSource(dataSourceFactory = dataSourceFactory))
+                        exoPlayer.prepare()
+                        
+                        // После удаления текущего эпизода, следующий эпизод займет его индекс
+                        // Если текущий был не последним, следующий будет на том же индексе
+                        val nextEpisodeIndex = if (currentEpisodeIndex < mediaSource.episodes.size) {
+                            currentEpisodeIndex
+                        } else {
+                            // Если текущий был последним, берем предыдущий (или 0 если список пуст)
+                            (mediaSource.episodes.size - 1).coerceAtLeast(0)
+                        }
+                        
+                        if (nextEpisodeIndex >= 0 && nextEpisodeIndex < mediaSource.episodes.size) {
+                            val nextEpisode = mediaSource.episodes[nextEpisodeIndex]
+                            currentPlayingEpisode = nextEpisode
+                            exoPlayer.seekTo(nextEpisodeIndex, 0L)
+                            exoPlayer.playWhenReady = wasPlaying
+                            Timber.d("Auto-playing next episode: ${nextEpisode.title}")
+                        } else {
+                            // Если очередь пуста, останавливаем воспроизведение
+                            exoPlayer.stop()
+                            currentPlayingEpisode = null
+                        }
+                    } else {
+                        // Если очередь пуста, останавливаем воспроизведение
+                        exoPlayer.stop()
+                        currentPlayingEpisode = null
+                        Timber.d("Queue is empty, stopping playback")
+                    }
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Error handling episode playback ended")
+            }
+        }
     }
 
     private inner class MusicQueueNavigator : TimelineQueueNavigator(mediaSession) {
@@ -162,13 +278,27 @@ class MediaService : MediaBrowserServiceCompat() {
             return
         }
 
-        val episodeUrl = episodes[currentEpisodeIndex].audioLink
-        if (!NetworkUtils.isUrlAvailable(episodeUrl)) {
-            Timber.e("Media URL is not available: $episodeUrl")
-            mediaSession.sendSessionEvent(Constants.EVENT_AUDIO_UNAVAILABLE, Bundle().apply {
-                putString("title", episodes[currentEpisodeIndex].title)
-            })
-            return
+        // Проверяем доступность URL только для веб-ссылок, не для локальных файлов
+        val currentEpisode = episodes[currentEpisodeIndex]
+        if (!currentEpisode.isDownloaded) {
+            val episodeUrl = currentEpisode.audioLink
+            if (!NetworkUtils.isUrlAvailable(episodeUrl)) {
+                Timber.e("Media URL is not available: $episodeUrl")
+                mediaSession.sendSessionEvent(Constants.EVENT_AUDIO_UNAVAILABLE, Bundle().apply {
+                    putString("title", currentEpisode.title)
+                })
+                return
+            }
+        } else {
+            // Для локальных файлов проверяем существование файла
+            val file = java.io.File(currentEpisode.downloadUrl)
+            if (!file.exists()) {
+                Timber.e("Downloaded file not found: ${currentEpisode.downloadUrl}")
+                mediaSession.sendSessionEvent(Constants.EVENT_AUDIO_UNAVAILABLE, Bundle().apply {
+                    putString("title", currentEpisode.title)
+                })
+                return
+            }
         }
 
         exoPlayer.apply {
@@ -200,13 +330,42 @@ class MediaService : MediaBrowserServiceCompat() {
             mediaSource.refreshMediaData()
             // Обновляем плейлист ExoPlayer если он уже инициализирован
             if (isPlayerInitialized && mediaSource.episodes.isNotEmpty()) {
-                val currentMediaItem = exoPlayer.currentMediaItemIndex
+                val currentMediaItemIndex = exoPlayer.currentMediaItemIndex
                 val currentPosition = exoPlayer.currentPosition
-                exoPlayer.setMediaSource(mediaSource.asMediaSource(dataSourceFactory = dataSourceFactory))
-                exoPlayer.prepare()
-                // Восстанавливаем позицию если возможно
-                if (currentMediaItem < mediaSource.episodes.size) {
-                    exoPlayer.seekTo(currentMediaItem, currentPosition)
+                val wasPlaying = exoPlayer.isPlaying
+                val currentEpisodes = mediaSource.episodes
+                
+                // Проверяем, изменился ли плейлист перед переинициализацией
+                // Сравниваем размер и текущий элемент (если возможно)
+                val playlistSizeChanged = currentEpisodes.size != exoPlayer.mediaItemCount
+                
+                // Если размер изменился, точно нужно обновить
+                // Если размер не изменился, но текущий индекс невалидный, тоже нужно обновить
+                val needsUpdate = playlistSizeChanged || 
+                        currentMediaItemIndex < 0 || 
+                        currentMediaItemIndex >= currentEpisodes.size
+                
+                if (needsUpdate) {
+                    Timber.d("Updating playlist: ${currentEpisodes.size} episodes (was ${exoPlayer.mediaItemCount}), currentIndex=$currentMediaItemIndex, wasPlaying=$wasPlaying")
+                    exoPlayer.setMediaSource(mediaSource.asMediaSource(dataSourceFactory = dataSourceFactory))
+                    exoPlayer.prepare()
+                    // Восстанавливаем позицию если возможно
+                    val targetIndex = if (currentMediaItemIndex >= 0 && currentMediaItemIndex < currentEpisodes.size) {
+                        currentMediaItemIndex
+                    } else if (currentEpisodes.isNotEmpty()) {
+                        // Если индекс невалидный, используем первый элемент
+                        0
+                    } else {
+                        -1
+                    }
+                    
+                    if (targetIndex >= 0) {
+                        exoPlayer.seekTo(targetIndex, if (targetIndex == currentMediaItemIndex) currentPosition else 0L)
+                        // Восстанавливаем состояние воспроизведения после обновления
+                        exoPlayer.playWhenReady = wasPlaying
+                    }
+                } else {
+                    Timber.d("Playlist unchanged (${currentEpisodes.size} episodes), skipping update to prevent unnecessary state changes")
                 }
             }
         }
@@ -253,8 +412,11 @@ class MediaService : MediaBrowserServiceCompat() {
                             return@whenReady
                         }
                         result.sendResult(mediaSource.asMediaItems())
-                        // Обновляем плейлист если уже инициализирован
-                        updatePlaylist()
+                        // Обновляем плейлист только если плеер уже инициализирован
+                        // updatePlaylist() сам проверит, нужно ли обновление
+                        if (isPlayerInitialized) {
+                            updatePlaylist()
+                        }
                     }
                 }
             }
@@ -278,21 +440,28 @@ class MediaService : MediaBrowserServiceCompat() {
     private fun startPlaybackFromLastPosition() {
         if (isPlayerInitialized) return
 
-        val lastEpisodeId = sharedPreferences.getString(Constants.SHARED_PREFERENCE_LAST_EPISODE_ID_KEY, "")
-        val lastPosition = sharedPreferences.getLong(Constants.SHARED_PREFERENCE_LAST_EPISODE_PAUSE_TIME_KEY, 0L)
+        serviceScope.launch {
+            // Сначала пытаемся найти эпизод по ID из SharedPreferences
+            val lastEpisodeId = sharedPreferences.getString(Constants.SHARED_PREFERENCE_LAST_EPISODE_ID_KEY, "")
+            val lastPositionFromPrefs = sharedPreferences.getLong(Constants.SHARED_PREFERENCE_LAST_EPISODE_PAUSE_TIME_KEY, 0L)
+            
+            val episode = lastEpisodeId?.takeIf { it.isNotBlank() }
+                ?.toIntOrNull()
+                ?.let { id -> mediaSource.episodes.find { it.id == id } }
+                ?: mediaSource.episodes.firstOrNull()
 
-        val episode = lastEpisodeId?.takeIf { it.isNotBlank() }
-            ?.let { id -> mediaSource.episodes.find { it.mediaId == id } }
-            ?: mediaSource.episodes.firstOrNull()
-
-        episode?.let {
-            serviceScope.launch {
+            episode?.let {
+                // Используем позицию из БД (stopListeningAt), если она есть, иначе из SharedPreferences
+                val positionToUse = if (it.stopListeningAt > 0) it.stopListeningAt else lastPositionFromPrefs
+                
+                Timber.d("Starting playback from last position: episodeId=${it.id}, position=$positionToUse")
                 preparePlayer(
                     episodes = mediaSource.episodes,
                     episodeToPlay = it,
-                    episodeTimePosition = lastPosition,
+                    episodeTimePosition = positionToUse,
                     playNow = false
                 )
+                currentPlayingEpisode = it
                 isPlayerInitialized = true
             }
         }

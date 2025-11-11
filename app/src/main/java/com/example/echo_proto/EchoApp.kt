@@ -6,6 +6,7 @@ import androidx.work.Configuration
 import androidx.work.ListenableWorker
 import androidx.work.WorkerFactory
 import androidx.work.WorkerParameters
+import com.example.echo_proto.data.local.FeedDatabase
 import com.example.echo_proto.domain.worker.DownloadRepository
 import com.example.echo_proto.domain.worker.DownloadWorker
 import dagger.hilt.android.HiltAndroidApp
@@ -31,13 +32,14 @@ class EchoApp: Application(), Configuration.Provider {
 }
 
 class DownloadWorkerFactory @Inject constructor(
-    private val repository: DownloadRepository
+    private val repository: DownloadRepository,
+    private val db: FeedDatabase
 ): WorkerFactory() {
     override fun createWorker(
         appContext: Context,
         workerClassName: String,
         workerParameters: WorkerParameters
     ): ListenableWorker? {
-        return DownloadWorker(appContext, workerParameters, repository)
+        return DownloadWorker(appContext, workerParameters, repository, db)
     }
 }

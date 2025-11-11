@@ -49,18 +49,27 @@
                     app:layout_constraintBottom_toBottomOf="@id/tvPubDateAndSize"
                     app:layout_constraintEnd_toEndOf="parent">
                         <ImageView
+                            android:id="@+id/ivDownload"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:src="@drawable/button_ic_download"
+                            android:padding="@dimen/dp_micro_less"
+                            android:alpha="0.2"
+                            app:tint="@color/green_medium" />
+                        <ImageView
                             android:id="@+id/ivFavorite"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:src="@drawable/ic_favorite_heart"
                             android:padding="@dimen/dp_micro_less"
-                            android:alpha="0.1"
+                            android:alpha="0.2"
                             app:tint="@color/pink_a400" />
                         <ImageView
                             android:id="@+id/ivQueue"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:src="@drawable/ic_queue_playlist"
+                            android:alpha="0.3"
                             android:padding="@dimen/dp_micro_less"
                             app:tint="@color/purple_200" />
                         <ImageView

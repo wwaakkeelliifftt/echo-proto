@@ -41,6 +41,10 @@ class MediaPlayerEventListener(
             mediaService.stopForeground(false)
             Timber.d("Player state changed: ::if (playbackState == Player.STATE_READY && !playWhenReady)::  ->  mediaService.stopForeground(false)\n")
         }
+        // Обрабатываем завершение воспроизведения эпизода
+        if (playbackState == Player.STATE_ENDED) {
+            mediaService.onEpisodePlaybackEnded()
+        }
     }
 
     override fun onTimelineChanged(timeline: Timeline, reason: Int) {

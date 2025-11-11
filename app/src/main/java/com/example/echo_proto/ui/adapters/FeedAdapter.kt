@@ -2,9 +2,12 @@ package com.example.echo_proto.ui.adapters
 
 import android.annotation.SuppressLint
 import android.view.*
+import android.widget.ImageButton
+import android.widget.ImageView
 import androidx.recyclerview.widget.AsyncListDiffer
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
+import com.example.echo_proto.R
 import com.example.echo_proto.databinding.ItemEpisodeBinding
 import com.example.echo_proto.domain.model.Episode
 import com.example.echo_proto.util.getDateFromLong
@@ -70,12 +73,29 @@ class FeedAdapter(
 
             ivSelected.visibility = if (episode.isSelected) View.VISIBLE else View.INVISIBLE
             ivQueue.visibility = if (episode.isInQueue) View.VISIBLE else View.INVISIBLE
+            
+            // Показываем иконку скачивания для скачанных эпизодов
+            ivDownload.alpha = if (episode.isDownloaded) 1.0f else 0.2f
+            
+            // Приглушаем отображение прослушанных эпизодов
+            if (episode.hasListened) {
+                root.alpha = 0.5f
+                tvTitle.alpha = 0.7f
+                tvPubDateAndSize.alpha = 0.5f
+                tvTime.alpha = 0.5f
+            } else {
+                root.alpha = 1.0f
+                tvTitle.alpha = 1.0f
+                tvPubDateAndSize.alpha = 1.0f
+                tvTime.alpha = 1.0f
+            }
 
             btnNavigateToEpisodeDetail.setOnClickListener {
                 itemZoneHandler?.navigateToEpisodeDetailScreen(episode = episode)
                 Timber.d("onEpisodeNavClick: episode=${episode.title}")
             }
-            btnPlayPause.setOnClickListener {
+
+            btnPlayPause.setOnClickListener { pp ->
                 itemZoneHandler?.playPauseStateChanger(episode = episode)
             }
 
@@ -105,5 +125,14 @@ class FeedAdapter(
 
     private var onItemClickListener: ((Episode) -> Unit)? = null
     fun setClickListener(listener: (Episode) -> Unit) { onItemClickListener = listener }
+
+    private fun animatePlayPauseRotation(btn: View?) {
+        val button = btn as? ImageButton ?: return
+        button.animate()
+            .rotationBy(360f)
+            .setDuration(666)
+            .setInterpolator(android.view.animation.AccelerateDecelerateInterpolator())
+            .start()
+    }
 
 }

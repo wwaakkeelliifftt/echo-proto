@@ -9,6 +9,8 @@ object Constants {
     const val MUSIC_SERVICE = "musicService"
     const val NOTIFICATION_CHANNEL_ID = "notification_channel_id"
     const val NOTIFICATION_ID = 1
+    const val DOWNLOAD_NOTIFICATION_CHANNEL_ID = "download_notification_channel_id"
+    const val DOWNLOAD_NOTIFICATION_ID = 2
 
     const val MEDIA_ROOT_ID = "root_id"
     const val MEDIA_QUEUE_ID = "queue_id"
