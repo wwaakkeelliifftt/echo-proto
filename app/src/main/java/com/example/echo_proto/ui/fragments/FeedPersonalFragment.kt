@@ -31,13 +31,8 @@ class FeedPersonalFragment: Fragment(), ItemZoneTouchHandler {
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         _binding = FragmentFeedPersonalBinding.inflate(layoutInflater)
-//        setHasOptionsMenu(true)
+        // setHasOptionsMenu будет установлен хостом ViewPager
         return binding.root
-    }
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-//        setHasOptionsMenu(true)
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -84,6 +79,38 @@ class FeedPersonalFragment: Fragment(), ItemZoneTouchHandler {
     private fun swipeToUpdate() {
         val stopRefresh = viewModel.updateFeedRss()
         binding.swipeRefreshFeedPersonal.isRefreshing = stopRefresh
+    }
+
+    override fun onPrepareOptionsMenu(menu: Menu) {
+        super.onPrepareOptionsMenu(menu)
+        menu.clear()
+        activity?.menuInflater?.inflate(R.menu.menu_top_feed_personal, menu)
+
+        val searchItem: MenuItem = menu.findItem(R.id.mabFeedPersSearch)
+        val searchView: SearchView = (searchItem.actionView as SearchView)
+        searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+            override fun onQueryTextSubmit(query: String?): Boolean {
+                if (!query.isNullOrEmpty()) {
+                    viewModel.searchByQuery(query)
+                }
+                return true
+            }
+            override fun onQueryTextChange(query: String?): Boolean {
+                if (!query.isNullOrEmpty()) {
+                    viewModel.searchByQuery(query)
+                } else if (query?.isEmpty() == true) {
+                    viewModel.refreshRssFeedPersonal()
+                }
+                return true
+            }
+        })
+
+        val btnFilter = menu.findItem(R.id.mabFeedPersFilter)
+        btnFilter.setOnMenuItemClickListener {
+            val dialog = FeedFilterListDialogFragment(requireContext())
+            dialog.show(childFragmentManager, Constants.FEED_FILTER_DIALOG_TAG) // parentFragmentManager <-- crash with
+            true
+        }
     }
 
     override fun onPause() {

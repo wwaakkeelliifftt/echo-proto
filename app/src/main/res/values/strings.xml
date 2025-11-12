@@ -17,5 +17,6 @@
 
     <string name="notification_channel_name">Echo Podcast Player Channel</string>
     <string name="notification_channel_description">Shows the currently playing podcast</string>
+    <string name="youtube_open_error">Не удается открыть видео в YouTube</string>
 
 </resources>

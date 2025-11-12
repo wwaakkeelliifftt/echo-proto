@@ -1,23 +1,24 @@
 package com.example.echo_proto.ui.fragments
 
-import android.Manifest
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
+import android.view.Menu
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
-import androidx.work.Constraints
 import androidx.work.Data
-import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
-import androidx.work.OutOfQuotaPolicy
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
-import com.example.echo_proto.MainActivity
+import com.example.echo_proto.R
 import com.example.echo_proto.databinding.FragmentEpisodeDetailBinding
 import com.example.echo_proto.domain.model.Episode
 import com.example.echo_proto.domain.worker.DownloadWorker
@@ -25,10 +26,10 @@ import com.example.echo_proto.ui.viewmodels.EpisodeDetailViewModel
 import com.example.echo_proto.ui.viewmodels.MainViewModel
 import com.example.echo_proto.util.Resource
 import com.example.echo_proto.util.getDateFromLong
-import com.example.echo_proto.util.requestPermissionHelper
 import dagger.hilt.android.AndroidEntryPoint
 import timber.log.Timber
 import java.util.UUID
+import androidx.core.net.toUri
 
 @AndroidEntryPoint
 class EpisodeDetailFragment : Fragment() {
@@ -38,7 +39,7 @@ class EpisodeDetailFragment : Fragment() {
 
     private val mainViewModel by activityViewModels<MainViewModel>()
     private val viewModel by viewModels<EpisodeDetailViewModel>()
-
+    private var currentEpisode: Episode? = null
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         _binding = FragmentEpisodeDetailBinding.inflate(layoutInflater)
@@ -47,15 +48,10 @@ class EpisodeDetailFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
         subscribeToObservers()
     }
 
     private fun subscribeToObservers() {
-//        viewModel.currentEpisode.observe(viewLifecycleOwner) { episode ->
-//            updateEpisodeInfo(episode = episode)
-//        }
-
         viewLifecycleOwner.lifecycleScope.launchWhenStarted {
             viewModel.curStateFlowEpisode.collect { result ->
                 when (result) {
@@ -66,50 +62,37 @@ class EpisodeDetailFragment : Fragment() {
         }
     }
 
-    private fun updateEpisodeInfo(episode: Episode) {
-        val title = episode.title
-        val description = episode.description
+    private fun updateEpisodeInfo(episode: Episode) = with(binding) {
+        currentEpisode = episode
+
+        tvTitle.text = episode.title
+        tvDescription.text = episode.description
         val date = episode.timestamp.getDateFromLong()
         val size = 66
-        val isDownloaded = episode.isDownloaded
+        tvPubDateAndSize.text = "$date\n${size}mb"
 
-        binding.apply {
-            tvTitle.text = title
-            tvDescription.text = description
-            tvPubDateAndSize.text = "$date\n${size}mb"
-
-            btnAddToQueue.apply {
-
-            }
-            btnAddToQueue.isChecked = episode.isInQueue
-            btnAddToQueue.setOnClickListener {
-                viewModel.changeEpisodeQueueStatus()
-            }
-
-            btnDownload.isChecked = isDownloaded
-            btnDownload.text = if (isDownloaded) "Delete" else "Download"
-            btnDownload.setOnClickListener {
-                Timber.d("EpisodeDetailFragment::btnDownload=${episode.isDownloaded}\n" +
-                        "audioLink=${episode.audioLink}\n" +
-                        "downloadUrl=${episode.downloadUrl}\n")
-                if (isDownloaded) {
-                    viewModel.deleteEpisodeFromDevice(episodeId = episode.id)
-                } else {
-                    downloadEpisode(episodeId = episode.id)
-                }
-            }
-
-            // need to check this "check-state"
-            btnPlay.isChecked = episode.isDownloaded == false &&
-                    mainViewModel.currentPlayingEpisodeFromMediaServiceConnection.value?.description?.mediaId == episode.mediaId
-            btnPlay.setOnClickListener {
-                mainViewModel.playOrToggleEpisode(mediaItem = episode)
-                Toast.makeText(requireContext(), "press play??", Toast.LENGTH_SHORT).show()
-            }
-
+        btnAddToQueue.apply {
+            isChecked = episode.isInQueue
+            setOnClickListener { viewModel.changeEpisodeQueueStatus() }
         }
 
+        btnDownload.apply {
+            isChecked = episode.isDownloaded
+            text = if (episode.isDownloaded) "Delete" else "Download"
+            setOnClickListener {
+                if (episode.isDownloaded) viewModel.deleteEpisodeFromDevice(episodeId = episode.id)
+                else downloadEpisode(episodeId = episode.id)
+            }
+        }
+
+        val curPlayEpisodeMediaId = mainViewModel.currentPlayingEpisodeFromMediaServiceConnection.value?.description?.mediaId
+        val isEpisodePlaying = !episode.isDownloaded && curPlayEpisodeMediaId == episode.mediaId
+        btnPlay.apply {
+            isChecked = isEpisodePlaying
+            setOnClickListener { mainViewModel.playOrToggleEpisode(mediaItem = episode) }
+        }
     }
+
 
     private fun downloadEpisode(episodeId: Int) {
         Timber.d("🕒 1. DOWN::EpisodeDetailFragment: downloadEpisode() called")
@@ -154,6 +137,72 @@ class EpisodeDetailFragment : Fragment() {
                     else -> Unit
                 }
             }
+    }
+
+
+    override fun onResume() {
+        super.onResume()
+        (activity as? AppCompatActivity)?.setSupportActionBar(binding.toolbar)
+        setHasOptionsMenu(true)
+        activity?.invalidateOptionsMenu()
+    }
+
+    override fun onPrepareOptionsMenu(menu: Menu) {
+        Timber.d(">>>>>>>>>>>>>>>--------------onPrepareOptionsMenu::::EPISODE_DETAIL_FRAGMENT")
+        menu.clear()
+        requireActivity().menuInflater.inflate(R.menu.menu_top_episode_detail, menu)
+
+        val btnGoToYoutube = menu.findItem(R.id.mabEpisodeYoutubeLink)
+        btnGoToYoutube.setOnMenuItemClickListener {
+            val linkFromEpisode = currentEpisode?.videoLink ?: ""
+            if (isYoutubeLink(linkFromEpisode)) {
+                openYoutube(linkFromEpisode)
+            }
+            true
+        }
+        super.onPrepareOptionsMenu(menu)
+    }
+
+    private fun isYoutubeLink(url: String): Boolean {
+        return url.contains("youtube.com") || url.contains("youtu.be")
+    }
+
+    private fun openYoutube(url: String) {
+        try {
+            showYoutubeConfirmDialog(url)
+        } catch (e: Exception) {
+            Timber.e(e, "Ошибка со ссылкой на ютуб")
+            Toast.makeText(requireContext(), R.string.youtube_open_error, Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun showYoutubeConfirmDialog(youtubeUrl: String) {
+        AlertDialog.Builder(requireContext())
+            .setTitle("Открыть оригинальное видео в YouTube?")
+            .setMessage(youtubeUrl)
+            .setPositiveButton("Открыть") { dialog, _ ->
+                openYoutubeIntent(youtubeUrl)
+                dialog.dismiss()
+            }
+            .setNegativeButton("Отмена") { dialog, _ ->
+                dialog.dismiss()
+            }
+            .create()
+            .show()
+    }
+
+    private fun openYoutubeIntent(youtubeUrl: String): Boolean {
+        return try {
+            val intent = Intent(Intent.ACTION_VIEW, youtubeUrl.toUri()).apply {
+                addCategory(Intent.CATEGORY_BROWSABLE)
+            }
+            startActivity(intent)
+            true
+        } catch (e: Exception) {
+            Timber.e(e, "Ошибка при открытии интента на ютуб")
+            Toast.makeText(requireContext(), R.string.youtube_open_error, Toast.LENGTH_SHORT).show()
+            false
+        }
     }
 
     override fun onDestroyView() {

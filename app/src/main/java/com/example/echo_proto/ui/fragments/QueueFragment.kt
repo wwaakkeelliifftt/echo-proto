@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.view.*
 import android.widget.ImageView
 import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SearchView
 import androidx.appcompat.widget.Toolbar
 import androidx.core.content.res.ResourcesCompat
@@ -44,12 +45,12 @@ class QueueFragment : Fragment(), ItemZoneTouchHandler { //, ToolbarConfigurator
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         _binding = FragmentQueueBinding.inflate(layoutInflater)
-        setHasOptionsMenu(true)
         return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        
         subscribeToObservers()
         mainViewModel.mediaIdMapper(Constants.MEDIA_QUEUE_ID)
 
@@ -59,6 +60,11 @@ class QueueFragment : Fragment(), ItemZoneTouchHandler { //, ToolbarConfigurator
     
     override fun onResume() {
         super.onResume()
+        // Убеждаемся, что toolbar установлен
+        (activity as? AppCompatActivity)?.setSupportActionBar(binding.toolbar)
+        setHasOptionsMenu(true)
+        activity?.invalidateOptionsMenu()
+        
         // Обновляем плейлист при возврате на фрагмент очереди
         // updatePlaylist() в MediaService проверит, нужно ли реальное обновление
         mainViewModel.refreshPlayerPlaylist()

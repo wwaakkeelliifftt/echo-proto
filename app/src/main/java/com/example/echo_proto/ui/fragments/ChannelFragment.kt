@@ -28,7 +28,7 @@ class ChannelFragment : Fragment() {
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         _binding = FragmentChannelsBinding.inflate(layoutInflater)
-        setHasOptionsMenu(true)
+        // setHasOptionsMenu будет установлен хостом ViewPager
         return binding.root
     }
 

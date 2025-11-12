@@ -42,7 +42,7 @@ class FeedFragment : Fragment(), ItemZoneTouchHandler { //, ToolbarConfigurator 
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         _binding = FragmentFeedBinding.inflate(layoutInflater)
-        setHasOptionsMenu(true)
+        // setHasOptionsMenu будет установлен хостом ViewPager
         return binding.root
     }
 
@@ -82,7 +82,7 @@ class FeedFragment : Fragment(), ItemZoneTouchHandler { //, ToolbarConfigurator 
 
     override fun onResume() {
         super.onResume()
-        setHasOptionsMenu(true)
+        // Меню управляется хостом ViewPager
     }
 
     private fun setupRecyclerView() {

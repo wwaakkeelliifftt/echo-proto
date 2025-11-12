@@ -51,27 +51,34 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
 
         setContentView(binding.root)
-        setSupportActionBar(binding.toolbar)
+        // Toolbar теперь управляется фрагментами
 
 
         val navController = this.findNavController(R.id.nav_host_fragment_container)
         binding.bottomNavigationView.setupWithNavController(navController)
-//        val appBarConfig = AppBarConfiguration.Builder(navGraph = navController.graph)
-//            .build()
 
         setupBottomSheet()
         setupClickListeners()
         setupSeekbarListeners()
         subscribeToObservers()
 
+        // Отслеживаем навигацию для обновления toolbar
         navController.addOnDestinationChangedListener { _, destination, _ ->
+            // Фрагменты сами управляют своим toolbar через setSupportActionBar
+            // Здесь мы только логируем переходы (можно убрать Toast если не нужно)
             when (destination.id) {
                 R.id.queueFragment -> {
-                    Toast.makeText(this, "ON_QUEUE", Toast.LENGTH_SHORT).show()
+                    // Toolbar будет установлен в QueueFragment.onResume()
                 }
-                R.id.hostFeedPager -> Toast.makeText(this, "ON_FEED_HOST", Toast.LENGTH_SHORT).show()
-                R.id.hostChannelsPager -> Toast.makeText(this, "ON_CHANNEL_HOST", Toast.LENGTH_SHORT).show()
-                R.id.downloadsFragment -> Toast.makeText(this, "ON_DOWNLOADS", Toast.LENGTH_SHORT).show()
+                R.id.hostFeedPager -> {
+                    // Toolbar будет установлен в HostFeedPager.onResume()
+                }
+                R.id.hostChannelsPager -> {
+                    // Toolbar будет установлен в HostChannelsPager.onResume()
+                }
+                R.id.downloadsFragment -> {
+                    // Toolbar будет установлен в DownloadsFragment.onResume()
+                }
             }
         }
 
@@ -284,23 +291,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // menu appbar setup
-    override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        menuInflater.inflate(R.menu.menu_top_host_activity, menu)
-        return true
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        when (item.itemId) {
-            R.id.mabSettings -> Toast.makeText(this, "menu: Settings", Toast.LENGTH_SHORT).show()
-            R.id.mabAbout -> Snackbar.make(
-                window.decorView.rootView, //<- works but not exactly!
-                "menu: About",
-                Snackbar.LENGTH_LONG
-            ).show()
-        }
-        return true
-    }
+    // Меню теперь управляется фрагментами через их toolbar
 
     private fun removeObservers() {
 

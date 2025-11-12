@@ -41,7 +41,7 @@ class EpisodeDetailViewModel @Inject constructor(
             repository.getEpisodeById(id = id).collect { result ->
                 when (result) {
                     is Resource.Success -> {
-                        _currentEpisode.postValue(result.data!!)
+//                        _currentEpisode.postValue(result.data!!)
                         _curStateFlowEpisode.value = result
                     }
                     else -> Unit
