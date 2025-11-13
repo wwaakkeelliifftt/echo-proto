@@ -3,13 +3,8 @@ package com.example.echo_proto.ui.fragments
 import android.content.Context
 import android.os.Bundle
 import android.view.*
-import android.widget.ImageView
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SearchView
-import androidx.appcompat.widget.Toolbar
-import androidx.core.content.res.ResourcesCompat
-import androidx.core.view.MenuItemCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
@@ -18,18 +13,21 @@ import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.example.echo_proto.MainActivity
 import com.example.echo_proto.R
 import com.example.echo_proto.databinding.FragmentQueueBinding
 import com.example.echo_proto.domain.model.Episode
 import com.example.echo_proto.ui.adapters.*
-import com.example.echo_proto.ui.view.ToolbarConfigurator
 import com.example.echo_proto.ui.viewmodels.MainViewModel
 import com.example.echo_proto.ui.viewmodels.QueueViewModel
 import com.example.echo_proto.util.Constants
 import com.example.echo_proto.util.Resource
 import dagger.hilt.android.AndroidEntryPoint
 import timber.log.Timber
+import androidx.core.view.MenuHost
+import androidx.core.view.MenuProvider
+import androidx.lifecycle.Lifecycle
+import androidx.core.content.ContextCompat
+import androidx.core.graphics.drawable.DrawableCompat
 
 @AndroidEntryPoint
 class QueueFragment : Fragment(), ItemZoneTouchHandler { //, ToolbarConfigurator {
@@ -42,6 +40,7 @@ class QueueFragment : Fragment(), ItemZoneTouchHandler { //, ToolbarConfigurator
     private val mainViewModel by activityViewModels<MainViewModel>()
 
     private var itemTouchHelper: ItemTouchHelper? = null
+    private var queueLockMenuItem: MenuItem? = null
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         _binding = FragmentQueueBinding.inflate(layoutInflater)
@@ -56,20 +55,15 @@ class QueueFragment : Fragment(), ItemZoneTouchHandler { //, ToolbarConfigurator
 
         setupRecyclerView()
         viewModel.updateQueueRss()
+        setupMenu()
     }
-    
+
     override fun onResume() {
         super.onResume()
-        // Убеждаемся, что toolbar установлен
-        (activity as? AppCompatActivity)?.setSupportActionBar(binding.toolbar)
-        setHasOptionsMenu(true)
-        activity?.invalidateOptionsMenu()
-        
         // Обновляем плейлист при возврате на фрагмент очереди
         // updatePlaylist() в MediaService проверит, нужно ли реальное обновление
         mainViewModel.refreshPlayerPlaylist()
     }
-
 
 
     private fun subscribeToObservers() {
@@ -105,7 +99,7 @@ class QueueFragment : Fragment(), ItemZoneTouchHandler { //, ToolbarConfigurator
     }
 
     private fun setupRecyclerView() {
-        queueAdapter = FeedAdapter( this)
+        queueAdapter = FeedAdapter(this)
         binding.recyclerView.apply {
             adapter = queueAdapter
             layoutManager = LinearLayoutManager(requireContext())
@@ -113,9 +107,9 @@ class QueueFragment : Fragment(), ItemZoneTouchHandler { //, ToolbarConfigurator
             onItemClick {
                 Timber.d("ON_ITEM_CLICK: pos=$it")
             }
-            onLongItemClick { position -> }
+            onLongItemClick { _ -> }
 
-            queueAdapter.setClickListener { episode ->
+            queueAdapter.setClickListener { _ ->
 //                Timber.d("CLICK_ON EPISODE TO PLAY: ${episode.title}")
             }
         }
@@ -145,6 +139,24 @@ class QueueFragment : Fragment(), ItemZoneTouchHandler { //, ToolbarConfigurator
             itemTouchHelper?.attachToRecyclerView(binding.recyclerView)
             changeDragIconVisibilityAlpha()
             queueAdapter.notifyDataSetChanged()
+        }
+        updateQueueLockMenuIcon(isLocked)
+    }
+
+    private fun updateQueueLockMenuIcon(isLocked: Boolean) {
+        val menuItem = queueLockMenuItem ?: return
+        val iconRes = if (isLocked) R.drawable.ic_lock_close else R.drawable.ic_lock_open
+        val tintColor = ContextCompat.getColor(
+            requireContext(),
+            if (isLocked) R.color.snackbar_error_background else R.color.green_light
+        )
+
+        val icon = ContextCompat.getDrawable(requireContext(), iconRes)?.mutate()
+        if (icon != null) {
+            DrawableCompat.setTint(icon, tintColor)
+            menuItem.icon = icon
+        } else {
+            menuItem.setIcon(iconRes)
         }
     }
 
@@ -179,35 +191,58 @@ class QueueFragment : Fragment(), ItemZoneTouchHandler { //, ToolbarConfigurator
         }
     }
 
-    override fun onPrepareOptionsMenu(menu: Menu) {
-        Timber.d(">>>>>>>>>>>>>>>--------------onPrepareOptionsMenu::::QUEUE")
-        menu.clear()
-        requireActivity().menuInflater.inflate(R.menu.menu_top_queue, menu)
+    private fun setupMenu() {
+        val menuHost: MenuHost = requireActivity()
+        menuHost.addMenuProvider(queueMenuProvider, viewLifecycleOwner, Lifecycle.State.RESUMED)
+    }
 
-        val searchItem = menu.findItem(R.id.mabQueueSearch)
-        val searchView = searchItem.actionView as SearchView
-        searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
-            override fun onQueryTextSubmit(query: String?): Boolean {
-                if (!query.isNullOrEmpty()) {
-                    viewModel.searchByQuery(query)
-                }
-                return true
-            }
-            override fun onQueryTextChange(newText: String?): Boolean {
-                if (!newText.isNullOrEmpty()) {
-                    viewModel.searchByQuery(newText)
-                } else if (newText == "") {
-                    viewModel.updateQueueRss()
-                }
-                return true
-            }
-        })
-        val btnFixQuery = menu.findItem(R.id.mabQueueFix)
-        btnFixQuery.setOnMenuItemClickListener {
-            viewModel.updateQueueLocker()
-            true
+    private val queueMenuProvider = object : MenuProvider {
+        override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
+            Timber.d(">>>>>>>>>>>-------------onCreateMenu::::QUEUE")
+            menu.clear()
+            menuInflater.inflate(R.menu.menu_top_queue, menu)
+            queueLockMenuItem = menu.findItem(R.id.mabQueueFix)
+            updateQueueLockMenuIcon(viewModel.isLockedQueue.value ?: true)
+            configureSearch(menu)
         }
-        super.onPrepareOptionsMenu(menu)
+
+        override fun onPrepareMenu(menu: Menu) {
+            queueLockMenuItem = menu.findItem(R.id.mabQueueFix)
+            updateQueueLockMenuIcon(viewModel.isLockedQueue.value ?: true)
+            configureSearch(menu)
+        }
+
+        override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
+            return when (menuItem.itemId) {
+                R.id.mabQueueFix -> {
+                    viewModel.updateQueueLocker()
+                    true
+                }
+
+                else -> false
+            }
+        }
+
+        private fun configureSearch(menu: Menu) {
+            val searchItem = menu.findItem(R.id.mabQueueSearch)
+            val searchView = searchItem?.actionView as? SearchView ?: return
+            searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+                override fun onQueryTextSubmit(query: String?): Boolean {
+                    if (!query.isNullOrEmpty()) {
+                        viewModel.searchByQuery(query)
+                    }
+                    return true
+                }
+
+                override fun onQueryTextChange(newText: String?): Boolean {
+                    when {
+                        !newText.isNullOrEmpty() -> viewModel.searchByQuery(newText)
+                        newText == "" -> viewModel.updateQueueRss()
+                    }
+                    return true
+                }
+            })
+        }
     }
 
     override fun onStop() {

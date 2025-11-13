@@ -16,6 +16,9 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.findNavController
+import androidx.navigation.ui.AppBarConfiguration
+import androidx.navigation.ui.navigateUp
+import androidx.navigation.ui.setupActionBarWithNavController
 import androidx.navigation.ui.setupWithNavController
 import com.example.echo_proto.databinding.ActivityMainBinding
 import com.example.echo_proto.domain.model.Episode
@@ -37,6 +40,7 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
     lateinit var mainViewModel: MainViewModel
+    private lateinit var appBarConfiguration: AppBarConfiguration
 
     private var currentPLayingEpisode: Episode? = null
     private var playbackState: PlaybackStateCompat? = null
@@ -51,10 +55,18 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
 
         setContentView(binding.root)
-        // Toolbar теперь управляется фрагментами
-
+        setSupportActionBar(binding.toolbarMain)
 
         val navController = this.findNavController(R.id.nav_host_fragment_container)
+        appBarConfiguration = AppBarConfiguration(
+            setOf(
+                R.id.hostFeedPager,
+                R.id.queueFragment,
+                R.id.hostChannelsPager,
+                R.id.downloadsFragment
+            )
+        )
+        setupActionBarWithNavController(navController, appBarConfiguration)
         binding.bottomNavigationView.setupWithNavController(navController)
 
         setupBottomSheet()
@@ -62,26 +74,11 @@ class MainActivity : AppCompatActivity() {
         setupSeekbarListeners()
         subscribeToObservers()
 
-        // Отслеживаем навигацию для обновления toolbar
-        navController.addOnDestinationChangedListener { _, destination, _ ->
-            // Фрагменты сами управляют своим toolbar через setSupportActionBar
-            // Здесь мы только логируем переходы (можно убрать Toast если не нужно)
-            when (destination.id) {
-                R.id.queueFragment -> {
-                    // Toolbar будет установлен в QueueFragment.onResume()
-                }
-                R.id.hostFeedPager -> {
-                    // Toolbar будет установлен в HostFeedPager.onResume()
-                }
-                R.id.hostChannelsPager -> {
-                    // Toolbar будет установлен в HostChannelsPager.onResume()
-                }
-                R.id.downloadsFragment -> {
-                    // Toolbar будет установлен в DownloadsFragment.onResume()
-                }
-            }
-        }
+    }
 
+    override fun onSupportNavigateUp(): Boolean {
+        val navController = findNavController(R.id.nav_host_fragment_container)
+        return navController.navigateUp(appBarConfiguration) || super.onSupportNavigateUp()
     }
 
     private fun setupBottomSheet() {
@@ -105,8 +102,14 @@ class MainActivity : AppCompatActivity() {
             ivPlayPause.setOnClickListener { onPlayPauseClickListener.invoke() }
             ivSkipNext.setOnClickListener { mainViewModel.skipToNextEpisode() }
             ivSkipPrevious.setOnClickListener { mainViewModel.skipToPreviousEpisode() }
-            ivForward.setOnClickListener { mainViewModel.seekForward() }
-            ivReplay.setOnClickListener { mainViewModel.seekReplay() }
+            ivForward.setOnClickListener {
+                animateSeekButton(ivForward, clockwise = true)
+                mainViewModel.seekForward()
+            }
+            ivReplay.setOnClickListener {
+                animateSeekButton(ivReplay, clockwise = false)
+                mainViewModel.seekReplay()
+            }
         }
 
     }
@@ -134,10 +137,6 @@ class MainActivity : AppCompatActivity() {
         })
     }
 
-    private fun unsubscribeObservers() {
-
-    }
-
     private fun subscribeToObservers() {
         mainViewModel.currentPlayingEpisodeFromMediaServiceConnection.observe(this) { metadataEpisode ->
             if (metadataEpisode == null) return@observe
@@ -145,10 +144,8 @@ class MainActivity : AppCompatActivity() {
                 mainViewModel.getCurrentPlayEpisode(id = id)
                 Timber.d("MainActivity::subscribeToObservers:mediaId=$id")
             }
-//            currentPLayingEpisode = metadataEpisode.toPlayerInfoEpisode()
         }
         mainViewModel.currentEpisodeFromDb.observe(this) { episode ->
-//            Timber.d("subscribeToObservers at mainActivity ::::::: UPDATE ::::::: CURRENT_EPISODE_FROM_DB")
             currentPLayingEpisode = episode.also {
                 bindEpisodeData(it)
             }
@@ -160,7 +157,6 @@ class MainActivity : AppCompatActivity() {
         }
         mainViewModel.currentPlayerPosition.observe(this) {
             if (shouldUpdateSeekbar) {
-//                Timber.d("-----|||||----CURRENT_PLAYER_POSITION<Long>=$it")
                 setCurrentTimeToTextView(ms = it)
             }
         }
@@ -169,14 +165,13 @@ class MainActivity : AppCompatActivity() {
         mainViewModel.isConnected.observe(this) {
             it?.getContentIfNotHandled()?.let { result ->
                 when (result) {
-                    is Resource.Success -> Unit
-                    is Resource.Loading -> Unit
                     is Resource.Error ->
                         Snackbar.make(
                             binding.root,
                             result.message ?: "connection error was happened..",
                             Snackbar.LENGTH_LONG
                         ).show()
+                    else -> Unit
                 }
             }
         }
@@ -256,8 +251,8 @@ class MainActivity : AppCompatActivity() {
         imageView.rotation = 0f
 
         imageView.animate()
-            .rotation(180f)
-            .setDuration(300)
+            .rotation(90f)
+            .setDuration(250)
             .setInterpolator(AccelerateDecelerateInterpolator())
             .withEndAction {
                 imageView.rotation = 0f
@@ -268,6 +263,19 @@ class MainActivity : AppCompatActivity() {
                 }
                 imageView.setImageResource(iconRes)
             }
+            .start()
+    }
+
+    private fun animateSeekButton(imageView: ImageView, clockwise: Boolean) {
+        imageView.animate().cancel()
+        imageView.rotation = 0f
+
+        val rotationDelta = if (clockwise) 360f else -360f
+        imageView.animate()
+            .rotationBy(rotationDelta)
+            .setDuration(300)
+            .setInterpolator(AccelerateDecelerateInterpolator())
+            .withEndAction { imageView.rotation = 0f }
             .start()
     }
 
@@ -291,28 +299,4 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // Меню теперь управляется фрагментами через их toolbar
-
-    private fun removeObservers() {
-
-    }
-
-    override fun onDestroy() {
-        removeObservers()
-        super.onDestroy()
-    }
-
 }
-
-//private fun snackbarAutoCloseWithHandler(snackbar: Snackbar, delayMills: Long) {
-//    val handler = Handler(Looper.getMainLooper())
-//    val runnable = { snackbar.dismiss() }
-//    handler.postDelayed(runnable, delayMills)
-//
-//    // if snackbar was closed by user
-//    snackbar.addCallback(object : Snackbar.Callback() {
-//        override fun onDismissed(transientBottomBar: Snackbar?, event: Int) {
-//            handler.removeCallbacks(runnable)
-//        }
-//    })
-//}

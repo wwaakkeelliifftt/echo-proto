@@ -6,7 +6,6 @@ import android.os.Bundle
 import android.view.*
 import android.widget.Toast
 import androidx.appcompat.widget.SearchView
-import androidx.appcompat.widget.Toolbar
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
@@ -19,30 +18,28 @@ import com.example.echo_proto.databinding.FragmentFeedBinding
 import com.example.echo_proto.domain.model.Episode
 import com.example.echo_proto.ui.adapters.*
 import com.example.echo_proto.ui.dialogs.EmptyDatabaseDialogFragment
-import com.example.echo_proto.ui.view.ToolbarConfigurator
 import com.example.echo_proto.ui.viewmodels.FeedViewModel
 import com.example.echo_proto.ui.viewmodels.MainViewModel
 import com.example.echo_proto.util.Constants
 import dagger.hilt.android.AndroidEntryPoint
 import timber.log.Timber
 import javax.inject.Inject
+import androidx.core.view.MenuHost
+import androidx.core.view.MenuProvider
+import androidx.lifecycle.Lifecycle
 
 @AndroidEntryPoint
 class FeedFragment : Fragment(), ItemZoneTouchHandler { //, ToolbarConfigurator {
 
     private var _binding: FragmentFeedBinding? = null
     private val binding get() = _binding!!
-
     private lateinit var feedAdapter: FeedAdapter
-
     private val viewModel by viewModels<FeedViewModel>()
     private val mainViewModel by activityViewModels<MainViewModel>() // <<- best approach??
-
     private var actionMode: ActionMode? = null
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         _binding = FragmentFeedBinding.inflate(layoutInflater)
-        // setHasOptionsMenu будет установлен хостом ViewPager
         return binding.root
     }
 
@@ -56,7 +53,6 @@ class FeedFragment : Fragment(), ItemZoneTouchHandler { //, ToolbarConfigurator 
         }
 
         viewModel.rssFeed.observe(viewLifecycleOwner) { list ->
-            Timber.d("------------>>>>   UPDATE LIST on FEED Fragment    <<<--------")
             feedAdapter.submitList(list)
         }
 
@@ -78,11 +74,7 @@ class FeedFragment : Fragment(), ItemZoneTouchHandler { //, ToolbarConfigurator 
             }
         }
 
-    }
-
-    override fun onResume() {
-        super.onResume()
-        // Меню управляется хостом ViewPager
+        setupMenu()
     }
 
     private fun setupRecyclerView() {
@@ -151,40 +143,56 @@ class FeedFragment : Fragment(), ItemZoneTouchHandler { //, ToolbarConfigurator 
         actionMode?.finish()
     }
 
-    override fun onPrepareOptionsMenu(menu: Menu) {
-        menu.clear()
-        activity?.menuInflater?.inflate(R.menu.menu_top_feed, menu)
+    private fun setupMenu() {
+        val menuHost: MenuHost = requireActivity()
+        menuHost.addMenuProvider(feedMenuProvider, viewLifecycleOwner, Lifecycle.State.RESUMED)
+    }
 
-        val searchItem: MenuItem = menu.findItem(R.id.mabFeedSearch)
-        val searchView: SearchView = (searchItem.actionView as SearchView)
-        searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
-            override fun onQueryTextSubmit(query: String?): Boolean {
-                if (!query.isNullOrEmpty()) {
-                    viewModel.searchByQuery(query)
-                }
-                return true
-            }
-            override fun onQueryTextChange(query: String?): Boolean {
-                if (!query.isNullOrEmpty()) {
-                    viewModel.searchByQuery(query)
-                } else if (query?.isEmpty() == true) {
-                    viewModel.updateFeedRss()
-                }
-                return true
-            }
-        })
-
-        val btnUpdateFeed = menu.findItem(R.id.mabFeedUpdate)
-        btnUpdateFeed.setOnMenuItemClickListener {
-            val done = viewModel.updateFeedRss()
-            if (done) {
-                // TODO: make progress bar indicator for upload
-            }
-            Timber.d("rabotaet update?")
-            true
+    private val feedMenuProvider = object : MenuProvider {
+        override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
+            menu.clear()
+            menuInflater.inflate(R.menu.menu_top_feed, menu)
+            configureSearch(menu)
         }
 
-        super.onPrepareOptionsMenu(menu)
+        override fun onPrepareMenu(menu: Menu) {
+            configureSearch(menu)
+        }
+
+        override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
+            return when (menuItem.itemId) {
+                R.id.mabFeedUpdate -> {
+                    val done = viewModel.updateFeedRss()
+                    if (done) {
+                        Timber.d("rabotaet update?")
+                    }
+                    true
+                }
+
+                else -> false
+            }
+        }
+
+        private fun configureSearch(menu: Menu) {
+            val searchItem = menu.findItem(R.id.mabFeedSearch)
+            val searchView = searchItem?.actionView as? SearchView ?: return
+            searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+                override fun onQueryTextSubmit(query: String?): Boolean {
+                    if (!query.isNullOrEmpty()) {
+                        viewModel.searchByQuery(query)
+                    }
+                    return true
+                }
+
+                override fun onQueryTextChange(query: String?): Boolean {
+                    when {
+                        !query.isNullOrEmpty() -> viewModel.searchByQuery(query)
+                        query?.isEmpty() == true -> viewModel.updateFeedRss()
+                    }
+                    return true
+                }
+            })
+        }
     }
 
     override fun onDestroyView() {

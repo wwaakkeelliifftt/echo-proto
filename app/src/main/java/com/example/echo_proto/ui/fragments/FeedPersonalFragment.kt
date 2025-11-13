@@ -1,11 +1,19 @@
 package com.example.echo_proto.ui.fragments
 
-import android.content.SharedPreferences
 import android.os.Bundle
-import android.view.*
+import android.view.LayoutInflater
+import android.view.Menu
+import android.view.MenuInflater
+import android.view.MenuItem
+import android.view.View
+import android.view.ViewGroup
 import androidx.appcompat.widget.SearchView
+import androidx.core.view.MenuHost
+import androidx.core.view.MenuProvider
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import androidx.lifecycle.Lifecycle
+import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.echo_proto.R
@@ -18,7 +26,6 @@ import com.example.echo_proto.ui.viewmodels.FeedViewModel
 import com.example.echo_proto.util.Constants
 import dagger.hilt.android.AndroidEntryPoint
 import timber.log.Timber
-import javax.inject.Inject
 
 @AndroidEntryPoint
 class FeedPersonalFragment: Fragment(), ItemZoneTouchHandler {
@@ -31,7 +38,6 @@ class FeedPersonalFragment: Fragment(), ItemZoneTouchHandler {
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         _binding = FragmentFeedPersonalBinding.inflate(layoutInflater)
-        // setHasOptionsMenu будет установлен хостом ViewPager
         return binding.root
     }
 
@@ -60,11 +66,7 @@ class FeedPersonalFragment: Fragment(), ItemZoneTouchHandler {
             //         as FeedFilterListDialogFragment?
         }
 
-    }
-
-    override fun onResume() {
-        super.onResume()
-        viewModel.refreshRssFeedPersonal()
+        setupMenu()
     }
 
     private fun setupRecycler() {
@@ -81,42 +83,59 @@ class FeedPersonalFragment: Fragment(), ItemZoneTouchHandler {
         binding.swipeRefreshFeedPersonal.isRefreshing = stopRefresh
     }
 
-    override fun onPrepareOptionsMenu(menu: Menu) {
-        super.onPrepareOptionsMenu(menu)
-        menu.clear()
-        activity?.menuInflater?.inflate(R.menu.menu_top_feed_personal, menu)
+    private fun setupMenu() {
+        val menuHost: MenuHost = requireActivity()
+        menuHost.addMenuProvider(feedPersonalMenuProvider, viewLifecycleOwner, Lifecycle.State.RESUMED)
+    }
 
-        val searchItem: MenuItem = menu.findItem(R.id.mabFeedPersSearch)
-        val searchView: SearchView = (searchItem.actionView as SearchView)
-        searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
-            override fun onQueryTextSubmit(query: String?): Boolean {
-                if (!query.isNullOrEmpty()) {
-                    viewModel.searchByQuery(query)
-                }
-                return true
-            }
-            override fun onQueryTextChange(query: String?): Boolean {
-                if (!query.isNullOrEmpty()) {
-                    viewModel.searchByQuery(query)
-                } else if (query?.isEmpty() == true) {
-                    viewModel.refreshRssFeedPersonal()
-                }
-                return true
-            }
-        })
+    private val feedPersonalMenuProvider = object : MenuProvider {
+        override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
+            menu.clear()
+            menuInflater.inflate(R.menu.menu_top_feed_personal, menu)
+            configureSearch(menu)
+        }
 
-        val btnFilter = menu.findItem(R.id.mabFeedPersFilter)
-        btnFilter.setOnMenuItemClickListener {
-            val dialog = FeedFilterListDialogFragment(requireContext())
-            dialog.show(childFragmentManager, Constants.FEED_FILTER_DIALOG_TAG) // parentFragmentManager <-- crash with
-            true
+        override fun onPrepareMenu(menu: Menu) {
+            configureSearch(menu)
+        }
+
+        override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
+            return when (menuItem.itemId) {
+                R.id.mabFeedPersFilter -> {
+                    val dialog = FeedFilterListDialogFragment(requireContext())
+                    dialog.show(childFragmentManager, Constants.FEED_FILTER_DIALOG_TAG)
+                    true
+                }
+
+                else -> false
+            }
+        }
+
+        private fun configureSearch(menu: Menu) {
+            val searchItem = menu.findItem(R.id.mabFeedPersSearch)
+            val searchView = searchItem?.actionView as? SearchView ?: return
+            searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+                override fun onQueryTextSubmit(query: String?): Boolean {
+                    if (!query.isNullOrEmpty()) {
+                        viewModel.searchByQuery(query)
+                    }
+                    return true
+                }
+
+                override fun onQueryTextChange(query: String?): Boolean {
+                    when {
+                        !query.isNullOrEmpty() -> viewModel.searchByQuery(query)
+                        query?.isEmpty() == true -> viewModel.refreshRssFeedPersonal()
+                    }
+                    return true
+                }
+            })
         }
     }
 
     override fun onPause() {
         super.onPause()
         viewModel.saveRssFeedPersonalFiltersIntoSharedPref()
-        Timber.d("ON PAUSE  -----  STORE DATASET TO SHARED_PREF")
     }
 
     override fun onDestroyView() {
@@ -129,7 +148,8 @@ class FeedPersonalFragment: Fragment(), ItemZoneTouchHandler {
     override fun changeDragIconVisibilityAlpha(): Float = 0f
 
     override fun navigateToEpisodeDetailScreen(episode: Episode) {
-        Timber.d("FEED PERSONAL: navigateToEpisodeDetail")
+        viewModel.navigateToDetailWithSharedPref(episode.id)
+        findNavController().navigate(R.id.globalActionToEpisodeDetailFragment)
     }
     
     override fun playPauseStateChanger(episode: Episode) { }

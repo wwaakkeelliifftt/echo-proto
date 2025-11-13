@@ -14,6 +14,9 @@ import com.example.echo_proto.ui.viewmodels.ChannelViewModel
 import com.example.echo_proto.util.Constants
 import dagger.hilt.android.AndroidEntryPoint
 import timber.log.Timber
+import androidx.core.view.MenuHost
+import androidx.core.view.MenuProvider
+import androidx.lifecycle.Lifecycle
 
 @AndroidEntryPoint
 class ChannelFragment : Fragment() {
@@ -28,7 +31,6 @@ class ChannelFragment : Fragment() {
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         _binding = FragmentChannelsBinding.inflate(layoutInflater)
-        // setHasOptionsMenu будет установлен хостом ViewPager
         return binding.root
     }
 
@@ -39,7 +41,6 @@ class ChannelFragment : Fragment() {
         source = FeedChannel.listOfChannels[sourceId]
 
         viewModel.getRssChannelFromDatabase(feedChannel = source)
-
         setupRecyclerView()
         binding.swipeRefreshChannel.setOnRefreshListener { swipeToUpdate() }
 
@@ -55,6 +56,8 @@ class ChannelFragment : Fragment() {
                 }
             }
         }
+
+        setupMenu()
     }
 
     private fun setupRecyclerView() {
@@ -70,24 +73,36 @@ class ChannelFragment : Fragment() {
         binding.swipeRefreshChannel.isRefreshing = stopRefresh
     }
 
-    // todo: menu shows on all screens after launch this fragment
-    override fun onPrepareOptionsMenu(menu: Menu) {
-        menu.clear()
-        requireActivity().menuInflater.inflate(R.menu.menu_top_channels, menu)
+    private fun setupMenu() {
+        val menuHost: MenuHost = requireActivity()
+        menuHost.addMenuProvider(channelMenuProvider, viewLifecycleOwner, Lifecycle.State.RESUMED)
+    }
 
-        val btnUpdateChannel = menu.findItem(R.id.mabChannelUpdate)
-        btnUpdateChannel.setOnMenuItemClickListener {
-            viewModel.updateChannelRss(feedChannel = source)
-            Toast.makeText(requireContext(), "UPDATE CHANNEL", Toast.LENGTH_SHORT).show()
-            true
+    private val channelMenuProvider = object : MenuProvider {
+        override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
+            menu.clear()
+            menuInflater.inflate(R.menu.menu_top_channels, menu)
         }
-        val btnShowFavourites = menu.findItem(R.id.mabChannelFavourites)
-        btnShowFavourites.setOnMenuItemClickListener {
-            Toast.makeText(requireContext(), "ON SCREEN: #${source.name}", Toast.LENGTH_SHORT).show()
-            viewModel.getRssChannelFromDatabase(feedChannel = source)
-            true
+
+        override fun onPrepareMenu(menu: Menu) { }
+
+        override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
+            return when (menuItem.itemId) {
+                R.id.mabChannelUpdate -> {
+                    viewModel.updateChannelRss(feedChannel = source)
+                    Toast.makeText(requireContext(), "UPDATE CHANNEL", Toast.LENGTH_SHORT).show()
+                    true
+                }
+
+                R.id.mabChannelFavourites -> {
+                    Toast.makeText(requireContext(), "ON SCREEN: #${source.name}", Toast.LENGTH_SHORT).show()
+                    viewModel.getRssChannelFromDatabase(feedChannel = source)
+                    true
+                }
+
+                else -> false
+            }
         }
-        super.onPrepareOptionsMenu(menu)
     }
 
     override fun onDestroyView() {

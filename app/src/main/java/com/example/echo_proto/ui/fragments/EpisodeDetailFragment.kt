@@ -5,15 +5,17 @@ import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.Menu
+import android.view.MenuInflater
+import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
-import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.Lifecycle
 import androidx.work.Data
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkInfo
@@ -30,6 +32,8 @@ import dagger.hilt.android.AndroidEntryPoint
 import timber.log.Timber
 import java.util.UUID
 import androidx.core.net.toUri
+import androidx.core.view.MenuHost
+import androidx.core.view.MenuProvider
 
 @AndroidEntryPoint
 class EpisodeDetailFragment : Fragment() {
@@ -49,6 +53,7 @@ class EpisodeDetailFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         subscribeToObservers()
+        setupMenu()
     }
 
     private fun subscribeToObservers() {
@@ -91,6 +96,8 @@ class EpisodeDetailFragment : Fragment() {
             isChecked = isEpisodePlaying
             setOnClickListener { mainViewModel.playOrToggleEpisode(mediaItem = episode) }
         }
+
+        activity?.invalidateOptionsMenu()
     }
 
 
@@ -140,29 +147,6 @@ class EpisodeDetailFragment : Fragment() {
     }
 
 
-    override fun onResume() {
-        super.onResume()
-        (activity as? AppCompatActivity)?.setSupportActionBar(binding.toolbar)
-        setHasOptionsMenu(true)
-        activity?.invalidateOptionsMenu()
-    }
-
-    override fun onPrepareOptionsMenu(menu: Menu) {
-        Timber.d(">>>>>>>>>>>>>>>--------------onPrepareOptionsMenu::::EPISODE_DETAIL_FRAGMENT")
-        menu.clear()
-        requireActivity().menuInflater.inflate(R.menu.menu_top_episode_detail, menu)
-
-        val btnGoToYoutube = menu.findItem(R.id.mabEpisodeYoutubeLink)
-        btnGoToYoutube.setOnMenuItemClickListener {
-            val linkFromEpisode = currentEpisode?.videoLink ?: ""
-            if (isYoutubeLink(linkFromEpisode)) {
-                openYoutube(linkFromEpisode)
-            }
-            true
-        }
-        super.onPrepareOptionsMenu(menu)
-    }
-
     private fun isYoutubeLink(url: String): Boolean {
         return url.contains("youtube.com") || url.contains("youtu.be")
     }
@@ -202,6 +186,45 @@ class EpisodeDetailFragment : Fragment() {
             Timber.e(e, "Ошибка при открытии интента на ютуб")
             Toast.makeText(requireContext(), R.string.youtube_open_error, Toast.LENGTH_SHORT).show()
             false
+        }
+    }
+
+    private fun setupMenu() {
+        val menuHost: MenuHost = requireActivity()
+        menuHost.addMenuProvider(youtubeMenuProvider, viewLifecycleOwner, Lifecycle.State.RESUMED)
+    }
+
+    private val youtubeMenuProvider = object : MenuProvider {
+        override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
+            menu.clear()
+            menuInflater.inflate(R.menu.menu_top_episode_detail, menu)
+            updateYoutubeMenuVisibility(menu)
+        }
+
+        override fun onPrepareMenu(menu: Menu) {
+            updateYoutubeMenuVisibility(menu)
+        }
+
+        override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
+            return when (menuItem.itemId) {
+                R.id.mabEpisodeYoutubeLink -> {
+                    val link = currentEpisode?.videoLink
+                    if (!link.isNullOrBlank() && isYoutubeLink(link)) {
+                        openYoutube(link)
+                        true
+                    } else {
+                        false
+                    }
+                }
+
+                else -> false
+            }
+        }
+
+        private fun updateYoutubeMenuVisibility(menu: Menu) {
+            val btnGoToYoutube = menu.findItem(R.id.mabEpisodeYoutubeLink)
+            val link = currentEpisode?.videoLink
+            btnGoToYoutube?.isVisible = !link.isNullOrBlank() && isYoutubeLink(link)
         }
     }
 
