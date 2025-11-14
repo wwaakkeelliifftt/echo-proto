@@ -31,6 +31,10 @@ class AudioPlayerDescriptionFragment : Fragment() {
         mainViewModel.currentEpisodeFromDb.observe(viewLifecycleOwner) {
             binding.tvPlayerDescription.text = it.description
         }
+
+        binding.dtnToPlayer.setOnClickListener {
+            (parentFragment as? HostAudioPlayerFragment)?.scrollToControls()
+        }
     }
 
     override fun onDestroyView() {

@@ -1,7 +1,5 @@
 package com.example.echo_proto.ui.fragments
 
-import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.Menu
@@ -9,8 +7,6 @@ import android.view.MenuInflater
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
@@ -24,6 +20,7 @@ import com.example.echo_proto.R
 import com.example.echo_proto.databinding.FragmentEpisodeDetailBinding
 import com.example.echo_proto.domain.model.Episode
 import com.example.echo_proto.domain.worker.DownloadWorker
+import com.example.echo_proto.ui.dialogs.OpenYoutubeDialogFragment
 import com.example.echo_proto.ui.viewmodels.EpisodeDetailViewModel
 import com.example.echo_proto.ui.viewmodels.MainViewModel
 import com.example.echo_proto.util.Resource
@@ -31,7 +28,6 @@ import com.example.echo_proto.util.getDateFromLong
 import dagger.hilt.android.AndroidEntryPoint
 import timber.log.Timber
 import java.util.UUID
-import androidx.core.net.toUri
 import androidx.core.view.MenuHost
 import androidx.core.view.MenuProvider
 
@@ -146,55 +142,12 @@ class EpisodeDetailFragment : Fragment() {
             }
     }
 
-
-    private fun isYoutubeLink(url: String): Boolean {
-        return url.contains("youtube.com") || url.contains("youtu.be")
-    }
-
-    private fun openYoutube(url: String) {
-        try {
-            showYoutubeConfirmDialog(url)
-        } catch (e: Exception) {
-            Timber.e(e, "Ошибка со ссылкой на ютуб")
-            Toast.makeText(requireContext(), R.string.youtube_open_error, Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    private fun showYoutubeConfirmDialog(youtubeUrl: String) {
-        AlertDialog.Builder(requireContext())
-            .setTitle("Открыть оригинальное видео в YouTube?")
-            .setMessage(youtubeUrl)
-            .setPositiveButton("Открыть") { dialog, _ ->
-                openYoutubeIntent(youtubeUrl)
-                dialog.dismiss()
-            }
-            .setNegativeButton("Отмена") { dialog, _ ->
-                dialog.dismiss()
-            }
-            .create()
-            .show()
-    }
-
-    private fun openYoutubeIntent(youtubeUrl: String): Boolean {
-        return try {
-            val intent = Intent(Intent.ACTION_VIEW, youtubeUrl.toUri()).apply {
-                addCategory(Intent.CATEGORY_BROWSABLE)
-            }
-            startActivity(intent)
-            true
-        } catch (e: Exception) {
-            Timber.e(e, "Ошибка при открытии интента на ютуб")
-            Toast.makeText(requireContext(), R.string.youtube_open_error, Toast.LENGTH_SHORT).show()
-            false
-        }
-    }
-
     private fun setupMenu() {
         val menuHost: MenuHost = requireActivity()
-        menuHost.addMenuProvider(youtubeMenuProvider, viewLifecycleOwner, Lifecycle.State.RESUMED)
+        menuHost.addMenuProvider(menuProvider, viewLifecycleOwner, Lifecycle.State.RESUMED)
     }
 
-    private val youtubeMenuProvider = object : MenuProvider {
+    private val menuProvider = object : MenuProvider {
         override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
             menu.clear()
             menuInflater.inflate(R.menu.menu_top_episode_detail, menu)
@@ -209,12 +162,12 @@ class EpisodeDetailFragment : Fragment() {
             return when (menuItem.itemId) {
                 R.id.mabEpisodeYoutubeLink -> {
                     val link = currentEpisode?.videoLink
-                    if (!link.isNullOrBlank() && isYoutubeLink(link)) {
-                        openYoutube(link)
-                        true
-                    } else {
-                        false
+                    if (!OpenYoutubeDialogFragment.isYoutubeLink(link)) {
+                        return false
                     }
+                    OpenYoutubeDialogFragment.newInstance(link)
+                        .show(childFragmentManager, OpenYoutubeDialogFragment.TAG)
+                    return true
                 }
 
                 else -> false
@@ -223,8 +176,7 @@ class EpisodeDetailFragment : Fragment() {
 
         private fun updateYoutubeMenuVisibility(menu: Menu) {
             val btnGoToYoutube = menu.findItem(R.id.mabEpisodeYoutubeLink)
-            val link = currentEpisode?.videoLink
-            btnGoToYoutube?.isVisible = !link.isNullOrBlank() && isYoutubeLink(link)
+            btnGoToYoutube?.isVisible = OpenYoutubeDialogFragment.isYoutubeLink(currentEpisode?.videoLink)
         }
     }
 

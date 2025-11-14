@@ -17,6 +17,17 @@
 
     <string name="notification_channel_name">Echo Podcast Player Channel</string>
     <string name="notification_channel_description">Shows the currently playing podcast</string>
+
+    <!--  dialog fragment text-->
     <string name="youtube_open_error">Не удается открыть видео в YouTube</string>
+    <string name="youtube_open_title">Открыть оригинальное видео в YouTube?</string>
+    <string name="youtube_open_positive">Открыть</string>
+    <string name="feed_filter_title">Фильтры поиска по ключевым словам для ленты:</string>
+    <string name="feed_filter_edit">Редактировать</string>
+    <string name="feed_filter_edit_done">Готово</string>
+    <string name="feed_filter_confirm">Подтвердить</string>
+    <string name="feed_filter_cancel">Отмена</string>
+    <string name="feed_filter_hint">Добавьте новый фильтр</string>
+    <string name="feed_filter_add">Добавить</string>
 
 </resources>

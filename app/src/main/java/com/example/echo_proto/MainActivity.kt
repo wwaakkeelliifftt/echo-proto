@@ -1,19 +1,13 @@
 package com.example.echo_proto
 
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.support.v4.media.session.PlaybackStateCompat
 import android.view.Menu
 import android.view.MenuItem
-import android.view.MotionEvent
 import android.view.animation.AccelerateDecelerateInterpolator
 import android.widget.ImageView
-import android.widget.SeekBar
 import android.widget.TextView
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.findNavController
 import androidx.navigation.ui.AppBarConfiguration
@@ -45,7 +39,6 @@ class MainActivity : AppCompatActivity() {
     private var currentPLayingEpisode: Episode? = null
     private var playbackState: PlaybackStateCompat? = null
 
-    private var shouldUpdateSeekbar = true
     private lateinit var floatingStroke: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -71,7 +64,6 @@ class MainActivity : AppCompatActivity() {
 
         setupBottomSheet()
         setupClickListeners()
-        setupSeekbarListeners()
         subscribeToObservers()
 
     }
@@ -98,43 +90,6 @@ class MainActivity : AppCompatActivity() {
             ivPlayPause.setOnClickListener { onPlayPauseClickListener.invoke() }
         }
 
-        binding.player.apply {
-            ivPlayPause.setOnClickListener { onPlayPauseClickListener.invoke() }
-            ivSkipNext.setOnClickListener { mainViewModel.skipToNextEpisode() }
-            ivSkipPrevious.setOnClickListener { mainViewModel.skipToPreviousEpisode() }
-            ivForward.setOnClickListener {
-                animateSeekButton(ivForward, clockwise = true)
-                mainViewModel.seekForward()
-            }
-            ivReplay.setOnClickListener {
-                animateSeekButton(ivReplay, clockwise = false)
-                mainViewModel.seekReplay()
-            }
-        }
-
-    }
-
-    private fun setupSeekbarListeners() {
-        binding.player.seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                if (fromUser) {
-                    seekBar?.let {
-                        val result = (it.progress * 1000).toLong()
-                        setCurrentTimeToTextView(result)
-                    }
-                }
-            }
-            override fun onStartTrackingTouch(seekBar: SeekBar?) {
-                shouldUpdateSeekbar = false
-            }
-            override fun onStopTrackingTouch(seekBar: SeekBar?) {
-                seekBar?.let {
-                    val result = (it.progress * 1000).toLong()
-                    mainViewModel.seekTo(result)
-                }
-                shouldUpdateSeekbar = true
-            }
-        })
     }
 
     private fun subscribeToObservers() {
@@ -155,11 +110,7 @@ class MainActivity : AppCompatActivity() {
             changePlayPauseImageState()
             changeFloatingTextState()
         }
-        mainViewModel.currentPlayerPosition.observe(this) {
-            if (shouldUpdateSeekbar) {
-                setCurrentTimeToTextView(ms = it)
-            }
-        }
+        mainViewModel.currentPlayerPosition.observe(this) { setCurrentTimeToTextView(ms = it) }
 
         // observer for handling error only
         mainViewModel.isConnected.observe(this) {
@@ -220,11 +171,9 @@ class MainActivity : AppCompatActivity() {
 
     private fun setCurrentTimeToTextView(ms: Long) {
         val currentProgress = (ms / 1000).toInt()
-        binding.player.seekBar.progress = currentProgress
         binding.bottomPlayback.progressBar.progress = currentProgress
         val currentTime = ms.getCurrentTimeFromLong()
         Timber.d("-------->>>>>>>>curTime=$currentTime")
-        binding.player.tvCurrentTime.text = currentTime
         binding.bottomPlayback.tvCurrentTime.text = currentTime
     }
 
@@ -236,14 +185,12 @@ class MainActivity : AppCompatActivity() {
             previousPlaybackState = isPlaying
 
             binding.bottomPlayback.ivPlayPause.animate().cancel()
-            binding.player.ivPlayPause.animate().cancel()
 
             animatePlayPauseButton(
                 binding.bottomPlayback.ivPlayPause,
                 isPlaying,
                 fromBottomPlayback = true
             )
-            animatePlayPauseButton(binding.player.ivPlayPause, isPlaying)
         }
     }
 
@@ -266,30 +213,11 @@ class MainActivity : AppCompatActivity() {
             .start()
     }
 
-    private fun animateSeekButton(imageView: ImageView, clockwise: Boolean) {
-        imageView.animate().cancel()
-        imageView.rotation = 0f
-
-        val rotationDelta = if (clockwise) 360f else -360f
-        imageView.animate()
-            .rotationBy(rotationDelta)
-            .setDuration(300)
-            .setInterpolator(AccelerateDecelerateInterpolator())
-            .withEndAction { imageView.rotation = 0f }
-            .start()
-    }
-
     private fun bindEpisodeData(episode: Episode) {
         binding.bottomPlayback.apply {
             tvTitle.text = episode.title
             tvTotalTime.text = episode.duration.getTimeFromSeconds()
             progressBar.max = episode.duration
-        }
-        binding.player.apply {
-            tvTitle.text = episode.title
-            tvTimerEpisodeTimeTotal.text = episode.duration.getTimeFromSeconds()
-            tvPubDateAndSize.text = episode.timestamp.getDateFromLong()
-            seekBar.max = episode.duration
         }
     }
 

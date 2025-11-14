@@ -2,60 +2,107 @@
 <androidx.constraintlayout.widget.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:layout_margin="@dimen/dp_medium_less"
-    android:background="@drawable/shape_rounded_dialog"
+    android:layout_height="wrap_content"
+    android:padding="@dimen/dp_medium_less"
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <TextView
         android:id="@+id/tvDialogTitle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Filters:"
-        android:textSize="22sp"
-        android:textColor="?colorOnSecondary"
         android:layout_margin="@dimen/dp_medium_less"
-        app:layout_constraintTop_toTopOf="parent"
+        android:text="@string/feed_filter_title"
+        android:textSize="22sp"
+        style="@style/FeedFilterDialogTitle"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"/>
+        app:layout_constraintTop_toTopOf="parent"/>
 
     <com.google.android.material.chip.ChipGroup
         android:id="@+id/chipGroupFilter"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="@dimen/dp_medium_less"
         android:animateLayoutChanges="true"
+        android:padding="@dimen/dp_medium_less"
         app:chipSpacingHorizontal="@dimen/dp_micro"
-        app:layout_constraintTop_toBottomOf="@id/tvDialogTitle"
-        app:layout_constraintBottom_toTopOf="@id/llBtnContainer"/>
+        app:layout_constraintBottom_toTopOf="@id/groupAddFilter"
+        app:layout_constraintTop_toBottomOf="@id/tvDialogTitle"/>
 
-    <androidx.constraintlayout.widget.ConstraintLayout
+    <LinearLayout
+        android:id="@+id/groupAddFilter"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:visibility="gone"
+        android:paddingTop="@dimen/dp_small"
+        android:paddingBottom="@dimen/dp_small"
+        app:layout_constraintTop_toBottomOf="@id/chipGroupFilter"
+        app:layout_constraintBottom_toTopOf="@id/llBtnContainer">
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/inputLayoutNewFilter"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/feed_filter_hint">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/inputNewFilter"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:imeOptions="actionDone"
+                android:inputType="text"
+                android:maxLines="1"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="end"
+            android:orientation="horizontal"
+            android:paddingTop="@dimen/dp_small">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnAddFilterCancel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/feed_filter_cancel"
+                style="@style/FeedFilterDialogButtonText"/>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnAddFilterConfirm"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/dp_micro"
+                android:text="@string/feed_filter_confirm"
+                style="@style/FeedFilterDialogButtonFilled"/>
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <LinearLayout
         android:id="@+id/llBtnContainer"
         android:layout_width="match_parent"
-        android:layout_height="@dimen/echo_appbar_height"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingTop="@dimen/dp_small"
+        android:gravity="center_vertical"
         app:layout_constraintBottom_toBottomOf="parent">
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnChipsEdit"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="edit"
-            android:backgroundTint="?android:colorBackground"
-            app:layout_constraintHorizontal_chainStyle="spread"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toStartOf="@id/btnAddNewFilter"
-            app:layout_constraintTop_toTopOf="parent"/>
+            android:layout_marginEnd="@dimen/dp_micro"
+            android:text="@string/feed_filter_edit"
+            style="@style/FeedFilterDialogButtonText"/>
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnAddNewFilter"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="add"
-            android:backgroundTint="?android:colorBackground"
-            app:layout_constraintStart_toEndOf="@id/btnChipsEdit"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent"/>
+            android:text="@string/feed_filter_add"
+            style="@style/FeedFilterDialogButtonFilled"/>
 
-    </androidx.constraintlayout.widget.ConstraintLayout>
+    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

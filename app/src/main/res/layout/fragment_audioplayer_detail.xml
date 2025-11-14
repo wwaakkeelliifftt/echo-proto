@@ -41,7 +41,27 @@
         android:text="about"
         android:backgroundTint="?android:colorBackground"
         app:layout_constraintBottom_toBottomOf="@id/guideline2"
+        app:layout_constraintStart_toEndOf="@id/btnChangeSpeed"
+        app:layout_constraintEnd_toStartOf="@id/btnGoToYoutube" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnChangeSpeed"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="speed"
+        android:backgroundTint="?android:colorBackground"
+        app:layout_constraintBottom_toBottomOf="@id/guideline2"
         app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/dtnToDescription" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnGoToYoutube"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="youtube"
+        android:backgroundTint="?android:colorBackground"
+        app:layout_constraintBottom_toBottomOf="@id/guideline2"
+        app:layout_constraintStart_toEndOf="@id/dtnToDescription"
         app:layout_constraintEnd_toEndOf="parent" />
 
     <com.google.android.material.textview.MaterialTextView

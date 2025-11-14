@@ -1,20 +1,16 @@
 package com.example.echo_proto.ui.dialogs
 
-import android.app.Dialog
 import android.content.Context
 import android.content.res.Resources
-import android.graphics.Color
 import android.graphics.Rect
-import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.view.Window
-import android.widget.EditText
 import android.widget.Toast
-import androidx.core.content.ContextCompat
+import android.view.inputmethod.InputMethodManager
 import androidx.core.view.forEach
+import androidx.core.view.isVisible
 import androidx.fragment.app.DialogFragment
 import androidx.fragment.app.viewModels
 import com.example.echo_proto.R
@@ -23,12 +19,10 @@ import com.example.echo_proto.ui.viewmodels.FeedViewModel
 import com.example.echo_proto.util.Constants
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipDrawable
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import timber.log.Timber
-import java.util.*
 
 // todo: need make rotate-restart survive
-class FeedFilterListDialogFragment(context: Context): DialogFragment() {
+class FeedFilterListDialogFragment : DialogFragment() {
 
     private val viewModel by viewModels<FeedViewModel>(
         ownerProducer = { requireParentFragment() }
@@ -38,10 +32,8 @@ class FeedFilterListDialogFragment(context: Context): DialogFragment() {
     private val binding get() = _binding!!
 
     private var isEnableToEdit = false
-    private var inputFilterEditText = EditText(context)
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
-        Objects.requireNonNull(dialog)?.window?.requestFeature(Window.FEATURE_NO_TITLE)
         _binding = DialogChipFilterListBinding.inflate(inflater)
         return binding.root
     }
@@ -82,39 +74,57 @@ class FeedFilterListDialogFragment(context: Context): DialogFragment() {
             }
         }
         binding.btnAddNewFilter.setOnClickListener {
-            getNewFilterInputDialog().show()
+            toggleInputVisibility(show = true)
+        }
+
+        binding.btnAddFilterConfirm.setOnClickListener {
+            val newFilterQuery = binding.inputNewFilter.text?.toString().orEmpty().trim()
+            if (newFilterQuery.isNotEmpty()) {
+                viewModel.addNewFilterToRssFeedPersonalFilters(newFilter = newFilterQuery)
+                binding.inputNewFilter.text?.clear()
+                toggleInputVisibility(show = false)
+            }
+        }
+
+        binding.btnAddFilterCancel.setOnClickListener {
+            binding.inputNewFilter.text?.clear()
+            toggleInputVisibility(show = false)
         }
     }
 
     private fun chipEditEnable() {
         isEnableToEdit = true
-        binding.btnChipsEdit.text = "done"
+        binding.btnChipsEdit.setText(R.string.feed_filter_edit_done)
+        binding.btnAddNewFilter.isVisible = false
         binding.chipGroupFilter.forEach { child ->
             (child as? Chip)?.apply {
                 isCloseIconVisible = true
-                setOnClickListener { this_chip ->
-                    Timber.d("CHIP_TAG=${this_chip.tag}")
-                    (this_chip.tag as? String)?.let { filterToRemove ->
+                setOnCloseIconClickListener { closeIconChip ->
+                    (closeIconChip.tag as? String)?.let { filterToRemove ->
                         viewModel.removeFilterFromRssFeedPersonal(filterToRemove)
                     }
-                    binding.chipGroupFilter.removeView(this_chip)
                 }
+                setOnClickListener(null)
             }
         }
     }
 
     private fun chipEditDone() {
         isEnableToEdit = false
-        binding.btnChipsEdit.text = "edit"
+        binding.btnChipsEdit.setText(R.string.feed_filter_edit)
+        if (!binding.groupAddFilter.isVisible) {
+            binding.btnAddNewFilter.isVisible = true
+        }
         binding.chipGroupFilter.forEach { child ->
             (child as? Chip)?.apply {
                 isCloseIconVisible = false
+                setOnCloseIconClickListener(null)
                 setOnClickListener(null)
             }
         }
     }
 
-    private fun createNewChip(context: Context, tagName: String): Chip = Chip(context).apply {
+    private fun createNewChip(context: android.content.Context, tagName: String): Chip = Chip(context).apply {
         val chipDrawable = ChipDrawable.createFromAttributes(
             context, null, 0, R.style.FilterChips
         )
@@ -122,25 +132,7 @@ class FeedFilterListDialogFragment(context: Context): DialogFragment() {
         tag = tagName
 //        setTextColor(ContextCompat.getColor(context, R.color.yellow_500))
         setChipDrawable(chipDrawable)
-    }
-
-    private fun getNewFilterInputDialog(): Dialog {
-        if (inputFilterEditText.parent != null) {
-            (inputFilterEditText.parent as ViewGroup).removeView(inputFilterEditText)
-            inputFilterEditText.text.clear()
-        }
-        return MaterialAlertDialogBuilder(requireContext(), R.style.AlertDialogTheme)
-            .setTitle("Добавьте новый фильтр:")
-            .setView(inputFilterEditText)
-            .setPositiveButton("Добавить") { _, _ ->
-                val newFilterQuery = inputFilterEditText.text.toString()
-                if (newFilterQuery.isNotBlank()) {
-                    viewModel.addNewFilterToRssFeedPersonalFilters(newFilter = newFilterQuery)
-                    Toast.makeText(requireContext(), "add: $newFilterQuery", Toast.LENGTH_SHORT).show()
-                }
-            }
-            .setNegativeButton("Отмена", null)
-            .create()
+        setTextAppearance(R.style.FeedFilterChipText)
     }
 
     private fun setPercentDialogSize(percentage: Int = 80) {
@@ -152,7 +144,6 @@ class FeedFilterListDialogFragment(context: Context): DialogFragment() {
         val percentWidth = rect.width() * percent
         dialog?.window?.let {
             it.setLayout(percentWidth.toInt(), ViewGroup.LayoutParams.WRAP_CONTENT)
-            it.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
         }
 
     }
@@ -170,7 +161,35 @@ class FeedFilterListDialogFragment(context: Context): DialogFragment() {
 
     override fun onStop() {
         super.onStop()
-        dialog?.dismiss()
+    }
+
+    private fun toggleInputVisibility(show: Boolean) {
+        if (show && isEnableToEdit) {
+            chipEditDone()
+        }
+
+        binding.groupAddFilter.isVisible = show
+        binding.btnAddNewFilter.isVisible = !show
+        binding.btnChipsEdit.isVisible = !show
+
+        if (show) {
+            binding.inputNewFilter.post {
+                binding.inputNewFilter.requestFocus()
+                showKeyboard(binding.inputNewFilter)
+            }
+        } else {
+            hideKeyboard()
+        }
+    }
+
+    private fun showKeyboard(target: View) {
+        val imm = context?.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+        imm?.showSoftInput(target, InputMethodManager.SHOW_IMPLICIT)
+    }
+
+    private fun hideKeyboard() {
+        val imm = context?.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+        imm?.hideSoftInputFromWindow(binding.root.windowToken, 0)
     }
 
     override fun onDestroy() {

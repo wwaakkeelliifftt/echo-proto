@@ -102,7 +102,7 @@ class FeedPersonalFragment: Fragment(), ItemZoneTouchHandler {
         override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
             return when (menuItem.itemId) {
                 R.id.mabFeedPersFilter -> {
-                    val dialog = FeedFilterListDialogFragment(requireContext())
+                    val dialog = FeedFilterListDialogFragment()
                     dialog.show(childFragmentManager, Constants.FEED_FILTER_DIALOG_TAG)
                     true
                 }

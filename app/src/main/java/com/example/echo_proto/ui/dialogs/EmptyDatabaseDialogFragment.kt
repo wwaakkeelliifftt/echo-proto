@@ -25,5 +25,5 @@ class EmptyDatabaseDialogFragment: DialogFragment() {
             }
             .create()
     }
-
+    
 }

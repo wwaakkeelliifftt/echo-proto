@@ -1,47 +1,65 @@
 package com.example.echo_proto.ui.fragments
 
 import android.os.Bundle
-import android.os.PersistableBundle
-import android.widget.Toast
-import androidx.fragment.app.FragmentActivity
-import com.example.echo_proto.R
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import androidx.fragment.app.Fragment
+import androidx.viewpager2.adapter.FragmentStateAdapter
+import androidx.viewpager2.widget.ViewPager2
 import com.example.echo_proto.databinding.ViewpagerAudioplayerHostBinding
-import com.example.echo_proto.ui.adapters.ViewPagerFeedAdapter
-import com.google.android.material.bottomsheet.BottomSheetBehavior
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
-class HostAudioPlayerFragment : FragmentActivity() {
+class HostAudioPlayerFragment : Fragment() {
 
     private var _binding: ViewpagerAudioplayerHostBinding? = null
     private val binding get() = _binding!!
-    private lateinit var viewPagerAdapter: ViewPagerFeedAdapter
 
-    override fun onCreate(savedInstanceState: Bundle?, persistentState: PersistableBundle?) {
-        super.onCreate(savedInstanceState, persistentState)
-        _binding = ViewpagerAudioplayerHostBinding.inflate(layoutInflater)
-        setContentView(binding.root)
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
+        _binding = ViewpagerAudioplayerHostBinding.inflate(inflater, container, false)
+        return binding.root
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
         setupViewPager()
     }
 
     private fun setupViewPager() {
-        viewPagerAdapter = ViewPagerFeedAdapter(
-            listOf(AudioPlayerDetailFragment(), AudioPlayerDescriptionFragment()),
-            this
-        )
-        binding.vpAudioPlayer.adapter = viewPagerAdapter
-    }
-
-    @Deprecated("Deprecated in Java")
-    override fun onBackPressed() {
-//        super.onBackPressed()
-        Toast.makeText(this, "PRESS BACK", Toast.LENGTH_SHORT).show()
-        if (binding.vpAudioPlayer.currentItem == 1) {
-            binding.vpAudioPlayer.currentItem = 0
-        } else {
-            BottomSheetBehavior.from(findViewById(R.id.bottomSheetContainer)).state =
-                BottomSheetBehavior.STATE_COLLAPSED
+        binding.vpAudioPlayer.apply {
+            adapter = AudioPlayerPagerAdapter(this@HostAudioPlayerFragment)
+            orientation = ViewPager2.ORIENTATION_VERTICAL
+            offscreenPageLimit = 1
         }
     }
 
+    fun scrollToDescription() {
+        binding.vpAudioPlayer.currentItem = PAGE_DESCRIPTION
+    }
+
+    fun scrollToControls() {
+        binding.vpAudioPlayer.currentItem = PAGE_DETAIL
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
+    }
+
+    private inner class AudioPlayerPagerAdapter(fragment: Fragment) : FragmentStateAdapter(fragment) {
+        private val pages = listOf(
+            AudioPlayerDetailFragment(),
+            AudioPlayerDescriptionFragment()
+        )
+
+        override fun getItemCount(): Int = pages.size
+
+        override fun createFragment(position: Int): Fragment = pages[position]
+    }
+
+    companion object {
+        private const val PAGE_DETAIL = 0
+        private const val PAGE_DESCRIPTION = 1
+    }
 }

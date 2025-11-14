@@ -62,6 +62,22 @@
         <item name="android:animateLayoutChanges">true</item>
     </style>
 
+    <style name="FeedFilterDialogTitle" parent="TextAppearance.MaterialComponents.Headline6">
+        <item name="android:textColor">?attr/colorOnSurface</item>
+    </style>
+
+    <style name="FeedFilterDialogButtonFilled" parent="Widget.MaterialComponents.Button">
+        <item name="android:textColor">?attr/colorOnPrimary</item>
+    </style>
+
+    <style name="FeedFilterDialogButtonText" parent="Widget.MaterialComponents.Button.TextButton">
+        <item name="android:textColor">?attr/colorPrimary</item>
+    </style>
+
+    <style name="FeedFilterChipText" parent="TextAppearance.MaterialComponents.Body2">
+        <item name="android:textColor">@color/blueGray_700</item>
+    </style>
+
 
     <!--    different shapes for FAB    -->
     <style name="FloatingActionButtonStyle" parent="Widget.Design.FloatingActionButton">
