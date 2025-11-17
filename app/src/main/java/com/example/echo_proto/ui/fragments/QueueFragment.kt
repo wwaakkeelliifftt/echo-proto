@@ -21,6 +21,7 @@ import com.example.echo_proto.ui.viewmodels.MainViewModel
 import com.example.echo_proto.ui.viewmodels.QueueViewModel
 import com.example.echo_proto.util.Constants
 import com.example.echo_proto.util.Resource
+import com.example.echo_proto.util.getTimeFromSeconds
 import dagger.hilt.android.AndroidEntryPoint
 import timber.log.Timber
 import androidx.core.view.MenuHost
@@ -41,6 +42,8 @@ class QueueFragment : Fragment(), ItemZoneTouchHandler { //, ToolbarConfigurator
 
     private var itemTouchHelper: ItemTouchHelper? = null
     private var queueLockMenuItem: MenuItem? = null
+    private var currentQueueCount: Int = 0
+    private var currentQueueDurationSeconds: Int = 0
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         _binding = FragmentQueueBinding.inflate(layoutInflater)
@@ -56,6 +59,7 @@ class QueueFragment : Fragment(), ItemZoneTouchHandler { //, ToolbarConfigurator
         setupRecyclerView()
         viewModel.updateQueueRss()
         setupMenu()
+        updateQueueSummary()
     }
 
     override fun onResume() {
@@ -79,6 +83,16 @@ class QueueFragment : Fragment(), ItemZoneTouchHandler { //, ToolbarConfigurator
                 binding.containerEmptyQueue.visibility = View.GONE
                 queueAdapter.submitList(queueList)
             }
+        }
+
+        viewModel.queueCount.observe(viewLifecycleOwner) { count ->
+            currentQueueCount = count
+            updateQueueSummary()
+        }
+
+        viewModel.queueDurationSeconds.observe(viewLifecycleOwner) { totalSeconds ->
+            currentQueueDurationSeconds = totalSeconds
+            updateQueueSummary()
         }
 
         // think - doesn't need??
@@ -189,6 +203,15 @@ class QueueFragment : Fragment(), ItemZoneTouchHandler { //, ToolbarConfigurator
         queueAdapter.actualList.forEachIndexed { index, episode ->
             Timber.d("actualList ------- AFTER: index=$index, episodeIndex=${episode.indexInQueue}, q=${episode.isInQueue}, title=${episode.title}")
         }
+    }
+
+    private fun updateQueueSummary() {
+        val formattedDuration = currentQueueDurationSeconds.getTimeFromSeconds()
+        binding.tvQueueSummary.text = getString(
+            R.string.queue_summary_template,
+            currentQueueCount,
+            formattedDuration
+        )
     }
 
     private fun setupMenu() {

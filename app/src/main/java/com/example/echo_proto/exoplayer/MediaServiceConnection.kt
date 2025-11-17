@@ -12,6 +12,7 @@ import androidx.lifecycle.MutableLiveData
 import com.example.echo_proto.util.Constants
 import com.example.echo_proto.util.Event
 import com.example.echo_proto.util.Resource
+import timber.log.Timber
 
 class MediaServiceConnection(context: Context) {
 
@@ -31,6 +32,14 @@ class MediaServiceConnection(context: Context) {
 
     val transportControls: MediaControllerCompat.TransportControls
         get() = mediaController.transportControls
+
+    fun setPlaybackSpeed(speed: Float) {
+        val extras = android.os.Bundle().apply {
+            putFloat(Constants.EXTRA_PLAYBACK_SPEED, speed)
+        }
+        Timber.tag("SPEED").d("3) MediaServiceConnection -> sendCustomAction speed=%.2f", speed)
+        transportControls.sendCustomAction(Constants.MEDIA_SESSION_ACTION_SET_SPEED, extras)
+    }
 
     private val mediaBrowserConnectionCallback = MediaBrowserConnectionCallback(context)
     private val mediaBrowser = MediaBrowserCompat(

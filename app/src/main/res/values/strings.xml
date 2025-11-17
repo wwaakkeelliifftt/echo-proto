@@ -30,4 +30,18 @@
     <string name="feed_filter_hint">Добавьте новый фильтр</string>
     <string name="feed_filter_add">Добавить</string>
 
+    <!--  bottom sheet speed fragment  -->
+    <string name="feed_filter_add_confirm">Подтвердить</string>
+    <string name="feed_filter_add_cancel">Отмена</string>
+    <string name="feed_filter_add_hint">Добавьте текст фильтра</string>
+    <string name="feed_filter_empty">Фильтров пока нет</string>
+    <string name="speed_control_title">Скорость воспроизведения:</string>
+    <string name="speed_control_presets_label">Сохранённые скорости</string>
+    <string name="speed_control_drag_handle_content_description">Перетащите, чтобы настроить высоту панели</string>
+    <string name="speed_control_preset_saved">Скорость добавлена в список</string>
+    <string name="speed_control_preset_exists">Такая скорость уже сохранена</string>
+    <string name="speed_control_preset_removed">Скорость удалена</string>
+
+    <string name="queue_summary_template">В очереди %1$d эпизодов. Время воспроизведения: %2$s</string>
+
 </resources>

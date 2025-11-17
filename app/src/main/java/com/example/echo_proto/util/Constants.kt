@@ -27,6 +27,16 @@ object Constants {
     const val SHARED_PREFERENCE_LAST_EPISODE_ID_KEY = "last_episode"
     // ?? udalit?
     const val SHARED_PREFERENCE_LAST_EPISODE_PAUSE_TIME_KEY = "episode_time_key"
+    const val SHARED_PREFERENCE_PLAYBACK_SPEED_KEY = "playback_speed"
+    const val SHARED_PREFERENCE_SPEED_PRESETS_KEY = "playback_speed_presets"
+    const val MEDIA_SESSION_ACTION_SET_SPEED = "media_action_set_speed"
+    const val EXTRA_PLAYBACK_SPEED = "extra_playback_speed"
+    const val DEFAULT_PLAYBACK_SPEED = 1.0f
+    const val PLAYBACK_SPEED_MIN = 0.75f
+    const val PLAYBACK_SPEED_MAX = 2.0f
+    const val PLAYBACK_SPEED_STEP = 0.05f
+    const val PLAYBACK_SPEED_BUTTON_STEP = 0.1f
+    const val PLAYBACK_SPEED_PRESET_LIMIT = 5
     // ?? realizovat?
 //    const val SHARED_PREFERENCE_LAST_EPISODE_ID_KEY = "last_episode_id_key"
 //    const val SHARED_PREFERENCE_LAST_POSITION_KEY = "last_position_key"

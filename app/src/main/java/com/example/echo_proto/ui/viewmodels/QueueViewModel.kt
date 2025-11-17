@@ -27,6 +27,12 @@ class QueueViewModel @Inject constructor(
     private val _rssQueue = MutableLiveData(listOf<Episode>())
     val rssQueue: LiveData<List<Episode>> get() = _rssQueue
 
+    private val _queueDurationSeconds = MutableLiveData(0)
+    val queueDurationSeconds: LiveData<Int> get() = _queueDurationSeconds
+
+    private val _queueCount = MutableLiveData(0)
+    val queueCount: LiveData<Int> get() = _queueCount
+
     private val _isLockedQueue = MutableLiveData(true)
     val isLockedQueue: LiveData<Boolean> get() = _isLockedQueue
 
@@ -40,12 +46,15 @@ class QueueViewModel @Inject constructor(
                             ?.filter { it.isInQueue }
                             ?.sortedBy { it.indexInQueue } ?: emptyList()
                         _rssQueue.postValue(sortedResult)
+                        updateQueueStats(sortedResult)
                         Timber.d("Episodes QUEUE list.size = ${sortedResult.size}")
                         // Когда очередь обновляется, MediaSource автоматически обновится через Flow
                     }
                     is Resource.Error -> {
                         Timber.e("Error loading queue: ${resource.message}")
-                        _rssQueue.postValue(emptyList())
+                        val fallback = resource.data?.filter { it.isInQueue } ?: emptyList()
+                        _rssQueue.postValue(fallback)
+                        updateQueueStats(fallback)
                     }
                 }
             }
@@ -85,12 +94,15 @@ class QueueViewModel @Inject constructor(
                 when (resource) {
                     is Resource.Loading -> Timber.d("QUERY LOADING ->> $query")
                     is Resource.Success -> {
-                        val result = resource.data!!
-                        _rssQueue.postValue(result.filter { it.isInQueue })
+                        val result = resource.data!!.filter { it.isInQueue }
+                        _rssQueue.postValue(result)
+                        updateQueueStats(result)
                     }
                     is Resource.Error -> {
                         Timber.d("QUERY ERROR ->> $query \n\n ${Constants.DATABASE_SEARCH_QUERY_RESULT_IS_EMPTY}")
-                        _rssQueue.postValue(resource.data)
+                        val fallback = resource.data?.filter { it.isInQueue } ?: emptyList()
+                        _rssQueue.postValue(fallback)
+                        updateQueueStats(fallback)
                     }
                 }
             }
@@ -101,6 +113,11 @@ class QueueViewModel @Inject constructor(
         sharedPreferences.edit()
             .putInt(Constants.SHARED_PREFERENCE_EPISODE_DETAIL_ID_KEY, episodeId)
             .apply()
+    }
+
+    private fun updateQueueStats(episodes: List<Episode>) {
+        _queueCount.postValue(episodes.size)
+        _queueDurationSeconds.postValue(episodes.sumOf { it.duration })
     }
 
 }

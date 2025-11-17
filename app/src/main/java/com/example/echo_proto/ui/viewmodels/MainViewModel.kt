@@ -3,6 +3,7 @@ package com.example.echo_proto.ui.viewmodels
 import android.content.SharedPreferences
 import android.support.v4.media.MediaBrowserCompat
 import android.support.v4.media.MediaMetadataCompat
+import android.support.v4.media.session.PlaybackStateCompat
 import androidx.lifecycle.*
 import com.example.echo_proto.domain.model.Episode
 import com.example.echo_proto.domain.repository.MediaServiceContentRepository
@@ -10,12 +11,15 @@ import com.example.echo_proto.exoplayer.*
 import com.example.echo_proto.util.Constants
 import com.example.echo_proto.util.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
+import kotlin.math.abs
+import kotlin.math.roundToInt
+import java.util.Locale
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
@@ -52,8 +56,26 @@ class MainViewModel @Inject constructor(
     private val _currentPlayerPosition = MutableLiveData<Long>()
     val currentPlayerPosition: LiveData<Long> get() = _currentPlayerPosition
 
+    private val _currentPlaybackSpeed = MutableLiveData<Float>()
+    val currentPlaybackSpeed: LiveData<Float> get() = _currentPlaybackSpeed
+
+    private val _playbackSpeedPresets = MutableLiveData<List<Float>>()
+    val playbackSpeedPresets: LiveData<List<Float>> get() = _playbackSpeedPresets
+
     private val _mediaSessionEventForSnackbar = MutableLiveData<String?>()
     val mediaSessionEventForSnackbar: LiveData<String?> get() = _mediaSessionEventForSnackbar
+
+    private val playbackStateObserver = Observer<PlaybackStateCompat?> { state ->
+        val speed = state?.playbackSpeed ?: return@Observer
+        if (speed <= 0f) return@Observer
+        Timber.tag("SPEED").d("6) playbackStateObserver -> session speed=%.2f", speed)
+        if (!_currentPlaybackSpeed.value.isCloseTo(speed)) {
+            _currentPlaybackSpeed.postValue(speed)
+            sharedPreferences.edit()
+                .putFloat(Constants.SHARED_PREFERENCE_PLAYBACK_SPEED_KEY, speed)
+                .apply()
+        }
+    }
 
     init {
         // ? nado li
@@ -92,6 +114,14 @@ class MainViewModel @Inject constructor(
 //                _mediaItems.postValue(Resource.Success(data = items))
             }
         })
+
+        _currentPlaybackSpeed.value = sharedPreferences.getFloat(
+            Constants.SHARED_PREFERENCE_PLAYBACK_SPEED_KEY,
+            Constants.DEFAULT_PLAYBACK_SPEED
+        )
+        _playbackSpeedPresets.value = loadPlaybackSpeedPresets()
+
+        mediaServiceConnection.playbackState.observeForever(playbackStateObserver)
     }
 
     // kazhetsya luchshaya tochka dlya obnovleniya sostoyaniya budet pri dobavlenii v "ochered", no prikruchvat' li eto ko vsem fragmentam..
@@ -191,6 +221,51 @@ class MainViewModel @Inject constructor(
         )
     }
 
+    fun setPlaybackSpeed(requestedSpeed: Float) {
+        val clamped = requestedSpeed.normalizePlaybackSpeed()
+        Timber.tag("SPEED").d("2) setPlaybackSpeed -> requested=%.2f clamped=%.2f", requestedSpeed, clamped)
+        if (!_currentPlaybackSpeed.value.isCloseTo(clamped)) {
+            _currentPlaybackSpeed.postValue(clamped)
+            Timber.tag("SPEED").d("2) setPlaybackSpeed -> posting LiveData value=%.2f", clamped)
+        }
+        mediaServiceConnection.setPlaybackSpeed(clamped)
+        sharedPreferences.edit()
+            .putFloat(Constants.SHARED_PREFERENCE_PLAYBACK_SPEED_KEY, clamped)
+            .apply()
+    }
+
+    fun adjustPlaybackSpeed(delta: Float) {
+        val current = _currentPlaybackSpeed.value ?: Constants.DEFAULT_PLAYBACK_SPEED
+        val target = current + delta
+        Timber.tag("SPEED").d("2) adjustPlaybackSpeed -> current=%.2f delta=%.2f target=%.2f", current, delta, target)
+        setPlaybackSpeed(target)
+    }
+
+    fun addPlaybackSpeedPreset(speed: Float): Boolean {
+        val normalized = speed.normalizePlaybackSpeed()
+        val currentPresets = (_playbackSpeedPresets.value ?: emptyList()).toMutableList()
+        if (currentPresets.any { it.isCloseTo(normalized) }) {
+            return false
+        }
+        if (currentPresets.size >= Constants.PLAYBACK_SPEED_PRESET_LIMIT) {
+            currentPresets.removeFirst()
+        }
+        currentPresets.add(normalized)
+        currentPresets.sort()
+        persistPlaybackSpeedPresets(currentPresets)
+        _playbackSpeedPresets.postValue(currentPresets)
+        return true
+    }
+
+    fun removePlaybackSpeedPreset(speed: Float) {
+        val normalized = speed.normalizePlaybackSpeed()
+        val currentPresets = (_playbackSpeedPresets.value ?: emptyList()).filterNot { it.isCloseTo(normalized) }
+        persistPlaybackSpeedPresets(currentPresets)
+        _playbackSpeedPresets.postValue(currentPresets)
+    }
+
+    fun formatSpeed(speed: Float): String = String.format(Locale.US, "%.2fx", speed)
+
     fun playOrToggleEpisode(mediaItem: Episode, toggle: Boolean = false) {
         val isPrepared = playbackState.value?.isPrepared ?: false
         // replace mediaItem.mediaId with unique id of episode. probably it can be @videoLink param
@@ -256,7 +331,38 @@ class MainViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         updateCurrentPlayEpisodeIdToSharedPref()
+        mediaServiceConnection.playbackState.removeObserver(playbackStateObserver)
         mediaServiceConnection.unsubscribe(Constants.MEDIA_ROOT_ID, object : MediaBrowserCompat.SubscriptionCallback() {})
+    }
+
+    private fun loadPlaybackSpeedPresets(): List<Float> {
+        val stored = sharedPreferences.getStringSet(Constants.SHARED_PREFERENCE_SPEED_PRESETS_KEY, emptySet())
+            ?.mapNotNull { it.toFloatOrNull() }
+            ?.map { it.normalizePlaybackSpeed() }
+            ?.distinctBy { (it * 100).roundToInt() }
+            ?.sorted()
+        return stored ?: emptyList()
+    }
+
+    private fun persistPlaybackSpeedPresets(presets: Collection<Float>) {
+        val values = presets.map { it.normalizePlaybackSpeed() }
+        sharedPreferences.edit()
+            .putStringSet(Constants.SHARED_PREFERENCE_SPEED_PRESETS_KEY, values.map { it.toString() }.toSet())
+            .apply()
+    }
+
+    private fun Float.normalizePlaybackSpeed(): Float {
+        val clamped = this.coerceIn(Constants.PLAYBACK_SPEED_MIN, Constants.PLAYBACK_SPEED_MAX)
+        val steps = (clamped / Constants.PLAYBACK_SPEED_STEP).roundToInt()
+        return (steps * Constants.PLAYBACK_SPEED_STEP).let {
+            // avoid floating errors
+            String.format(Locale.US, "%.2f", it).toFloat()
+        }
+    }
+
+    private fun Float?.isCloseTo(other: Float, epsilon: Float = 0.01f): Boolean {
+        if (this == null) return false
+        return abs(this - other) < epsilon
     }
 
 }

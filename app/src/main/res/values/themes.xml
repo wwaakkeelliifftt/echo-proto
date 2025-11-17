@@ -78,6 +78,16 @@
         <item name="android:textColor">@color/blueGray_700</item>
     </style>
 
+    <style name="SpeedControlChip" parent="Widget.MaterialComponents.Chip.Action">
+        <item name="chipBackgroundColor">@color/blueGray_50</item>
+        <item name="chipIconTint">@color/blueGray_600</item>
+        <item name="android:textColor">@color/blueGray_800</item>
+        <item name="rippleColor">@color/blueGray_200</item>
+        <item name="chipStrokeColor">?attr/colorPrimary</item>
+        <item name="chipStrokeWidth">@dimen/speed_chip_stroke_width</item>
+        <item name="shapeAppearance">@style/ShapeAppearance.MaterialComponents.SmallComponent</item>
+    </style>
+
 
     <!--    different shapes for FAB    -->
     <style name="FloatingActionButtonStyle" parent="Widget.Design.FloatingActionButton">

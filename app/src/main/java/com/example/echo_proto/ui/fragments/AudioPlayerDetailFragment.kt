@@ -14,6 +14,7 @@ import com.example.echo_proto.databinding.FragmentAudioplayerDetailBinding
 import com.example.echo_proto.domain.model.Episode
 import com.example.echo_proto.exoplayer.isPlaying
 import com.example.echo_proto.ui.dialogs.OpenYoutubeDialogFragment
+import com.example.echo_proto.ui.dialogs.SpeedControlBottomSheetFragment
 import com.example.echo_proto.ui.viewmodels.MainViewModel
 import com.example.echo_proto.util.getCurrentTimeFromLong
 import com.example.echo_proto.util.getDateFromLong
@@ -65,7 +66,8 @@ class AudioPlayerDetailFragment : Fragment() {
             showYoutubeDialog(currentEpisode?.videoLink)
         }
         btnChangeSpeed.setOnClickListener {
-
+            SpeedControlBottomSheetFragment()
+                .show(childFragmentManager, SpeedControlBottomSheetFragment.TAG)
         }
     }
 

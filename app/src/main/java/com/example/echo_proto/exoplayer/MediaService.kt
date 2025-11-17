@@ -9,9 +9,10 @@ import android.support.v4.media.MediaDescriptionCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import androidx.media.MediaBrowserServiceCompat
+import com.example.echo_proto.R
 import com.example.echo_proto.domain.model.Episode
-import com.example.echo_proto.exoplayer.callbacks.MediaPlayerNotificationListener
 import com.example.echo_proto.exoplayer.callbacks.MediaPlayerEventListener
+import com.example.echo_proto.exoplayer.callbacks.MediaPlayerNotificationListener
 import com.example.echo_proto.util.Constants
 import com.example.echo_proto.util.NetworkUtils
 import com.google.android.exoplayer2.ExoPlayer
@@ -21,9 +22,17 @@ import com.google.android.exoplayer2.ext.mediasession.MediaSessionConnector
 import com.google.android.exoplayer2.ext.mediasession.TimelineQueueNavigator
 import com.google.android.exoplayer2.upstream.DefaultDataSource
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlin.math.abs
 import timber.log.Timber
 import javax.inject.Inject
+import com.google.android.exoplayer2.ext.mediasession.MediaSessionConnector.CustomActionProvider
 
 @AndroidEntryPoint
 class MediaService : MediaBrowserServiceCompat() {
@@ -40,6 +49,7 @@ class MediaService : MediaBrowserServiceCompat() {
     // чтобы не обновлять его без необходимости
     private var lastPlaybackState: Int = PlaybackStateCompat.STATE_NONE
     private var lastPlaybackPosition: Long = 0L
+    private var lastPlaybackSpeed: Float = 1f
 
     @Inject lateinit var mediaSource: MediaSource
     @Inject lateinit var dataSourceFactory: DefaultDataSource.Factory
@@ -73,6 +83,13 @@ class MediaService : MediaBrowserServiceCompat() {
             MediaPlayerNotificationListener(this)
         )
 
+        val savedSpeed = sharedPreferences.getFloat(
+            Constants.SHARED_PREFERENCE_PLAYBACK_SPEED_KEY,
+            Constants.DEFAULT_PLAYBACK_SPEED
+        ).coerceAtLeast(0.1f)
+        Timber.tag("SPEED").d("0) MediaService.onCreate -> restoring saved speed=%.2f", savedSpeed)
+        setPlayerSpeed(savedSpeed)
+
         val mediaPlaybackPreparer = MediaPlaybackPreparer(mediaSource = mediaSource) {
             currentPlayingEpisode = it
             serviceScope.launch {
@@ -89,6 +106,7 @@ class MediaService : MediaBrowserServiceCompat() {
             setPlaybackPreparer(mediaPlaybackPreparer)
             setQueueNavigator(MusicQueueNavigator())
             setPlayer(exoPlayer)
+            setCustomActionProviders(createSetSpeedActionProvider())
         }
 
         mediaPlayerEventListener = MediaPlayerEventListener(this, mediaSession)
@@ -106,6 +124,7 @@ class MediaService : MediaBrowserServiceCompat() {
                     val position = exoPlayer.currentPosition
                     val state = exoPlayer.playbackState
                     val playWhenReady = exoPlayer.playWhenReady
+                    val currentSpeed = exoPlayer.playbackParameters.speed
                     
                     val playbackState = when {
                         state == Player.STATE_READY && playWhenReady -> PlaybackStateCompat.STATE_PLAYING
@@ -113,29 +132,38 @@ class MediaService : MediaBrowserServiceCompat() {
                         state == Player.STATE_BUFFERING -> PlaybackStateCompat.STATE_BUFFERING
                         else -> PlaybackStateCompat.STATE_NONE
                     }
-                    
+
                     // Обновляем playbackState только если состояние или позиция действительно изменились
                     // Используем порог для позиции (1 секунда), чтобы не обновлять слишком часто из-за небольших изменений
                     val positionChanged = kotlin.math.abs(position - lastPlaybackPosition) > 1000
                     val stateChanged = playbackState != lastPlaybackState
-                    
-                    if (stateChanged || positionChanged) {
+                    val speedChanged = abs(currentSpeed - lastPlaybackSpeed) > 0.001f
+
+                    if (stateChanged || positionChanged || speedChanged) {
                         lastPlaybackState = playbackState
                         lastPlaybackPosition = position
+                        lastPlaybackSpeed = currentSpeed
                         
-                        mediaSession.setPlaybackState(
-                            PlaybackStateCompat.Builder()
-                                .setState(playbackState, position, exoPlayer.playbackParameters.speed)
-                                .setActions(
-                                    PlaybackStateCompat.ACTION_PLAY or
-                                    PlaybackStateCompat.ACTION_PAUSE or
-                                    PlaybackStateCompat.ACTION_PLAY_PAUSE or
-                                    PlaybackStateCompat.ACTION_SKIP_TO_NEXT or
-                                    PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS or
-                                    PlaybackStateCompat.ACTION_SEEK_TO
-                                )
-                                .build()
-                        )
+                        val playbackStateBuilder = PlaybackStateCompat.Builder()
+                            .setState(playbackState, position, currentSpeed)
+                            .setActions(
+                                PlaybackStateCompat.ACTION_PLAY or
+                                PlaybackStateCompat.ACTION_PAUSE or
+                                PlaybackStateCompat.ACTION_PLAY_PAUSE or
+                                PlaybackStateCompat.ACTION_SKIP_TO_NEXT or
+                                PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS or
+                                PlaybackStateCompat.ACTION_SEEK_TO
+                            )
+
+                        // Advertise custom action for playback speed so controllers know about it
+                        val speedAction = PlaybackStateCompat.CustomAction.Builder(
+                            Constants.MEDIA_SESSION_ACTION_SET_SPEED,
+                            getString(R.string.speed_control_title),
+                            R.drawable.ic_menu_play
+                        ).build()
+                        playbackStateBuilder.addCustomAction(speedAction)
+
+                        mediaSession.setPlaybackState(playbackStateBuilder.build())
                         
                         // Сохраняем позицию в БД каждые 5 секунд
                         if (positionChanged && currentPlayingEpisode != null && playWhenReady) {
@@ -310,7 +338,35 @@ class MediaService : MediaBrowserServiceCompat() {
     }
 
     fun setPlayerSpeed(speed: Float) {
+        Timber.tag("SPEED").d("5) MediaService.setPlayerSpeed -> applying speed=%.2f", speed)
         exoPlayer.playbackParameters = PlaybackParameters(speed)
+    }
+
+    private fun createSetSpeedActionProvider(): CustomActionProvider {
+        return object : CustomActionProvider {
+            override fun onCustomAction(
+                player: Player,
+                action: String,
+                extras: Bundle?
+            ) {
+                if (action == Constants.MEDIA_SESSION_ACTION_SET_SPEED) {
+                    val speed = extras?.getFloat(Constants.EXTRA_PLAYBACK_SPEED)
+                    Timber.tag("SPEED").d("4) MediaService -> custom action received speed=%s", speed?.let { String.format("%.2f", it) } ?: "null")
+                    if (speed != null && speed > 0f) {
+                        setPlayerSpeed(speed)
+                    }
+                }
+            }
+
+            override fun getCustomAction(player: Player): PlaybackStateCompat.CustomAction? {
+                Timber.tag("SPEED").d("4a) MediaService -> providing custom action")
+                return PlaybackStateCompat.CustomAction.Builder(
+                    Constants.MEDIA_SESSION_ACTION_SET_SPEED,
+                    getString(R.string.speed_control_title),
+                    R.drawable.ic_menu_play
+                ).build()
+            }
+        }
     }
 
     /** mozhet v prepare i dobavit' obertku scope ? */
