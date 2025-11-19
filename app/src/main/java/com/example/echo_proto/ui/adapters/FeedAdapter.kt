@@ -4,25 +4,21 @@ import android.annotation.SuppressLint
 import android.view.*
 import android.widget.ImageButton
 import android.widget.ImageView
-import androidx.recyclerview.widget.AsyncListDiffer
+import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import com.example.echo_proto.R
 import com.example.echo_proto.databinding.ItemEpisodeBinding
 import com.example.echo_proto.domain.model.Episode
+import com.example.echo_proto.ui.common.PlaybackStateAware
 import com.example.echo_proto.util.getDateFromLong
 import com.example.echo_proto.util.getTimeFromSeconds
 import timber.log.Timber
 
-//interface OnStartDragListener {
-//    fun onStartDrag(viewHolder: RecyclerView.ViewHolder)
-//    fun changeDragIconVisibilityAlpha(): Float
-//}
 
 interface ItemZoneTouchHandler {
     val isDraggableFragment: Boolean
     fun onStartDrag(viewHolder: RecyclerView.ViewHolder)
-    fun changeDragIconVisibilityAlpha(): Float
     fun navigateToEpisodeDetailScreen(episode: Episode)
     fun playPauseStateChanger(episode: Episode)
 }
@@ -30,9 +26,12 @@ interface ItemZoneTouchHandler {
 class FeedAdapter(
 //    private val dragListener: OnStartDragListener?,
     private val itemZoneHandler: ItemZoneTouchHandler?
-) : RecyclerView.Adapter<FeedAdapter.FeedViewHolder>() {
+) : RecyclerView.Adapter<FeedAdapter.FeedViewHolder>(), PlaybackStateAware {
 
     inner class FeedViewHolder(val binding: ItemEpisodeBinding) : RecyclerView.ViewHolder(binding.root)
+
+    private var currentPlayingEpisodeId: Int? = null
+    private var isCurrentlyPlaying: Boolean = false
 
     private val diffCallback = object : DiffUtil.ItemCallback<Episode>() {
         override fun areItemsTheSame(oldItem: Episode, newItem: Episode): Boolean {
@@ -44,16 +43,50 @@ class FeedAdapter(
         }
     }
 
-    private val listDiffer = AsyncListDiffer(this, diffCallback)
-    val actualList: MutableList<Episode> get() = listDiffer.currentList
+    private val items = mutableListOf<Episode>()
+    var dragHandleAlpha: Float = 0f
+    val actualList: List<Episode> get() = items
 
     fun submitList(list: List<Episode>) {
-        listDiffer.submitList(list)
-        Timber.d("FEED_ADAPTER: submit listDiffer")
+        val diffCallback = object : DiffUtil.Callback() {
+            override fun getOldListSize(): Int = items.size
+            override fun getNewListSize(): Int = list.size
+            override fun areItemsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
+                return items[oldItemPosition].id == list[newItemPosition].id
+            }
+
+            override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
+                return items[oldItemPosition] == list[newItemPosition]
+            }
+        }
+        val diffResult = DiffUtil.calculateDiff(diffCallback)
+        items.clear()
+        items.addAll(list)
+        diffResult.dispatchUpdatesTo(this)
+        Timber.d("FEED_ADAPTER: submit size=${list.size}")
+    }
+
+    fun currentItems(): List<Episode> = items.toList()
+
+    fun moveItem(fromPosition: Int, toPosition: Int) {
+        if (fromPosition == toPosition) return
+        if (fromPosition !in items.indices || toPosition !in items.indices) return
+        val item = items.removeAt(fromPosition)
+        items.add(toPosition, item)
+        notifyItemMoved(fromPosition, toPosition)
+    }
+
+    /**
+     * Обновляет информацию о том, какой эпизод сейчас играет и состояние воспроизведения.
+     * Вызывать из фрагментов при изменении playbackState или текущего эпизода.
+     */
+    override fun updatePlaybackState(playingEpisodeId: Int?, isPlaying: Boolean) {
+        currentPlayingEpisodeId = playingEpisodeId
+        isCurrentlyPlaying = isPlaying
         notifyDataSetChanged()
     }
 
-    override fun getItemCount(): Int = listDiffer.currentList.size
+    override fun getItemCount(): Int = items.size
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): FeedViewHolder {
         return FeedViewHolder(
@@ -63,7 +96,7 @@ class FeedAdapter(
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onBindViewHolder(holder: FeedViewHolder, position: Int) {
-        val episode = listDiffer.currentList[position]
+        val episode = items[position]
         val view = holder.binding
 
         with(view) {
@@ -72,23 +105,20 @@ class FeedAdapter(
             tvTime.text = episode.duration.getTimeFromSeconds()
 
             ivSelected.visibility = if (episode.isSelected) View.VISIBLE else View.INVISIBLE
-            ivQueue.visibility = if (episode.isInQueue) View.VISIBLE else View.INVISIBLE
-            
-            // Показываем иконку скачивания для скачанных эпизодов
+            ivQueue.alpha = if (episode.isInQueue) 1.0f else 0.2f
             ivDownload.alpha = if (episode.isDownloaded) 1.0f else 0.2f
             
-            // Приглушаем отображение прослушанных эпизодов
-            if (episode.hasListened) {
-                root.alpha = 0.5f
-                tvTitle.alpha = 0.7f
-                tvPubDateAndSize.alpha = 0.5f
-                tvTime.alpha = 0.5f
+            viewListenedOverlay.isVisible = episode.hasListened
+            Timber.tag("FEED").d("episode=${episode.title.subSequence(0, 10)}, isVisible=${episode.hasListened}")
+
+            // Отображение play/pause в списке в зависимости от текущего эпизода и состояния плеера
+            val isCurrentEpisode = currentPlayingEpisodeId != null && episode.id == currentPlayingEpisodeId
+            val iconRes = if (isCurrentEpisode && isCurrentlyPlaying) {
+                R.drawable.ic_rv_pause
             } else {
-                root.alpha = 1.0f
-                tvTitle.alpha = 1.0f
-                tvPubDateAndSize.alpha = 1.0f
-                tvTime.alpha = 1.0f
+                R.drawable.ic_rv_play
             }
+            btnPlayPause.setImageResource(iconRes)
 
             btnNavigateToEpisodeDetail.setOnClickListener {
                 itemZoneHandler?.navigateToEpisodeDetailScreen(episode = episode)
@@ -99,22 +129,13 @@ class FeedAdapter(
                 itemZoneHandler?.playPauseStateChanger(episode = episode)
             }
 
-            if (itemZoneHandler?.isDraggableFragment == true) {
-                dragAndDrop.setOnTouchListener { v, event ->
-                    itemZoneHandler.onStartDrag(viewHolder = holder)
-                    false
+            dragAndDrop.setOnTouchListener { _, _ ->
+                if (itemZoneHandler?.isDraggableFragment == true) {
+                    itemZoneHandler.onStartDrag(holder)
                 }
-            }
-
-            dragAndDrop.setOnTouchListener { v, event ->
-//                dragListener?.let { it.onStartDrag(holder) }
-                itemZoneHandler?.onStartDrag(holder)
                 false
             }
-//            dragAndDrop.alpha = dragListener?.changeDragIconVisibilityAlpha() ?: 0f
-            dragAndDrop.alpha = itemZoneHandler?.changeDragIconVisibilityAlpha() ?: 0f
-
-
+            dragAndDrop.alpha = if (itemZoneHandler?.isDraggableFragment == true) dragHandleAlpha else 0f
 
             // todo: possible to delete soon
             setClickListener {

@@ -2,8 +2,9 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:paddingBottom="@dimen/echo_appbar_height">
+    android:paddingStart="@dimen/dp_medium_less"
+    android:paddingEnd="@dimen/dp_medium_less"
+    android:orientation="vertical" >
 
     <com.example.echo_proto.ui.view.NestedScrollableHost
         android:layout_width="match_parent"
@@ -21,8 +22,6 @@
                 android:id="@+id/tvPlayerDescription"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:paddingStart="@dimen/dp_small"
-                android:paddingEnd="@dimen/dp_small"
                 android:text="DESCRIPTION THIS"
                 android:textSize="15sp" />
 
@@ -36,7 +35,6 @@
         android:layout_height="wrap_content"
         android:text="back"
         android:layout_gravity="center_horizontal"
-        android:paddingVertical="@dimen/dp_small"
         android:backgroundTint="?android:colorBackground" />
 
 </LinearLayout>

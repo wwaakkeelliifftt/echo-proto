@@ -3,66 +3,18 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:layout_marginTop="@dimen/echo_appbar_height"
+    android:layout_marginBottom="@dimen/echo_appbar_height"
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
-    <com.google.android.material.textview.MaterialTextView
-        android:id="@+id/tvTitle"
+    <androidx.viewpager2.widget.ViewPager2
+        android:id="@+id/vpEpisodeContent"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:text="EPISODE FULL TITLE DESCRIPTION LINE WITH ALL INFORMATION"
-        android:gravity="center"
-        android:textSize="22sp"
-        android:layout_marginHorizontal="@dimen/dp_medium_less"
-        app:layout_constraintBottom_toTopOf="@+id/tvPubDateAndSize"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.5"
+        android:layout_height="0dp"
+        android:orientation="vertical"
+        android:paddingBottom="@dimen/dp_medium"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/seekBar"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
-    <com.google.android.material.textview.MaterialTextView
-        android:id="@+id/tvPubDateAndSize"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:text="21/12/42"
-        android:alpha="0.7"
-        android:textSize="14sp"
-        android:gravity="center"
-        android:padding="@dimen/dp_medium_less"
-        app:layout_constraintTop_toBottomOf="@id/tvTitle"
-        app:layout_constraintHorizontal_bias="0.5"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
-
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/dtnToDescription"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="about"
-        style="@style/FeedFilterDialogButtonFilled"
-        app:layout_constraintBottom_toBottomOf="@id/guideline2"
-        app:layout_constraintStart_toEndOf="@id/btnChangeSpeed"
-        app:layout_constraintEnd_toStartOf="@id/btnGoToYoutube" />
-
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btnChangeSpeed"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="speed"
-        style="@style/FeedFilterDialogButtonFilled"
-        app:layout_constraintBottom_toBottomOf="@id/guideline2"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toStartOf="@id/dtnToDescription" />
-
-
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btnGoToYoutube"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="youtube"
-        style="@style/FeedFilterDialogButtonFilled"
-        app:layout_constraintBottom_toBottomOf="@id/guideline2"
-        app:layout_constraintStart_toEndOf="@id/dtnToDescription"
         app:layout_constraintEnd_toEndOf="parent" />
 
     <com.google.android.material.textview.MaterialTextView
@@ -81,9 +33,10 @@
         android:id="@+id/seekBar"
         android:layout_width="0dp"
         android:layout_height="18dp"
+        android:layout_marginTop="@dimen/player_seekbar_top_spacing"
         app:layout_constraintEnd_toStartOf="@+id/tv_timer_episode_time_total"
         app:layout_constraintStart_toEndOf="@+id/tv_current_time"
-        app:layout_constraintTop_toTopOf="@+id/guideline3"
+        app:layout_constraintTop_toBottomOf="@id/vpEpisodeContent"
         android:progressTint="?attr/colorPrimaryVariant"
         android:thumbTint="?attr/indicatorColor" />
 
@@ -99,18 +52,38 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="@+id/seekBar" />
 
-    <ImageView
-        android:id="@+id/iv_play_pause"
+    <FrameLayout
+        android:id="@+id/iv_play_pause_container"
         android:layout_width="75dp"
         android:layout_height="75dp"
-        android:layout_marginTop="@dimen/dp_large"
-        android:src="@drawable/ic_menu_play"
-        android:background="?attr/selectableItemBackgroundBorderless"
+        android:layout_marginTop="@dimen/player_controls_vertical_spacing"
+        android:layout_marginBottom="@dimen/player_controls_vertical_spacing"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/seekBar"
-        app:tint="@color/blueGray_700" />
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintVertical_bias="0.5">
+
+        <ImageView
+            android:id="@+id/iv_play_pause"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:src="@drawable/ic_menu_play"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:tint="@color/blueGray_700" />
+
+        <ImageView
+            android:id="@+id/iv_play_pause_ghost"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone"
+            android:alpha="0"
+            android:clickable="false"
+            android:focusable="false"
+            android:tint="@color/blueGray_700" />
+
+    </FrameLayout>
 
     <ImageView
         android:id="@+id/ivSkipPrevious"
@@ -119,9 +92,9 @@
         android:layout_marginEnd="@dimen/dp_medium"
         android:src="@drawable/ic_audio_skip_previous"
         android:background="?attr/selectableItemBackgroundBorderless"
-        app:layout_constraintBottom_toBottomOf="@+id/iv_play_pause"
+        app:layout_constraintBottom_toBottomOf="@+id/iv_play_pause_container"
         app:layout_constraintEnd_toStartOf="@+id/ivReplay"
-        app:layout_constraintTop_toTopOf="@+id/iv_play_pause"
+        app:layout_constraintTop_toTopOf="@+id/iv_play_pause_container"
         app:tint="@color/blueGray_700" />
 
     <ImageView
@@ -131,9 +104,9 @@
         android:layout_margin="@dimen/dp_medium"
         android:src="@drawable/ic_audio_replay_10"
         android:background="?attr/selectableItemBackgroundBorderless"
-        app:layout_constraintTop_toTopOf="@id/iv_play_pause"
-        app:layout_constraintBottom_toBottomOf="@id/iv_play_pause"
-        app:layout_constraintEnd_toStartOf="@id/iv_play_pause"
+        app:layout_constraintTop_toTopOf="@id/iv_play_pause_container"
+        app:layout_constraintBottom_toBottomOf="@id/iv_play_pause_container"
+        app:layout_constraintEnd_toStartOf="@id/iv_play_pause_container"
         app:tint="@color/blueGray_700"/>
 
     <ImageView
@@ -143,9 +116,9 @@
         android:layout_margin="@dimen/dp_medium"
         android:src="@drawable/ic_audio_forward_10"
         android:background="?attr/selectableItemBackgroundBorderless"
-        app:layout_constraintStart_toEndOf="@id/iv_play_pause"
-        app:layout_constraintTop_toTopOf="@id/iv_play_pause"
-        app:layout_constraintBottom_toBottomOf="@id/iv_play_pause"
+        app:layout_constraintStart_toEndOf="@id/iv_play_pause_container"
+        app:layout_constraintTop_toTopOf="@id/iv_play_pause_container"
+        app:layout_constraintBottom_toBottomOf="@id/iv_play_pause_container"
         app:tint="@color/blueGray_700" />
 
 
@@ -156,30 +129,9 @@
         android:layout_marginStart="@dimen/dp_medium"
         android:src="@drawable/ic_audio_skip_next"
         android:background="?attr/selectableItemBackgroundBorderless"
-        app:layout_constraintBottom_toBottomOf="@+id/iv_play_pause"
+        app:layout_constraintBottom_toBottomOf="@+id/iv_play_pause_container"
         app:layout_constraintStart_toEndOf="@+id/ivForward"
-        app:layout_constraintTop_toTopOf="@+id/iv_play_pause"
+        app:layout_constraintTop_toTopOf="@+id/iv_play_pause_container"
         app:tint="@color/blueGray_700" />
-
-    <androidx.constraintlayout.widget.Guideline
-        android:id="@+id/guideline1"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        app:layout_constraintGuide_percent="0.5" />
-
-    <androidx.constraintlayout.widget.Guideline
-        android:id="@+id/guideline2"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        app:layout_constraintGuide_percent="0.68" />
-
-    <androidx.constraintlayout.widget.Guideline
-        android:id="@+id/guideline3"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        app:layout_constraintGuide_percent="0.7" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

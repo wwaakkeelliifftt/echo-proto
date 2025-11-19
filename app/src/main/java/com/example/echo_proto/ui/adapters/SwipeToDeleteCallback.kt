@@ -69,8 +69,11 @@ abstract class SwipeToDeleteCallback(context: Context):
 
 }
 
-abstract class SwipeToDeleteCallback_Queue(context: Context, private val sourceViewModel: ViewModel):
-    ItemTouchHelper.Callback() {
+abstract class SwipeToDeleteCallback_Queue(
+    context: Context,
+    private val sourceViewModel: ViewModel,
+    private val queueAdapter: FeedAdapter
+) : ItemTouchHelper.Callback() {
 
     private val iconDelete = ContextCompat.getDrawable(context, R.drawable.button_ic_delete)!!
     private val intrinsicWidth = iconDelete.intrinsicWidth
@@ -84,6 +87,8 @@ abstract class SwipeToDeleteCallback_Queue(context: Context, private val sourceV
         val swipeFlag = ItemTouchHelper.LEFT
         return makeMovementFlags(dragFlag, swipeFlag)
     }
+
+    override fun getMoveThreshold(viewHolder: RecyclerView.ViewHolder): Float = 0.4f
 
     override fun onChildDraw(
         c: Canvas,
@@ -135,36 +140,51 @@ abstract class SwipeToDeleteCallback_Queue(context: Context, private val sourceV
         viewHolder: RecyclerView.ViewHolder,
         target: RecyclerView.ViewHolder
     ): Boolean {
-        Timber.d("MOVE ON !!\n")
         val fromPosition = viewHolder.bindingAdapterPosition
         val toPosition = target.bindingAdapterPosition
-        Timber.d("FROM POS: $fromPosition --> TO POS: $toPosition")
+        if (fromPosition == RecyclerView.NO_POSITION || toPosition == RecyclerView.NO_POSITION) return false
 
-        val newList = (sourceViewModel as QueueViewModel).rssQueue.value as MutableList
-        // ^^ newList is direct link to viewModel.rssQueue.value and straight modify them..
+        Timber.tag("DRAG").d("from=$fromPosition -> to=$toPosition")
 
-        Timber.d("newList hash = ${newList.hashCode()}")
-        if (fromPosition < toPosition) {
-            for (i in fromPosition until toPosition) {
-                Timber.d("GO DOWN_1\n POS: i=$i -> ${newList[i].title} \n POS i++= ${i+1} -> ${newList[i+1].title}\n BEFORE--END")
-                newList[i] = newList.set(i+1, newList[i])
-                Timber.d("GO DOWN_2\n POS: i=$i -> ${newList[i].title} \n POS i++= ${i+1} -> ${newList[i+1].title}\n AFTER--END")
-            }
-        } else {
-            for (i in fromPosition..toPosition+1) {
-                Timber.d("GO UP_1\n POS: i=$i -> ${newList[i].title} \n POS i--= ${i-1} -> ${newList[i-1].title}\n BEFORE--END")
-                newList[i] = newList.set(i-1, newList[i])
-                Timber.d("GO UP_2\n POS: i=$i -> ${newList[i].title} \n POS i--= ${i-1} -> ${newList[i-1].title}\n AFTER--END")
-            }
-        }
-        recyclerView.adapter?.notifyItemMoved(fromPosition, toPosition)
-        val size = recyclerView.adapter?.itemCount
-        Timber.d("IN LIST -> $size item")
-        newList.forEachIndexed { index, episode ->
-            Timber.d("NEW_ORDER_LIST::${episode.title}")
-            sourceViewModel.updateEpisodeIndex(episodeId = episode.id, newIndex = index)
-        }
+        queueAdapter.moveItem(fromPosition, toPosition)
         return true
+    }
+
+    override fun chooseDropTarget(
+        selected: RecyclerView.ViewHolder,
+        dropTargets: MutableList<RecyclerView.ViewHolder>,
+        curX: Int,
+        curY: Int
+    ): RecyclerView.ViewHolder? {
+        val defaultTarget = super.chooseDropTarget(selected, dropTargets, curX, curY)
+        if (defaultTarget != null) return defaultTarget
+        if (dropTargets.isEmpty()) return null
+
+        val selectedCenterY = curY
+        val movingUp = selectedCenterY < selected.itemView.top
+        return if (movingUp) {
+            dropTargets.minByOrNull { it.bindingAdapterPosition }
+        } else {
+            dropTargets.maxByOrNull { it.bindingAdapterPosition }
+        }
+    }
+
+    override fun onSelectedChanged(viewHolder: RecyclerView.ViewHolder?, actionState: Int) {
+        super.onSelectedChanged(viewHolder, actionState)
+        if (actionState == ItemTouchHelper.ACTION_STATE_DRAG) {
+            viewHolder?.itemView?.alpha = 0.75f
+        }
+    }
+
+    override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
+        super.clearView(recyclerView, viewHolder)
+        viewHolder.itemView.alpha = 1f
+        val items = queueAdapter.currentItems()
+        (sourceViewModel as? QueueViewModel)?.let { vm ->
+            items.forEachIndexed { index, episode ->
+                vm.updateEpisodeIndex(episodeId = episode.id, newIndex = index)
+            }
+        }
     }
 
 }

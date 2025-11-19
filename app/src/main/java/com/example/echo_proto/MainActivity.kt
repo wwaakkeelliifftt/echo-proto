@@ -2,10 +2,6 @@ package com.example.echo_proto
 
 import android.os.Bundle
 import android.support.v4.media.session.PlaybackStateCompat
-import android.view.Menu
-import android.view.MenuItem
-import android.view.animation.AccelerateDecelerateInterpolator
-import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProvider
@@ -17,12 +13,11 @@ import androidx.navigation.ui.setupWithNavController
 import com.example.echo_proto.databinding.ActivityMainBinding
 import com.example.echo_proto.domain.model.Episode
 import com.example.echo_proto.exoplayer.isPlaying
-import com.example.echo_proto.ui.view.ToolbarConfigurator
+import com.example.echo_proto.ui.common.PlayPauseButtonAnimator
 import com.example.echo_proto.ui.viewmodels.MainViewModel
 import com.example.echo_proto.util.Resource
 import com.example.echo_proto.util.SnackbarHelper
 import com.example.echo_proto.util.getCurrentTimeFromLong
-import com.example.echo_proto.util.getDateFromLong
 import com.example.echo_proto.util.getTimeFromSeconds
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.snackbar.Snackbar
@@ -184,33 +179,14 @@ class MainActivity : AppCompatActivity() {
         if (previousPlaybackState != isPlaying) {
             previousPlaybackState = isPlaying
 
-            binding.bottomPlayback.ivPlayPause.animate().cancel()
-
-            animatePlayPauseButton(
-                binding.bottomPlayback.ivPlayPause,
-                isPlaying,
-                fromBottomPlayback = true
-            )
-        }
-    }
-
-    private fun animatePlayPauseButton(imageView: ImageView, isPlaying: Boolean, fromBottomPlayback: Boolean = false) {
-        imageView.rotation = 0f
-
-        imageView.animate()
-            .rotation(90f)
-            .setDuration(250)
-            .setInterpolator(AccelerateDecelerateInterpolator())
-            .withEndAction {
-                imageView.rotation = 0f
-                val iconRes = if (isPlaying) {
-                    if (fromBottomPlayback) R.drawable.ic_state_pause else R.drawable.ic_menu_pause
-                } else {
-                    if (fromBottomPlayback) R.drawable.ic_state_play else R.drawable.ic_menu_play
-                }
-                imageView.setImageResource(iconRes)
+            PlayPauseButtonAnimator.animate(
+                activeView = binding.bottomPlayback.ivPlayPause,
+                ghostView = binding.bottomPlayback.ivPlayPauseGhost,
+                isPlaying = isPlaying
+            ) { playing ->
+                if (playing) R.drawable.ic_state_pause else R.drawable.ic_state_play
             }
-            .start()
+        }
     }
 
     private fun bindEpisodeData(episode: Episode) {

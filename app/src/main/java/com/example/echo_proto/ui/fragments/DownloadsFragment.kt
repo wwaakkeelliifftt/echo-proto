@@ -8,12 +8,15 @@ import android.view.ViewGroup
 import android.view.MenuInflater
 import android.view.MenuItem
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.echo_proto.R
 import com.example.echo_proto.databinding.FragmentDownloadsBinding
 import com.example.echo_proto.ui.adapters.FeedAdapter
+import com.example.echo_proto.ui.common.observePlaybackState
 import com.example.echo_proto.ui.viewmodels.DownloadsViewModel
+import com.example.echo_proto.ui.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import timber.log.Timber
 import androidx.core.view.MenuHost
@@ -24,6 +27,7 @@ import androidx.lifecycle.Lifecycle
 class DownloadsFragment : Fragment() {
 
     private val viewModel by viewModels<DownloadsViewModel>()
+    private val mainViewModel by activityViewModels<MainViewModel>()
     private var _binding: FragmentDownloadsBinding? = null
     private val binding get() = _binding!!
     private lateinit var downloadsAdapter: FeedAdapter
@@ -38,6 +42,7 @@ class DownloadsFragment : Fragment() {
         
         subscribeToObservers()
         setupRecyclerView()
+        observePlaybackState(mainViewModel, downloadsAdapter)
         setupMenu()
     }
 

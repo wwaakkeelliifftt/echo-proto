@@ -27,6 +27,7 @@ import javax.inject.Inject
 import androidx.core.view.MenuHost
 import androidx.core.view.MenuProvider
 import androidx.lifecycle.Lifecycle
+import com.example.echo_proto.ui.common.observePlaybackState
 
 @AndroidEntryPoint
 class FeedFragment : Fragment(), ItemZoneTouchHandler { //, ToolbarConfigurator {
@@ -74,6 +75,7 @@ class FeedFragment : Fragment(), ItemZoneTouchHandler { //, ToolbarConfigurator 
             }
         }
 
+        observePlaybackState(mainViewModel, feedAdapter)
         setupMenu()
     }
 
@@ -202,7 +204,6 @@ class FeedFragment : Fragment(), ItemZoneTouchHandler { //, ToolbarConfigurator 
 
     override val isDraggableFragment: Boolean = false
     override fun onStartDrag(viewHolder: RecyclerView.ViewHolder) = Unit
-    override fun changeDragIconVisibilityAlpha(): Float = 0f
 
     @SuppressLint("ResourceType")
     override fun navigateToEpisodeDetailScreen(episode: Episode) {

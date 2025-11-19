@@ -5,12 +5,15 @@ import android.os.Bundle
 import android.view.*
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.echo_proto.R
 import com.example.echo_proto.databinding.FragmentChannelsBinding
 import com.example.echo_proto.ui.adapters.FeedAdapter
+import com.example.echo_proto.ui.common.observePlaybackState
 import com.example.echo_proto.ui.viewmodels.ChannelViewModel
+import com.example.echo_proto.ui.viewmodels.MainViewModel
 import com.example.echo_proto.util.Constants
 import dagger.hilt.android.AndroidEntryPoint
 import timber.log.Timber
@@ -26,6 +29,7 @@ class ChannelFragment : Fragment() {
 
     private lateinit var rvAdapter: FeedAdapter
     private val viewModel by viewModels<ChannelViewModel>()
+    private val mainViewModel by activityViewModels<MainViewModel>()
 
     private lateinit var source: FeedChannel
 
@@ -42,6 +46,7 @@ class ChannelFragment : Fragment() {
 
         viewModel.getRssChannelFromDatabase(feedChannel = source)
         setupRecyclerView()
+        observePlaybackState(mainViewModel, rvAdapter)
         binding.swipeRefreshChannel.setOnRefreshListener { swipeToUpdate() }
 
         viewModel.rssChannel.observe(viewLifecycleOwner) { channelList ->

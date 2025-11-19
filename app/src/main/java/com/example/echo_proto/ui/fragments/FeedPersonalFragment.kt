@@ -11,6 +11,7 @@ import androidx.appcompat.widget.SearchView
 import androidx.core.view.MenuHost
 import androidx.core.view.MenuProvider
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.navigation.fragment.findNavController
@@ -22,7 +23,9 @@ import com.example.echo_proto.domain.model.Episode
 import com.example.echo_proto.ui.adapters.FeedAdapter
 import com.example.echo_proto.ui.adapters.ItemZoneTouchHandler
 import com.example.echo_proto.ui.dialogs.FeedFilterListDialogFragment
+import com.example.echo_proto.ui.common.observePlaybackState
 import com.example.echo_proto.ui.viewmodels.FeedViewModel
+import com.example.echo_proto.ui.viewmodels.MainViewModel
 import com.example.echo_proto.util.Constants
 import dagger.hilt.android.AndroidEntryPoint
 import timber.log.Timber
@@ -35,6 +38,7 @@ class FeedPersonalFragment: Fragment(), ItemZoneTouchHandler {
 
     private lateinit var feedPersonalAdapter: FeedAdapter
     private val viewModel by viewModels<FeedViewModel>()
+    private val mainViewModel by activityViewModels<MainViewModel>()
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         _binding = FragmentFeedPersonalBinding.inflate(layoutInflater)
@@ -66,6 +70,7 @@ class FeedPersonalFragment: Fragment(), ItemZoneTouchHandler {
             //         as FeedFilterListDialogFragment?
         }
 
+        observePlaybackState(mainViewModel, feedPersonalAdapter)
         setupMenu()
     }
 
@@ -145,12 +150,9 @@ class FeedPersonalFragment: Fragment(), ItemZoneTouchHandler {
 
     override val isDraggableFragment: Boolean = false
     override fun onStartDrag(viewHolder: RecyclerView.ViewHolder) { }
-    override fun changeDragIconVisibilityAlpha(): Float = 0f
-
+    override fun playPauseStateChanger(episode: Episode) { }
     override fun navigateToEpisodeDetailScreen(episode: Episode) {
         viewModel.navigateToDetailWithSharedPref(episode.id)
         findNavController().navigate(R.id.globalActionToEpisodeDetailFragment)
     }
-    
-    override fun playPauseStateChanger(episode: Episode) { }
 }

@@ -9,15 +9,17 @@ import android.widget.ImageView
 import android.widget.SeekBar
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import androidx.viewpager2.adapter.FragmentStateAdapter
+import androidx.viewpager2.widget.ViewPager2
 import com.example.echo_proto.R
 import com.example.echo_proto.databinding.FragmentAudioplayerDetailBinding
 import com.example.echo_proto.domain.model.Episode
 import com.example.echo_proto.exoplayer.isPlaying
+import com.example.echo_proto.ui.common.PlayPauseButtonAnimator
 import com.example.echo_proto.ui.dialogs.OpenYoutubeDialogFragment
 import com.example.echo_proto.ui.dialogs.SpeedControlBottomSheetFragment
 import com.example.echo_proto.ui.viewmodels.MainViewModel
 import com.example.echo_proto.util.getCurrentTimeFromLong
-import com.example.echo_proto.util.getDateFromLong
 import com.example.echo_proto.util.getTimeFromSeconds
 import dagger.hilt.android.AndroidEntryPoint
 import timber.log.Timber
@@ -32,6 +34,7 @@ class AudioPlayerDetailFragment : Fragment() {
     private var currentEpisode: Episode? = null
     private var previousPlaybackState: Boolean? = null
     private var shouldUpdateSeekbar = true
+    private lateinit var pagerAdapter: EpisodePagerAdapter
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentAudioplayerDetailBinding.inflate(inflater, container, false)
@@ -44,6 +47,7 @@ class AudioPlayerDetailFragment : Fragment() {
 
         setupClickListeners()
         setupSeekbarListeners()
+        setupViewPager()
         subscribeToObservers()
     }
 
@@ -58,16 +62,6 @@ class AudioPlayerDetailFragment : Fragment() {
         ivReplay.setOnClickListener {
             animateSeekButton(ivReplay, clockwise = false)
             mainViewModel.seekReplay()
-        }
-        dtnToDescription.setOnClickListener {
-            (parentFragment as? HostAudioPlayerFragment)?.scrollToDescription()
-        }
-        btnGoToYoutube.setOnClickListener {
-            showYoutubeDialog(currentEpisode?.videoLink)
-        }
-        btnChangeSpeed.setOnClickListener {
-            SpeedControlBottomSheetFragment()
-                .show(childFragmentManager, SpeedControlBottomSheetFragment.TAG)
         }
     }
 
@@ -96,7 +90,11 @@ class AudioPlayerDetailFragment : Fragment() {
     private fun subscribeToObservers() {
         mainViewModel.currentEpisodeFromDb.observe(viewLifecycleOwner) { episode ->
             currentEpisode = episode
-            bindEpisodeData(episode)
+            binding.apply {
+                vpEpisodeContent.setCurrentItem(PAGE_INFO, false)
+                seekBar.max = episode.duration
+                tvTimerEpisodeTimeTotal.text = episode.duration.getTimeFromSeconds()
+            }
         }
 
         mainViewModel.playbackState.observe(viewLifecycleOwner) {
@@ -119,47 +117,23 @@ class AudioPlayerDetailFragment : Fragment() {
         }
     }
 
-    private fun bindEpisodeData(episode: Episode) = with(binding) {
-        tvTitle.text = episode.title
-        tvPubDateAndSize.text = episode.timestamp.getDateFromLong()
-        seekBar.max = episode.duration
-        tvTimerEpisodeTimeTotal.text = episode.duration.getTimeFromSeconds()
-    }
-
     private fun changePlayPauseImageState() {
         val isPlaying = mainViewModel.playbackState.value?.isPlaying == true
         if (previousPlaybackState != isPlaying) {
             previousPlaybackState = isPlaying
-
-            binding.ivPlayPause.animate().cancel()
-            animatePlayPauseButton(binding.ivPlayPause, isPlaying)
+            PlayPauseButtonAnimator.animate(
+                activeView = binding.ivPlayPause,
+                ghostView = binding.ivPlayPauseGhost,
+                isPlaying = isPlaying
+            ) { playing ->
+                if (playing) R.drawable.ic_menu_pause else R.drawable.ic_menu_play
+            }
         }
     }
 
     private fun setCurrentTimeToText(ms: Long) {
         val currentTime = ms.getCurrentTimeFromLong()
         binding.tvCurrentTime.text = currentTime
-    }
-
-    private fun animatePlayPauseButton(imageView: ImageView, isPlaying: Boolean) {
-        imageView.rotation = 0f
-
-        imageView.animate()
-            .rotation(90f)
-            .setDuration(250)
-            .setInterpolator(AccelerateDecelerateInterpolator())
-            .withEndAction {
-                imageView.rotation = 0f
-                val iconRes = if (isPlaying) R.drawable.ic_menu_pause else R.drawable.ic_menu_play
-                imageView.setImageResource(iconRes)
-            }
-            .start()
-    }
-
-    private fun showYoutubeDialog(url: String?) {
-        if (!OpenYoutubeDialogFragment.isYoutubeLink(url)) return
-        OpenYoutubeDialogFragment.newInstance(url)
-            .show(childFragmentManager, OpenYoutubeDialogFragment.TAG)
     }
 
     private fun animateSeekButton(imageView: ImageView, clockwise: Boolean) {
@@ -173,6 +147,53 @@ class AudioPlayerDetailFragment : Fragment() {
             .setInterpolator(AccelerateDecelerateInterpolator())
             .withEndAction { imageView.rotation = 0f }
             .start()
+    }
+
+    fun scrollToDescription() {
+        binding.vpEpisodeContent.currentItem = PAGE_DESCRIPTION
+    }
+
+    fun scrollToInfo() {
+        binding.vpEpisodeContent.currentItem = PAGE_INFO
+    }
+
+    fun openSpeedControl() {
+        SpeedControlBottomSheetFragment()
+            .show(childFragmentManager, SpeedControlBottomSheetFragment.TAG)
+    }
+
+    fun openYoutube(url: String?) {
+        showYoutubeDialog(url)
+    }
+
+    private fun setupViewPager() {
+        pagerAdapter = EpisodePagerAdapter(this)
+        binding.vpEpisodeContent.apply {
+            adapter = pagerAdapter
+            orientation = ViewPager2.ORIENTATION_VERTICAL
+            offscreenPageLimit = 1
+        }
+    }
+
+    private fun showYoutubeDialog(url: String?) {
+        if (!OpenYoutubeDialogFragment.isYoutubeLink(url)) return
+        OpenYoutubeDialogFragment.newInstance(url)
+            .show(childFragmentManager, OpenYoutubeDialogFragment.TAG)
+    }
+
+    private inner class EpisodePagerAdapter(fragment: Fragment) : FragmentStateAdapter(fragment) {
+        override fun getItemCount(): Int = 2
+
+        override fun createFragment(position: Int): Fragment = when (position) {
+            PAGE_INFO -> AudioPlayerInfoFragment()
+            PAGE_DESCRIPTION -> AudioPlayerDescriptionFragment()
+            else -> throw IllegalArgumentException("Unsupported page index: $position")
+        }
+    }
+
+    companion object {
+        private const val PAGE_INFO = 0
+        private const val PAGE_DESCRIPTION = 1
     }
 
     override fun onDestroyView() {

@@ -16,7 +16,6 @@ class AudioPlayerDescriptionFragment : Fragment() {
 
     private var _binding: FragmentAudioplayerDescriptionBinding? = null
     private val binding get() = _binding!!
-
     private val mainViewModel by activityViewModels<MainViewModel>()
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
@@ -26,14 +25,12 @@ class AudioPlayerDescriptionFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        Timber.d("\n\nLAUNCH ------>>>>>    AudioPlayerDescriptionFragment    <<<<<----------\n\n")
-
         mainViewModel.currentEpisodeFromDb.observe(viewLifecycleOwner) {
             binding.tvPlayerDescription.text = it.description
         }
 
         binding.dtnToPlayer.setOnClickListener {
-            (parentFragment as? HostAudioPlayerFragment)?.scrollToControls()
+            (parentFragment as? AudioPlayerDetailFragment)?.scrollToInfo()
         }
     }
 

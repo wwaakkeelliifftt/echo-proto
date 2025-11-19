@@ -1,0 +1,20 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24"
+    android:tint="#FFFFFF">
+
+    <!-- Тонкое кольцо: окружность только со stroke, толщина в 2 раза меньше, чем у старой -->
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="@android:color/white"
+        android:strokeWidth="1"
+        android:pathData="M12,2 C6.48,2 2,6.48 2,12s4.48,10 10,10 10,-4.48 10,-10S17.52,2 12,2z" />
+
+    <!-- Треугольник Play, как в исходной ic_menu_play -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M10,16.5l6,-4.5 -6,-4.5v9z" />
+
+</vector>

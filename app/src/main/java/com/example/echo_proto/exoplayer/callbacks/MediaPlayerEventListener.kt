@@ -7,6 +7,7 @@ import android.widget.Toast
 import com.example.echo_proto.exoplayer.MediaService
 import com.example.echo_proto.util.Constants
 import com.google.android.exoplayer2.*
+import com.google.android.exoplayer2.MediaItem
 
 import timber.log.Timber
 
@@ -43,6 +44,13 @@ class MediaPlayerEventListener(
         }
         // Обрабатываем завершение воспроизведения эпизода
         if (playbackState == Player.STATE_ENDED) {
+            mediaService.onEpisodePlaybackEnded()
+        }
+    }
+
+    override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+        super.onMediaItemTransition(mediaItem, reason)
+        if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO) {
             mediaService.onEpisodePlaybackEnded()
         }
     }

@@ -15,6 +15,9 @@
     <dimen name="dp_large_less">24dp</dimen>
     <dimen name="dp_large">32dp</dimen>
 
+    <!-- Player layout specific spacing -->
+    <dimen name="player_seekbar_top_spacing">16dp</dimen>
+    <dimen name="player_controls_vertical_spacing">32dp</dimen>
     <dimen name="snackbar_height">88dp</dimen>
     <dimen name="speed_chip_stroke_width">4dp</dimen>
 </resources>

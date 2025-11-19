@@ -29,6 +29,8 @@ import androidx.core.view.MenuProvider
 import androidx.lifecycle.Lifecycle
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.DrawableCompat
+import androidx.core.view.children
+import com.example.echo_proto.ui.common.observePlaybackState
 
 @AndroidEntryPoint
 class QueueFragment : Fragment(), ItemZoneTouchHandler { //, ToolbarConfigurator {
@@ -44,6 +46,8 @@ class QueueFragment : Fragment(), ItemZoneTouchHandler { //, ToolbarConfigurator
     private var queueLockMenuItem: MenuItem? = null
     private var currentQueueCount: Int = 0
     private var currentQueueDurationSeconds: Int = 0
+    private var lastQueueIdsSnapshot: List<Int> = emptyList()
+    private var pendingHandleAnimation = false
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         _binding = FragmentQueueBinding.inflate(layoutInflater)
@@ -60,6 +64,7 @@ class QueueFragment : Fragment(), ItemZoneTouchHandler { //, ToolbarConfigurator
         viewModel.updateQueueRss()
         setupMenu()
         updateQueueSummary()
+        observePlaybackState(mainViewModel, queueAdapter)
     }
 
     override fun onResume() {
@@ -75,6 +80,7 @@ class QueueFragment : Fragment(), ItemZoneTouchHandler { //, ToolbarConfigurator
             if (queueList.isNullOrEmpty()) {
                 binding.containerEmptyQueue.visibility = View.VISIBLE
                 queueAdapter.submitList(emptyList())
+                updatePlayerPlaylistIfNeeded(emptyList())
             } else {
                 Timber.d("OBSERVE_RSS-QUEUE::::::::::::::::::getListUpdate")
                 queueList.forEachIndexed { i, episode->
@@ -82,6 +88,7 @@ class QueueFragment : Fragment(), ItemZoneTouchHandler { //, ToolbarConfigurator
                 }
                 binding.containerEmptyQueue.visibility = View.GONE
                 queueAdapter.submitList(queueList)
+                updatePlayerPlaylistIfNeeded(queueList)
             }
         }
 
@@ -108,7 +115,51 @@ class QueueFragment : Fragment(), ItemZoneTouchHandler { //, ToolbarConfigurator
         }
         viewModel.isLockedQueue.observe(viewLifecycleOwner) { isLocked ->
             Timber.d("OBSERVE_SEPARATE:isLockedQueue::status=$isLocked")
-            changeQueueLocker(isLocked = isLocked)
+            val animate = pendingHandleAnimation
+            pendingHandleAnimation = false
+            changeQueueLocker(isLocked = isLocked, animateHandles = animate)
+        }
+    }
+
+    private fun animateDragHandles(isLocked: Boolean) {
+        val targetMidScale = 2f
+        val finalScale = if (isLocked) 0f else 1f
+        val startScale = if (isLocked) 1f else 0f
+        val startAlpha = if (isLocked) 0.8f else 0.15f
+        val finalAlpha = if (isLocked) 0.15f else 0.8f
+        binding.recyclerView.post {
+            binding.recyclerView.children.forEach { child ->
+                val handle = child.findViewById<View>(R.id.dragAndDrop) ?: return@forEach
+                handle.animate().cancel()
+                handle.alpha = startAlpha
+                handle.scaleX = startScale
+                handle.scaleY = startScale
+                handle.animate()
+                    .scaleX(targetMidScale)
+                    .scaleY(targetMidScale)
+                    .setDuration(200)
+                    .withEndAction {
+                        handle.animate()
+                            .scaleX(finalScale)
+                            .scaleY(finalScale)
+                            .alpha(finalAlpha)
+                            .setDuration(200)
+                            .start()
+                    }
+                    .start()
+            }
+        }
+    }
+
+    private fun updatePlayerPlaylistIfNeeded(queueList: List<Episode>) {
+        val newSnapshot = queueList.map { it.id }
+        newSnapshot.forEach { id -> Timber.tag("QUEUE").d("new__--__Snapshot::id=$id") }
+        lastQueueIdsSnapshot.forEach { id -> Timber.tag("QUEUE").d("last_____Snapshot::id=$id") }
+        Timber.tag("QUEUE").d("----_____Snapshot::----")
+
+        if (newSnapshot != lastQueueIdsSnapshot) {
+            lastQueueIdsSnapshot = newSnapshot
+            mainViewModel.refreshPlayerPlaylist()
         }
     }
 
@@ -136,23 +187,17 @@ class QueueFragment : Fragment(), ItemZoneTouchHandler { //, ToolbarConfigurator
         itemTouchHelper?.startDrag(viewHolder)
     }
 
-    override fun changeDragIconVisibilityAlpha(): Float {
-        return when (viewModel.isLockedQueue.value) {
-            true -> 0.15f // View.INVISIBLE (=4)
-            else -> 0.8f // View.VISIBLE (=0)
-        }
-    }
-
-    private fun changeQueueLocker(isLocked: Boolean) {
+    private fun changeQueueLocker(isLocked: Boolean, animateHandles: Boolean = false) {
         if (isLocked) {
             itemTouchHelper = null
-            changeDragIconVisibilityAlpha()
             queueAdapter.notifyDataSetChanged()
         } else if (!isLocked) {
-            itemTouchHelper = ItemTouchHelper(getSwipeCallback(requireContext(), viewModel))
+            itemTouchHelper = ItemTouchHelper(getSwipeCallback(requireContext(), viewModel, queueAdapter))
             itemTouchHelper?.attachToRecyclerView(binding.recyclerView)
-            changeDragIconVisibilityAlpha()
             queueAdapter.notifyDataSetChanged()
+        }
+        if (animateHandles) {
+            animateDragHandles(isLocked)
         }
         updateQueueLockMenuIcon(isLocked)
     }
@@ -184,8 +229,8 @@ class QueueFragment : Fragment(), ItemZoneTouchHandler { //, ToolbarConfigurator
         mainViewModel.playOrToggleEpisode(mediaItem = episode, true) // without "toggle" at this
     }
 
-    private fun getSwipeCallback(context: Context, source: ViewModel): SwipeToDeleteCallback_Queue {
-        return object : SwipeToDeleteCallback_Queue(context = context, sourceViewModel = source) {
+    private fun getSwipeCallback(context: Context, source: ViewModel, adapter: FeedAdapter): SwipeToDeleteCallback_Queue {
+        return object : SwipeToDeleteCallback_Queue(context = context, sourceViewModel = source, queueAdapter = adapter) {
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
                 val pos = viewHolder.bindingAdapterPosition
                 viewModel.changeEpisodeInQueueStatus(
@@ -238,6 +283,7 @@ class QueueFragment : Fragment(), ItemZoneTouchHandler { //, ToolbarConfigurator
         override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
             return when (menuItem.itemId) {
                 R.id.mabQueueFix -> {
+                    pendingHandleAnimation = true
                     viewModel.updateQueueLocker()
                     true
                 }

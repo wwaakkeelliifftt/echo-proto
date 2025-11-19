@@ -11,6 +11,7 @@ import com.example.echo_proto.util.Resource
 import com.example.echo_proto.util.getTimeInMillisFromString
 import com.prof.rssparser.Channel
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import timber.log.Timber
@@ -111,6 +112,9 @@ class FeedRepositoryImpl @Inject constructor(
     }
 
     override fun getRssQueueFromDatabase(): Flow<Resource<List<Episode>>> = db.dao.getQueueFeedFlow()
+        .distinctUntilChangedBy { entities ->
+            entities.map { Triple(it.id, it.isInQueue, it.indexInQueue) }
+        }
         .map { episodeEntities ->
             val result = episodeEntities.map { it.toEpisode() }
             if (result.isNotEmpty()) {
@@ -172,6 +176,9 @@ class FeedRepositoryImpl @Inject constructor(
     }
 
     override fun getRssDownloadsFromDatabase(): Flow<Resource<List<Episode>>> = db.dao.getDownloadedEpisodes()
+        .distinctUntilChangedBy { entities ->
+            entities.map { it.id to it.isDownloaded }
+        }
         .map { episodeEntities ->
             val result = episodeEntities.map { it.toEpisode() }
             if (result.isNotEmpty()) {

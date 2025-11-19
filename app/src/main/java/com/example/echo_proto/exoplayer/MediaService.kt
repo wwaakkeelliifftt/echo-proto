@@ -59,6 +59,7 @@ class MediaService : MediaBrowserServiceCompat() {
     private lateinit var mediaSessionConnector: MediaSessionConnector
     private lateinit var mediaNotificationManager: MediaNotificationManager
     private lateinit var mediaPlayerEventListener: MediaPlayerEventListener
+    private var lastPlaylistSnapshot: List<Int> = emptyList()
 
     override fun onCreate() {
         super.onCreate()
@@ -390,38 +391,42 @@ class MediaService : MediaBrowserServiceCompat() {
                 val currentPosition = exoPlayer.currentPosition
                 val wasPlaying = exoPlayer.isPlaying
                 val currentEpisodes = mediaSource.episodes
+                val newSnapshot = currentEpisodes.map { it.id }
                 
                 // Проверяем, изменился ли плейлист перед переинициализацией
                 // Сравниваем размер и текущий элемент (если возможно)
                 val playlistSizeChanged = currentEpisodes.size != exoPlayer.mediaItemCount
+                val playlistOrderChanged = newSnapshot != lastPlaylistSnapshot
                 
                 // Если размер изменился, точно нужно обновить
                 // Если размер не изменился, но текущий индекс невалидный, тоже нужно обновить
                 val needsUpdate = playlistSizeChanged || 
+                        playlistOrderChanged ||
                         currentMediaItemIndex < 0 || 
                         currentMediaItemIndex >= currentEpisodes.size
                 
                 if (needsUpdate) {
-                    Timber.d("Updating playlist: ${currentEpisodes.size} episodes (was ${exoPlayer.mediaItemCount}), currentIndex=$currentMediaItemIndex, wasPlaying=$wasPlaying")
+                    Timber.d("Updating playlist: ${currentEpisodes.size} episodes (was ${exoPlayer.mediaItemCount}), currentIndex=$currentMediaItemIndex, wasPlaying=$wasPlaying, orderChanged=$playlistOrderChanged")
                     exoPlayer.setMediaSource(mediaSource.asMediaSource(dataSourceFactory = dataSourceFactory))
                     exoPlayer.prepare()
                     // Восстанавливаем позицию если возможно
-                    val targetIndex = if (currentMediaItemIndex >= 0 && currentMediaItemIndex < currentEpisodes.size) {
-                        currentMediaItemIndex
-                    } else if (currentEpisodes.isNotEmpty()) {
-                        // Если индекс невалидный, используем первый элемент
-                        0
-                    } else {
-                        -1
-                    }
+                    val currentEpisodeId = currentPlayingEpisode?.id
+                        ?: exoPlayer.currentMediaItem?.mediaId?.toIntOrNull()
+                    val targetIndex = currentEpisodeId?.let { newSnapshot.indexOf(it) }
+                        ?: currentMediaItemIndex.takeIf { it in currentEpisodes.indices }
+                        ?: if (currentEpisodes.isNotEmpty()) 0 else -1
                     
                     if (targetIndex >= 0) {
-                        exoPlayer.seekTo(targetIndex, if (targetIndex == currentMediaItemIndex) currentPosition else 0L)
+                        val resumePosition = if (targetIndex == currentMediaItemIndex) currentPosition else 0L
+                        exoPlayer.seekTo(targetIndex, resumePosition)
                         // Восстанавливаем состояние воспроизведения после обновления
                         exoPlayer.playWhenReady = wasPlaying
+                        currentEpisodes.getOrNull(targetIndex)?.let { currentPlayingEpisode = it }
                     }
+                    lastPlaylistSnapshot = newSnapshot
                 } else {
                     Timber.d("Playlist unchanged (${currentEpisodes.size} episodes), skipping update to prevent unnecessary state changes")
+                    lastPlaylistSnapshot = newSnapshot
                 }
             }
         }
