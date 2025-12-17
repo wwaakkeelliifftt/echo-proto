@@ -168,6 +168,7 @@ class QueueFragment : Fragment(), ItemZoneTouchHandler { //, ToolbarConfigurator
         binding.recyclerView.apply {
             adapter = queueAdapter
             layoutManager = LinearLayoutManager(requireContext())
+            // itemAnimator оставляем для корректной работы drag & drop
 
             onItemClick {
                 Timber.d("ON_ITEM_CLICK: pos=$it")
@@ -179,6 +180,24 @@ class QueueFragment : Fragment(), ItemZoneTouchHandler { //, ToolbarConfigurator
             }
         }
 
+        binding.recyclerView.addOnChildAttachStateChangeListener(object : RecyclerView.OnChildAttachStateChangeListener {
+            override fun onChildViewAttachedToWindow(view: View) {
+                syncHandleAlpha(view)
+            }
+
+            override fun onChildViewDetachedFromWindow(view: View) {}
+        })
+    }
+
+    private fun syncHandleAlpha(child: View? = null) {
+        val alpha = queueAdapter.dragHandleAlpha
+        if (child != null) {
+            child.findViewById<View>(R.id.dragAndDrop)?.alpha = alpha
+        } else {
+            binding.recyclerView.children.forEach { item ->
+                item.findViewById<View>(R.id.dragAndDrop)?.alpha = alpha
+            }
+        }
     }
 
     override val isDraggableFragment: Boolean = true
@@ -188,14 +207,17 @@ class QueueFragment : Fragment(), ItemZoneTouchHandler { //, ToolbarConfigurator
     }
 
     private fun changeQueueLocker(isLocked: Boolean, animateHandles: Boolean = false) {
+        queueAdapter.dragHandleAlpha = if (isLocked) 0f else 0.8f
+
         if (isLocked) {
+            itemTouchHelper?.attachToRecyclerView(null)
             itemTouchHelper = null
-            queueAdapter.notifyDataSetChanged()
-        } else if (!isLocked) {
-            itemTouchHelper = ItemTouchHelper(getSwipeCallback(requireContext(), viewModel, queueAdapter))
-            itemTouchHelper?.attachToRecyclerView(binding.recyclerView)
-            queueAdapter.notifyDataSetChanged()
+        } else {
+            itemTouchHelper = ItemTouchHelper(getSwipeCallback(requireContext(), viewModel, queueAdapter)).also {
+                it.attachToRecyclerView(binding.recyclerView)
+            }
         }
+        queueAdapter.notifyDataSetChanged()
         if (animateHandles) {
             animateDragHandles(isLocked)
         }

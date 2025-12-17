@@ -15,8 +15,6 @@ import javax.inject.Inject
 
 @HiltAndroidApp
 class EchoApp: Application(), Configuration.Provider {
-
-//    @Inject lateinit var workerFactory: WorkerFactory
     @Inject lateinit var workerFactory: DownloadWorkerFactory
 
     override fun onCreate() {

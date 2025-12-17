@@ -417,7 +417,11 @@ class MediaService : MediaBrowserServiceCompat() {
                         ?: if (currentEpisodes.isNotEmpty()) 0 else -1
                     
                     if (targetIndex >= 0) {
-                        val resumePosition = if (targetIndex == currentMediaItemIndex) currentPosition else 0L
+                        val resumePosition = if (currentEpisodeId != null && newSnapshot.contains(currentEpisodeId)) {
+                            currentPosition
+                        } else {
+                            0L
+                        }
                         exoPlayer.seekTo(targetIndex, resumePosition)
                         // Восстанавливаем состояние воспроизведения после обновления
                         exoPlayer.playWhenReady = wasPlaying

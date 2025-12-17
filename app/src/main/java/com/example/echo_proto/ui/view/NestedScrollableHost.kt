@@ -9,6 +9,7 @@ import android.widget.FrameLayout
 import androidx.viewpager2.widget.ViewPager2
 import kotlin.math.abs
 
+
 class NestedScrollableHost @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null

@@ -24,14 +24,23 @@ interface ItemZoneTouchHandler {
 }
 
 class FeedAdapter(
-//    private val dragListener: OnStartDragListener?,
     private val itemZoneHandler: ItemZoneTouchHandler?
 ) : RecyclerView.Adapter<FeedAdapter.FeedViewHolder>(), PlaybackStateAware {
 
-    inner class FeedViewHolder(val binding: ItemEpisodeBinding) : RecyclerView.ViewHolder(binding.root)
+    companion object {
+        // константы для частичного обновления
+        const val PAYLOAD_SELECTED = "selected"
+        const val PAYLOAD_QUEUE = "queue"
+        const val PAYLOAD_DOWNLOADED = "downloaded"
+        const val PAYLOAD_LISTENED = "listened"
+        const val PAYLOAD_PLAYBACK = "playback"
+    }
+
+    class FeedViewHolder(val binding: ItemEpisodeBinding) : RecyclerView.ViewHolder(binding.root)
 
     private var currentPlayingEpisodeId: Int? = null
     private var isCurrentlyPlaying: Boolean = false
+    var isActionModeActive: Boolean = false
 
     private val diffCallback = object : DiffUtil.ItemCallback<Episode>() {
         override fun areItemsTheSame(oldItem: Episode, newItem: Episode): Boolean {
@@ -58,6 +67,19 @@ class FeedAdapter(
             override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
                 return items[oldItemPosition] == list[newItemPosition]
             }
+
+            override fun getChangePayload(oldItemPosition: Int, newItemPosition: Int): Any? {
+                val oldItem = items[oldItemPosition]
+                val newItem = list[newItemPosition]
+                val payload = mutableSetOf<String>()
+                
+                if (oldItem.isSelected != newItem.isSelected) payload.add(PAYLOAD_SELECTED)
+                if (oldItem.isInQueue != newItem.isInQueue) payload.add(PAYLOAD_QUEUE)
+                if (oldItem.isDownloaded != newItem.isDownloaded) payload.add(PAYLOAD_DOWNLOADED)
+                if (oldItem.hasListened != newItem.hasListened) payload.add(PAYLOAD_LISTENED)
+                
+                return payload.ifEmpty { null }
+            }
         }
         val diffResult = DiffUtil.calculateDiff(diffCallback)
         items.clear()
@@ -81,9 +103,21 @@ class FeedAdapter(
      * Вызывать из фрагментов при изменении playbackState или текущего эпизода.
      */
     override fun updatePlaybackState(playingEpisodeId: Int?, isPlaying: Boolean) {
+        val oldPlayingId = currentPlayingEpisodeId
+        val oldIsPlaying = isCurrentlyPlaying
+        
+        // Если ничего не изменилось — не обновляем
+        if (oldPlayingId == playingEpisodeId && oldIsPlaying == isPlaying) return
+        
         currentPlayingEpisodeId = playingEpisodeId
         isCurrentlyPlaying = isPlaying
-        notifyDataSetChanged()
+        
+        // Обновляем только изменённые элементы
+        val oldPosition = items.indexOfFirst { it.id == oldPlayingId }
+        val newPosition = items.indexOfFirst { it.id == playingEpisodeId }
+        
+        if (oldPosition != -1) notifyItemChanged(oldPosition, PAYLOAD_PLAYBACK)
+        if (newPosition != -1 && newPosition != oldPosition) notifyItemChanged(newPosition, PAYLOAD_PLAYBACK)
     }
 
     override fun getItemCount(): Int = items.size
@@ -92,6 +126,48 @@ class FeedAdapter(
         return FeedViewHolder(
             ItemEpisodeBinding.inflate(LayoutInflater.from(parent.context), parent, false)
         )
+    }
+
+    override fun onBindViewHolder(holder: FeedViewHolder, position: Int, payloads: MutableList<Any>) {
+        if (payloads.isEmpty()) {
+            onBindViewHolder(holder, position)
+            return
+        }
+        
+        val episode = items[position]
+        val view = holder.binding
+        
+        val allPayloads = mutableSetOf<String>()
+        payloads.forEach { payload ->
+            when (payload) {
+                is Set<*> -> allPayloads.addAll(payload.filterIsInstance<String>())
+                is String -> allPayloads.add(payload)
+            }
+        }
+        
+        with(view) {
+            if (PAYLOAD_SELECTED in allPayloads) {
+                ivSelected.visibility = if (episode.isSelected) View.VISIBLE else View.INVISIBLE
+            }
+            if (PAYLOAD_QUEUE in allPayloads) {
+                ivQueue.alpha = if (episode.isInQueue) 1.0f else 0.2f
+            }
+            if (PAYLOAD_DOWNLOADED in allPayloads) {
+                ivDownload.alpha = if (episode.isDownloaded) 1.0f else 0.2f
+            }
+            if (PAYLOAD_LISTENED in allPayloads) {
+                viewListenedOverlay.isVisible = episode.hasListened
+            }
+            if (PAYLOAD_PLAYBACK in allPayloads) {
+                val isCurrentEpisode = currentPlayingEpisodeId != null && episode.id == currentPlayingEpisodeId
+                val iconRes = if (isCurrentEpisode && isCurrentlyPlaying) {
+                    R.drawable.ic_rv_pause
+                } else {
+                    R.drawable.ic_rv_play
+                }
+                btnPlayPause.setImageResource(iconRes)
+            }
+        }
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -109,7 +185,6 @@ class FeedAdapter(
             ivDownload.alpha = if (episode.isDownloaded) 1.0f else 0.2f
             
             viewListenedOverlay.isVisible = episode.hasListened
-            Timber.tag("FEED").d("episode=${episode.title.subSequence(0, 10)}, isVisible=${episode.hasListened}")
 
             // Отображение play/pause в списке в зависимости от текущего эпизода и состояния плеера
             val isCurrentEpisode = currentPlayingEpisodeId != null && episode.id == currentPlayingEpisodeId
@@ -121,11 +196,13 @@ class FeedAdapter(
             btnPlayPause.setImageResource(iconRes)
 
             btnNavigateToEpisodeDetail.setOnClickListener {
-                itemZoneHandler?.navigateToEpisodeDetailScreen(episode = episode)
-                Timber.d("onEpisodeNavClick: episode=${episode.title}")
+                if (!isActionModeActive) {
+                    itemZoneHandler?.navigateToEpisodeDetailScreen(episode = episode)
+                    Timber.d("onEpisodeNavClick: episode=${episode.title}")
+                }
             }
 
-            btnPlayPause.setOnClickListener { pp ->
+            btnPlayPause.setOnClickListener {
                 itemZoneHandler?.playPauseStateChanger(episode = episode)
             }
 

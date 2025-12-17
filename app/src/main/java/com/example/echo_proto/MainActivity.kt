@@ -153,11 +153,6 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
-        mainViewModel.currentFragmentViewModelState.observe(this) { state ->
-            mainViewModel.setViewModelState(state = state)
-        }
-
-
     }
 
     private fun changeFloatingTextState() {

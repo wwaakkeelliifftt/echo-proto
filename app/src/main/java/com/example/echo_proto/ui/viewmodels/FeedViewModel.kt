@@ -173,16 +173,23 @@ class FeedViewModel @Inject constructor(
     }
 
     // todo: make check for show that episode already in some state (queue, favorite)
-    fun selectEpisodeField(position: Int) {
+    fun selectEpisodeField(position: Int): Int {
         rssFeed.value?.get(position).let { episode ->
             if (episode != null) {
                 val newEpisodeState = episode.copy(isSelected = !episode.isSelected)
-                val newFeedList = rssFeed.value as MutableList            // todo: check this approach for correct/ok ???
-                Timber.d("${newFeedList.hashCode()}  ===  ${rssFeed.value.hashCode()}")
+                val newFeedList = rssFeed.value?.toMutableList() ?: mutableListOf()
                 newFeedList[position] = newEpisodeState
                 _rssFeed.postValue(newFeedList)
+                Timber.tag("ACTION_MODE").d("selectEpisodeField:: ${episode.title}, isSelected=${newEpisodeState.isSelected}")
+                return newFeedList.count { it.isSelected }
             }
         }
+        return getSelectedEpisodesCount()
+    }
+
+    fun getSelectedEpisodesCount(): Int {
+        Timber.tag("ACTION_MODE").d("getSelectedEpisodesCount:: <<<--- invoke (episode == null || rssFeed.value == null")
+        return rssFeed.value?.count { it.isSelected } ?: 0
     }
 
     fun unselectAllFields() {

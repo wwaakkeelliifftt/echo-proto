@@ -2,8 +2,11 @@ package com.example.echo_proto.util
 
 import timber.log.Timber
 import java.text.SimpleDateFormat
-import java.util.*
-import kotlin.time.Duration.Companion.hours
+import java.util.Calendar
+import java.util.Locale
+import java.util.TimeZone
+import kotlin.math.abs
+import kotlin.math.roundToInt
 
 fun String?.getTimeInMillisFromString(): Long {
     if (this == null) {
@@ -44,4 +47,18 @@ fun Int.getTimeFromSeconds(): String {
         else -> digit.toString()
     }
     return "${output(hours)}:${output(minutes)}:${output(seconds)}"
+}
+
+fun Float.normalizePlaybackSpeed(): Float {
+    val clamped = this.coerceIn(Constants.PLAYBACK_SPEED_MIN, Constants.PLAYBACK_SPEED_MAX)
+    val steps = (clamped / Constants.PLAYBACK_SPEED_STEP).roundToInt()
+    return (steps * Constants.PLAYBACK_SPEED_STEP).let {
+        // avoid floating errors
+        String.format(Locale.US, "%.2f", it).toFloat()
+    }
+}
+
+fun Float?.isCloseTo(other: Float, epsilon: Float = 0.01f): Boolean {
+    if (this == null) return false
+    return abs(this - other) < epsilon
 }

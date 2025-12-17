@@ -19,10 +19,7 @@ import javax.inject.Inject
 class QueueViewModel @Inject constructor(
     private val repository: FeedRepository,
     private val sharedPreferences: SharedPreferences
-) :ViewModel(), ViewModelScopeState {
-
-    // todo - nado udalyat, kazhetsya. chushnoe reshenie
-    override val scopeState = ViewModelState.Queue
+) :ViewModel() {
 
     private val _rssQueue = MutableLiveData(listOf<Episode>())
     val rssQueue: LiveData<List<Episode>> get() = _rssQueue

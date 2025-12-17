@@ -1,17 +1,14 @@
 package com.example.echo_proto.exoplayer
 
-import android.media.browse.MediaBrowser
 import android.support.v4.media.MediaBrowserCompat
 import android.support.v4.media.MediaBrowserCompat.MediaItem.FLAG_PLAYABLE
 import android.support.v4.media.MediaDescriptionCompat
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.MediaMetadataCompat.*
 import androidx.core.net.toUri
-import androidx.media.MediaBrowserCompatUtils
 import com.example.echo_proto.data.local.FeedDatabase
 import com.example.echo_proto.domain.model.Episode
 import com.example.echo_proto.exoplayer.State.*
-import com.example.echo_proto.ui.viewmodels.ViewModelState
 import com.google.android.exoplayer2.MediaItem
 import com.google.android.exoplayer2.source.ConcatenatingMediaSource
 import com.google.android.exoplayer2.source.ProgressiveMediaSource
@@ -20,7 +17,6 @@ import com.google.android.exoplayer2.util.MimeTypes
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import timber.log.Timber
-import java.lang.Exception
 import javax.inject.Inject
 
 enum class State {
@@ -150,19 +146,6 @@ class MediaSource @Inject constructor(
         } else {
             action.invoke(state == STATE_INITIALIZED)
             true
-        }
-    }
-
-    // need customize to update playlist inside player??
-    suspend fun updateEpisodeSourcePlaylist(state: ViewModelState) {
-        when (state) {
-            ViewModelState.Queue -> {
-                val result = db.dao.getQueueFeed().map { it.toEpisode() }
-                if (result.isNotEmpty()) {
-                    episodes = result
-                }
-            }
-            else -> {}
         }
     }
 
