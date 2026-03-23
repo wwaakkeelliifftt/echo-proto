@@ -266,5 +266,4 @@ class FeedViewModel @Inject constructor(
         refreshRssFeedPersonal()
     }
 
-
 }

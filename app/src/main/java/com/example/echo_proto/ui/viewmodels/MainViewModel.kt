@@ -35,12 +35,6 @@ class MainViewModel @Inject constructor(
     private val sharedPreferences: SharedPreferences
 ): ViewModel() {
 
-    private val _mediaId = MutableLiveData<String>()
-    val mediaId: LiveData<String> get() = _mediaId
-
-    private val _mediaItems = MutableLiveData<Resource<List<Episode>>>()
-    val mediaItems: LiveData<Resource<List<Episode>>> get() = _mediaItems
-
     val isConnected = mediaServiceConnection.isConnected
     val networkError = mediaServiceConnection.networkError
     val playbackState = mediaServiceConnection.playbackState
@@ -77,8 +71,6 @@ class MainViewModel @Inject constructor(
     }
 
     init {
-        _mediaId.value = sharedPreferences.getString(Constants.SHARED_PREFERENCE_MEDIA_ID_KEY, Constants.MEDIA_ROOT_ID)
-
         updateCurrentPlayerPosition()
 
         _currentPlaybackSpeed.value = sharedPreferences.getFloat(
@@ -91,44 +83,25 @@ class MainViewModel @Inject constructor(
     }
 
     fun refreshPlayerPlaylist() {
+        Timber.tag("PLAY").d("🔄 refreshPlayerPlaylist() called")
         // Обновляем подписку на MEDIA_QUEUE_ID для обновления MediaSource и плейлиста
         mediaServiceConnection.unsubscribe(Constants.MEDIA_QUEUE_ID, object : MediaBrowserCompat.SubscriptionCallback() {})
         mediaServiceConnection.subscribe(Constants.MEDIA_QUEUE_ID, object : MediaBrowserCompat.SubscriptionCallback() {
             override fun onChildrenLoaded(parentId: String, children: MutableList<MediaBrowserCompat.MediaItem>) {
                 super.onChildrenLoaded(parentId, children)
-                Timber.d("Queue playlist refreshed: ${children.size} items")
+                Timber.tag("PLAY").d("✅ Queue playlist refreshed: ${children.size} items")
+                children.forEachIndexed { index, item ->
+                    Timber.tag("PLAY").d("  [$index] id=${item.mediaId}, title=${item.description.title}")
+                }
             }
         })
     }
 
-
-    fun mediaIdMapper(string: String) {
-        when (string) {
-            Constants.MEDIA_ROOT_ID -> {}
-            Constants.MEDIA_QUEUE_ID -> {
-                _mediaId.value = Constants.MEDIA_QUEUE_ID
-            }
-            Constants.MEDIA_FEED_ID -> {
-                _mediaId.value = Constants.MEDIA_FEED_ID
-            }
-            Constants.MEDIA_FEED_PERSONAL_ID -> {
-                _mediaId.value = Constants.MEDIA_FEED_PERSONAL_ID
-            }
-            Constants.MEDIA_CHANNEL_ID -> {
-                _mediaId.value = Constants.MEDIA_CHANNEL_ID
-            }
-            Constants.MEDIA_DOWNLOADS_ID -> {
-                _mediaId.value = Constants.MEDIA_DOWNLOADS_ID
-            }
-            else -> Unit
-        }
-        updateMediaChannelToSharedPref()
-    }
-
-    private fun updateMediaChannelToSharedPref() {
-        sharedPreferences.edit()
-            .putString(Constants.SHARED_PREFERENCE_MEDIA_ID_KEY, mediaId.value)
-            .apply()
+    fun playSingleEpisode(episode: Episode) {
+        // Для одиночного воспроизведения просто используем обычный метод
+        // Эпизод будет воспроизведен, даже если не в очереди
+        // TODO: В будущем можно добавить временный плейлист для одиночных эпизодов
+        playOrToggleEpisode(mediaItem = episode, toggle = false)
     }
 
     private fun updateCurrentPlayEpisodeIdToSharedPref() {
@@ -220,17 +193,32 @@ class MainViewModel @Inject constructor(
 
     fun playOrToggleEpisode(mediaItem: Episode, toggle: Boolean = false) {
         val isPrepared = playbackState.value?.isPrepared ?: false
+        val currentMediaId = currentPlayingEpisodeFromMediaServiceConnection.value?.getString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID)
+        
+        Timber.tag("PLAY").d("🎮 playOrToggleEpisode called")
+        Timber.tag("PLAY").d("Episode: id=${mediaItem.id}, mediaId=${mediaItem.mediaId}, title=${mediaItem.title}")
+        Timber.tag("PLAY").d("Player state: isPrepared=$isPrepared, currentMediaId=$currentMediaId")
+        Timber.tag("PLAY").d("Toggle mode: $toggle")
 
-        if (isPrepared && mediaItem.mediaId ==
-            currentPlayingEpisodeFromMediaServiceConnection.value?.getString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID)) {
+        if (isPrepared && mediaItem.mediaId == currentMediaId) {
+            Timber.tag("PLAY").d("🔄 Same episode, toggling playback state...")
             playbackState.value?.let { playbackState ->
                 when {
-                    playbackState.isPlaying -> if (toggle) mediaServiceConnection.transportControls.pause()
-                    playbackState.isPlayEnabled -> mediaServiceConnection.transportControls.play()
-                    else -> Unit
+                    playbackState.isPlaying -> {
+                        Timber.tag("PLAY").d("⏸️ Currently playing, ${if (toggle) "pausing" else "continuing"}...")
+                        if (toggle) mediaServiceConnection.transportControls.pause()
+                    }
+                    playbackState.isPlayEnabled -> {
+                        Timber.tag("PLAY").d("▶️ Currently paused, resuming...")
+                        mediaServiceConnection.transportControls.play()
+                    }
+                    else -> {
+                        Timber.tag("PLAY").w("⚠️ Unexpected playback state")
+                    }
                 }
             }
         } else {
+            Timber.tag("PLAY").d("🆕 New episode or not prepared, calling playFromMediaId(${mediaItem.id})...")
             mediaServiceConnection.transportControls.playFromMediaId(mediaItem.id.toString(), null)
         }
     }

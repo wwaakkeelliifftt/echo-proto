@@ -75,7 +75,10 @@ class MediaSource @Inject constructor(
             result.isNotEmpty() -> result
             else -> db.dao.getAllFeed().map { it.toEpisode() }
         }
-        Timber.d("MediaSource refreshed: ${episodes.size} episodes")
+        Timber.tag("PLAY").d("📊 MediaSource refreshed: ${episodes.size} episodes from queue")
+        episodes.forEachIndexed { index, episode ->
+            Timber.tag("PLAY").d("  [$index] id=${episode.id}, title=${episode.title}, isInQueue=${episode.isInQueue}, indexInQueue=${episode.indexInQueue}")
+        }
     }
 
     fun asMediaSource(dataSourceFactory: DefaultDataSource.Factory): ConcatenatingMediaSource {

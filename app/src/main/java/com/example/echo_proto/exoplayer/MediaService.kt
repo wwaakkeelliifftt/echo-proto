@@ -451,51 +451,34 @@ class MediaService : MediaBrowserServiceCompat() {
         result: Result<MutableList<MediaBrowserCompat.MediaItem>>
     ) {
         when (parentId) {
-            Constants.MEDIA_ROOT_ID -> {
-                // Детach для асинхронной обработки
+            Constants.MEDIA_ROOT_ID, Constants.MEDIA_QUEUE_ID -> {
+                // Загружаем эпизоды из очереди
                 result.detach()
                 serviceScope.launch {
+                    Timber.tag("PLAY").d("📂 onLoadChildren called for parentId=$parentId")
                     mediaSource.refreshMediaData()
+                    Timber.tag("PLAY").d("📂 MediaSource refreshed, episodes count=${mediaSource.episodes.size}")
                     mediaSource.whenReady { isInitialized ->
                         if (!isInitialized || mediaSource.episodes.isEmpty()) {
-                            sendError(result, "No episodes available")
+                            Timber.tag("PLAY").w("⚠️ MediaSource not initialized or empty, returning empty list")
+                            // Возвращаем пустой список вместо ошибки для безопасности
+                            result.sendResult(mutableListOf())
                             return@whenReady
                         }
-                        result.sendResult(mediaSource.asMediaItems())
-                        startPlaybackFromLastPosition()
-                    }
-                }
-            }
-            Constants.MEDIA_QUEUE_ID -> {
-                // Детach для асинхронной обработки
-                result.detach()
-                serviceScope.launch {
-                    mediaSource.refreshMediaData()
-                    mediaSource.whenReady { isInitialized ->
-                        if (!isInitialized || mediaSource.episodes.isEmpty()) {
-                            sendError(result, "No episodes in queue")
-                            return@whenReady
+                        val items = mediaSource.asMediaItems()
+                        Timber.tag("PLAY").d("📂 Sending ${items.size} items to client")
+                        items.forEachIndexed { index, item ->
+                            Timber.tag("PLAY").d("  [$index] id=${item.mediaId}, title=${item.description.title}")
                         }
-                        result.sendResult(mediaSource.asMediaItems())
-                        // Обновляем плейлист только если плеер уже инициализирован
-                        // updatePlaylist() сам проверит, нужно ли обновление
-                        if (isPlayerInitialized) {
+                        result.sendResult(items)
+                        
+                        // Только для MEDIA_ROOT_ID (первое подключение) запускаем с последней позиции
+                        if (parentId == Constants.MEDIA_ROOT_ID) {
+                            startPlaybackFromLastPosition()
+                        } else if (isPlayerInitialized) {
+                            // Для MEDIA_QUEUE_ID обновляем плейлист, если плеер уже работает
                             updatePlaylist()
                         }
-                    }
-                }
-            }
-            Constants.MEDIA_FEED_ID -> {
-                // Детach для асинхронной обработки
-                result.detach()
-                serviceScope.launch {
-                    mediaSource.refreshMediaData()
-                    mediaSource.whenReady { isInitialized ->
-                        if (!isInitialized || mediaSource.episodes.isEmpty()) {
-                            sendError(result, "No episodes available")
-                            return@whenReady
-                        }
-                        result.sendResult(mediaSource.asMediaItems())
                     }
                 }
             }

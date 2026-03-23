@@ -22,14 +22,14 @@ class FeedRepositoryImpl @Inject constructor(
     private val api: FeedApi
 ): FeedRepository {
 
-    override fun getEpisodeById(id: Int) = flow<Resource<Episode>> {
+    override fun getEpisodeById(id: Int): Flow<Resource<Episode>> = flow {
         emit(Resource.Loading())
         try {
-//            val episode = db.dao.getEpisodeById(id = id).toEpisode()
-            db.dao.getFlowEpisodeById(id = id).collect { episodeEntity ->
-                emit(Resource.Success(data = episodeEntity.toEpisode()))
-            }
-//            emit(Resource.Success(data = episode))
+            val episode = db.dao.getEpisodeById(id = id).toEpisode()
+//            db.dao.getFlowEpisodeById(id = id).collect { episodeEntity ->
+//                emit(Resource.Success(data = episodeEntity.toEpisode()))
+//            }
+            emit(Resource.Success(data = episode))
         } catch (e: Exception) {
             emit(Resource.Error(message = e.message))
         }
@@ -128,12 +128,14 @@ class FeedRepositoryImpl @Inject constructor(
     override suspend fun changeEpisodeQueueStatus(id: Int) {
         val queueSize = db.dao.getQueueFeed().size
         val episode = db.dao.getEpisodeById(id = id)
+        Timber.tag("PLAY").d("📝 DB: Episode before change: id=${episode.id}, isInQueue=${episode.isInQueue}, indexInQueue=${episode.indexInQueue}, queueSize=$queueSize")
         val episodeNewState = if (episode.isInQueue) {
             episode.copy(isInQueue = false, indexInQueue = -1)
         } else {
             episode.copy(isInQueue = true, indexInQueue = queueSize)
         }
         db.dao.insertEpisode(episodeNewState)
+        Timber.tag("PLAY").d("📝 DB: Episode after change: id=${episodeNewState.id}, isInQueue=${episodeNewState.isInQueue}, indexInQueue=${episodeNewState.indexInQueue}")
     }
 
     override suspend fun changeEpisodeQueueIndex(id: Int, newPositionIndex: Int) {

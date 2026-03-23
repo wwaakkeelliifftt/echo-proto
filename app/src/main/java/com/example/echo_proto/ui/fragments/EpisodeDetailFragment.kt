@@ -30,6 +30,7 @@ import timber.log.Timber
 import java.util.UUID
 import androidx.core.view.MenuHost
 import androidx.core.view.MenuProvider
+import kotlinx.coroutines.delay
 
 @AndroidEntryPoint
 class EpisodeDetailFragment : Fragment() {
@@ -74,7 +75,11 @@ class EpisodeDetailFragment : Fragment() {
 
         btnAddToQueue.apply {
             isChecked = episode.isInQueue
-            setOnClickListener { viewModel.changeEpisodeQueueStatus() }
+            setOnClickListener { 
+                viewLifecycleOwner.lifecycleScope.launchWhenStarted {
+                    viewModel.changeEpisodeQueueStatus()
+                }
+            }
         }
 
         btnDownload.apply {
@@ -90,7 +95,30 @@ class EpisodeDetailFragment : Fragment() {
         val isEpisodePlaying = !episode.isDownloaded && curPlayEpisodeMediaId == episode.mediaId
         btnPlay.apply {
             isChecked = isEpisodePlaying
-            setOnClickListener { mainViewModel.playOrToggleEpisode(mediaItem = episode) }
+            setOnClickListener {
+                Timber.tag("PLAY").d("▶️ Play button clicked")
+                Timber.tag("PLAY").d("Episode: id=${episode.id}, title=${episode.title}")
+                Timber.tag("PLAY").d("Episode state: isInQueue=${episode.isInQueue}, isDownloaded=${episode.isDownloaded}")
+                Timber.tag("PLAY").d("Episode links: audioLink=${episode.audioLink}, mediaId=${episode.mediaId}")
+                
+                // Если эпизод НЕ в очереди - сначала добавляем его
+                if (!episode.isInQueue) {
+                    Timber.tag("PLAY").d("❌ Episode NOT in queue, adding to queue first...")
+                    viewLifecycleOwner.lifecycleScope.launchWhenStarted {
+                        viewModel.changeEpisodeQueueStatus()
+                        Timber.tag("PLAY").d("✅ Episode added to queue, refreshing playlist...")
+                        mainViewModel.refreshPlayerPlaylist()
+                        delay(300)
+                        Timber.tag("PLAY").d("🎵 Starting playback...")
+                        currentEpisode?.let { updatedEpisode ->
+                            mainViewModel.playOrToggleEpisode(mediaItem = updatedEpisode)
+                        }
+                    }
+                } else {
+                    Timber.tag("PLAY").d("✅ Episode already in queue, playing directly...")
+                    mainViewModel.playOrToggleEpisode(mediaItem = episode)
+                }
+            }
         }
 
         activity?.invalidateOptionsMenu()
@@ -112,7 +140,9 @@ class EpisodeDetailFragment : Fragment() {
         Timber.d("🕒 3. DOWN::EpisodeDetailFragment: Work enqueued")
         showDownloadProgress(request.id)
         if (!viewModel.currentEpisode.value!!.isInQueue) {
-            viewModel.changeEpisodeQueueStatus()
+            viewLifecycleOwner.lifecycleScope.launchWhenStarted {
+                viewModel.changeEpisodeQueueStatus()
+            }
         }
     }
 

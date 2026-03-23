@@ -58,8 +58,6 @@ class QueueFragment : Fragment(), ItemZoneTouchHandler { //, ToolbarConfigurator
         super.onViewCreated(view, savedInstanceState)
         
         subscribeToObservers()
-        mainViewModel.mediaIdMapper(Constants.MEDIA_QUEUE_ID)
-
         setupRecyclerView()
         viewModel.updateQueueRss()
         setupMenu()
@@ -102,17 +100,6 @@ class QueueFragment : Fragment(), ItemZoneTouchHandler { //, ToolbarConfigurator
             updateQueueSummary()
         }
 
-        // think - doesn't need??
-        mainViewModel.mediaItems.observe(viewLifecycleOwner) { result ->
-            when (result) {
-                is Resource.Loading -> { /** progressBar.isVisible = true */ }
-                is Resource.Success -> {
-                    /** progressBar.isVisible = false */
-//                    result.data?.let { queueAdapter.submitList(it) }
-                }
-                is Resource.Error -> Unit
-            }
-        }
         viewModel.isLockedQueue.observe(viewLifecycleOwner) { isLocked ->
             Timber.d("OBSERVE_SEPARATE:isLockedQueue::status=$isLocked")
             val animate = pendingHandleAnimation

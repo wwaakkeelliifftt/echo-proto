@@ -41,7 +41,7 @@ class EpisodeDetailViewModel @Inject constructor(
             repository.getEpisodeById(id = id).collect { result ->
                 when (result) {
                     is Resource.Success -> {
-//                        _currentEpisode.postValue(result.data!!)
+                        _currentEpisode.postValue(result.data!!)
                         _curStateFlowEpisode.value = result
                     }
                     else -> Unit
@@ -50,13 +50,25 @@ class EpisodeDetailViewModel @Inject constructor(
         }
     }
 
-    fun changeEpisodeQueueStatus() {
+    suspend fun changeEpisodeQueueStatus() {
         val episode = currentEpisode.value
         if (episode != null) {
-            viewModelScope.launch {
-                repository.changeEpisodeQueueStatus(episode.id)
+            Timber.tag("PLAY").d("🔄 Changing queue status for episode id=${episode.id}, current isInQueue=${episode.isInQueue}")
+            repository.changeEpisodeQueueStatus(episode.id)
+            Timber.tag("PLAY").d("✅ Repository changeEpisodeQueueStatus completed")
+            // Перечитываем эпизод из БД и ждём обновления
+            repository.getEpisodeById(id = episode.id).collect { result ->
+                when (result) {
+                    is Resource.Success -> {
+                        val updatedEpisode = result.data!!
+                        _currentEpisode.postValue(updatedEpisode)
+                        _curStateFlowEpisode.value = result
+                        Timber.tag("PLAY").d("✅ Episode updated: id=${updatedEpisode.id}, isInQueue=${updatedEpisode.isInQueue}, indexInQueue=${updatedEpisode.indexInQueue}")
+                        return@collect // Выходим после первого успешного обновления
+                    }
+                    else -> Unit
+                }
             }
-            getSelectedEpisode(episode.id)
         }
     }
 

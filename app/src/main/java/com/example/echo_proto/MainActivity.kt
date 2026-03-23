@@ -135,24 +135,6 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
-
-        // think, we don't need this observers
-        mainViewModel.mediaItems.observe(this) {
-            it?.let { result ->
-                when (result) {
-                    is Resource.Loading -> Unit
-                    is Resource.Error -> Unit
-                    is Resource.Success -> {
-                        result.data?.let { episodes ->
-                            // Episodes loaded from media service
-                            if (currentPLayingEpisode == null && episodes.isNotEmpty()) {
-                                // Could auto-play first episode here if needed
-                            }
-                        }
-                    }
-                }
-            }
-        }
     }
 
     private fun changeFloatingTextState() {

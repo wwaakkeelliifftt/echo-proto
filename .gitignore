@@ -13,3 +13,9 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Design documentation
+# /app/src/main/res/design.md
+# /app/src/main/res/design_raw.md
+# /app/src/main/res/values/colors_raw.xml
+# /app/src/main/res/design_layouts.html

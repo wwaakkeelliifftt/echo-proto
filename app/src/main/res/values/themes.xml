@@ -88,6 +88,36 @@
         <item name="shapeAppearance">@style/ShapeAppearance.MaterialComponents.SmallComponent</item>
     </style>
 
+    <!-- Новые стили для v2 с цветовой схемой Nocturne Gold -->
+    <style name="SpeedControlChipV2" parent="Widget.MaterialComponents.Chip.Action">
+        <item name="chipBackgroundColor">@color/colorPrimary</item>
+        <item name="chipIconTint">@color/colorTextPrimary</item>
+        <item name="android:textColor">@color/colorTextPrimary</item>
+        <item name="rippleColor">@color/colorPrimaryVariant</item>
+        <item name="chipStrokeColor">@color/colorPrimary</item>
+        <item name="chipStrokeWidth">0dp</item>
+        <item name="shapeAppearance">@style/ShapeAppearance.MaterialComponents.SmallComponent</item>
+        <item name="android:textAppearance">@style/TextAppearance.MaterialComponents.Body2</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:paddingStart">20dp</item>
+        <item name="android:paddingEnd">20dp</item>
+        <item name="android:paddingTop">10dp</item>
+        <item name="android:paddingBottom">10dp</item>
+    </style>
+
+    <!-- Active state for selected speed chip v2 -->
+    <style name="SpeedControlChipV2.Active">
+        <item name="chipBackgroundColor">@color/colorPrimary</item>
+        <item name="chipIconTint">@color/colorTextPrimary</item>
+        <item name="android:textColor">@color/colorTextPrimary</item>
+        <item name="rippleColor">@color/colorPrimaryVariant</item>
+        <item name="chipStrokeColor">@color/colorPrimary</item>
+        <item name="elevation">4dp</item>
+        <item name="android:paddingStart">16dp</item>
+        <item name="android:paddingEnd">16dp</item>
+    </style>
+
 
     <!--    different shapes for FAB    -->
     <style name="FloatingActionButtonStyle" parent="Widget.Design.FloatingActionButton">

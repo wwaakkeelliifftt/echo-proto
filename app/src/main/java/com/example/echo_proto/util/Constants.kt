@@ -14,10 +14,6 @@ object Constants {
 
     const val MEDIA_ROOT_ID = "root_id"
     const val MEDIA_QUEUE_ID = "queue_id"
-    const val MEDIA_FEED_ID = "feed_id"
-    const val MEDIA_FEED_PERSONAL_ID = "feed_personal_id"
-    const val MEDIA_CHANNEL_ID = "channel_id"
-    const val MEDIA_DOWNLOADS_ID = "downloads_id"
 
     const val UPDATE_PLAYER_POSITION_INTERVAL = 500L
 
