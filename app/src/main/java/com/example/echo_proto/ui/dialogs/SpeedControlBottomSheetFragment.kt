@@ -1,16 +1,17 @@
 package com.example.echo_proto.ui.dialogs
 
 import android.app.Dialog
+import android.content.res.ColorStateList
+import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.content.res.ColorStateList
 import android.widget.Toast
-import androidx.appcompat.R.attr.colorPrimary
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.activityViewModels
 import com.example.echo_proto.R
-import com.example.echo_proto.databinding.BottomSheetSpeedControlBinding
+import com.example.echo_proto.databinding.BottomSheetSpeedControlV2Binding
 import com.example.echo_proto.ui.viewmodels.MainViewModel
 import com.example.echo_proto.util.Constants
 import com.google.android.material.bottomsheet.BottomSheetBehavior
@@ -18,19 +19,17 @@ import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipDrawable
-import com.google.android.material.color.MaterialColors
 import com.google.android.material.slider.Slider
-import timber.log.Timber
 import dagger.hilt.android.AndroidEntryPoint
+import timber.log.Timber
 import kotlin.math.abs
 
 @AndroidEntryPoint
 class SpeedControlBottomSheetFragment : BottomSheetDialogFragment() {
 
-    private var _binding: BottomSheetSpeedControlBinding? = null
+    private var _binding: BottomSheetSpeedControlV2Binding? = null
     private val binding get() = _binding!!
     private val viewModel by activityViewModels<MainViewModel>()
-    private val strokeWidth by lazy { resources.getDimension(R.dimen.speed_chip_stroke_width) }
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         return BottomSheetDialog(requireContext(), theme).apply {
@@ -38,17 +37,28 @@ class SpeedControlBottomSheetFragment : BottomSheetDialogFragment() {
                 val bottomSheet = (dialogInterface as? BottomSheetDialog)
                     ?.findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)
                 bottomSheet?.let { sheet ->
-                    BottomSheetBehavior.from(sheet).apply {
-                        peekHeight = (resources.displayMetrics.heightPixels * 0.45f).toInt()
-                        state = BottomSheetBehavior.STATE_EXPANDED
-                    }
+                    sheet.setBackgroundColor(Color.TRANSPARENT)
+                    val behavior = BottomSheetBehavior.from(sheet)
+                    behavior.isFitToContents = true
+                    behavior.isHideable = true
+                    behavior.skipCollapsed = true
+                    behavior.state = BottomSheetBehavior.STATE_EXPANDED
+                    behavior.addBottomSheetCallback(object : BottomSheetBehavior.BottomSheetCallback() {
+                        override fun onStateChanged(bottomSheet: View, newState: Int) {
+                            // remove "sticking" state
+                            when (newState) {
+                                BottomSheetBehavior.STATE_HALF_EXPANDED -> behavior.state = BottomSheetBehavior.STATE_EXPANDED
+                            }
+                        }
+                        override fun onSlide(bottomSheet: View, slideOffset: Float) = Unit
+                    })
                 }
             }
         }
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
-        _binding = BottomSheetSpeedControlBinding.inflate(inflater, container, false)
+        _binding = BottomSheetSpeedControlV2Binding.inflate(inflater, container, false)
         return binding.root
     }
 
@@ -64,7 +74,15 @@ class SpeedControlBottomSheetFragment : BottomSheetDialogFragment() {
     }
 
     private fun setupListeners() = with(binding) {
-        chipCurrentSpeed.setOnClickListener {
+        btnDecreaseSpeed.setOnClickListener {
+            viewModel.adjustPlaybackSpeed(-Constants.PLAYBACK_SPEED_BUTTON_STEP)
+        }
+
+        btnIncreaseSpeed.setOnClickListener {
+            viewModel.adjustPlaybackSpeed(Constants.PLAYBACK_SPEED_BUTTON_STEP)
+        }
+
+        btnAddNewSpeed.setOnClickListener {
             val speed = viewModel.currentPlaybackSpeed.value ?: Constants.DEFAULT_PLAYBACK_SPEED
             val added = viewModel.addPlaybackSpeedPreset(speed)
             val message = if (added) {
@@ -75,35 +93,17 @@ class SpeedControlBottomSheetFragment : BottomSheetDialogFragment() {
             Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
         }
 
-        btnDecreaseSpeed.setOnClickListener {
-            Timber.tag("SPEED").d("1) btnDecreaseSpeed clicked -> delta=%.2f", -Constants.PLAYBACK_SPEED_BUTTON_STEP)
-            viewModel.adjustPlaybackSpeed(-Constants.PLAYBACK_SPEED_BUTTON_STEP)
-        }
-
-        btnIncreaseSpeed.setOnClickListener {
-            Timber.tag("SPEED").d("1) btnIncreaseSpeed clicked -> delta=%.2f", Constants.PLAYBACK_SPEED_BUTTON_STEP)
-            viewModel.adjustPlaybackSpeed(Constants.PLAYBACK_SPEED_BUTTON_STEP)
-        }
-
-        sliderSpeed.apply {
-            valueFrom = Constants.PLAYBACK_SPEED_MIN
-            valueTo = Constants.PLAYBACK_SPEED_MAX
-            stepSize = Constants.PLAYBACK_SPEED_STEP
-            addOnChangeListener { slider, value, fromUser ->
-                if (fromUser) {
-                    updateCurrentSpeedUi(value)
-                } else {
-                    updateCurrentSpeedUi(value)
-                }
+        sliderSpeed.addOnChangeListener { slider, value, fromUser ->
+            if (fromUser) {
+                updateCurrentSpeedUi(value)
             }
-            addOnSliderTouchListener(object : Slider.OnSliderTouchListener {
-                override fun onStartTrackingTouch(slider: Slider) = Unit
-                override fun onStopTrackingTouch(slider: Slider) {
-                    Timber.tag("SPEED").d("1) slider stop -> value=%.2f", slider.value)
-                    viewModel.setPlaybackSpeed(slider.value)
-                }
-            })
         }
+        sliderSpeed.addOnSliderTouchListener(object : Slider.OnSliderTouchListener {
+            override fun onStartTrackingTouch(slider: Slider) = Unit
+            override fun onStopTrackingTouch(slider: Slider) {
+                viewModel.setPlaybackSpeed(slider.value)
+            }
+        })
     }
 
     private fun observeViewModel() {
@@ -120,12 +120,7 @@ class SpeedControlBottomSheetFragment : BottomSheetDialogFragment() {
     }
 
     private fun updateCurrentSpeedUi(speed: Float) {
-        Timber.tag("SPEED").d("updateCurrentSpeedUi=$speed")
-        binding.chipCurrentSpeed.text = viewModel.formatSpeed(speed)
-        binding.chipCurrentSpeed.chipStrokeWidth = strokeWidth
-        binding.chipCurrentSpeed.chipStrokeColor = ColorStateList.valueOf(
-            MaterialColors.getColor(binding.chipCurrentSpeed, colorPrimary)
-        )
+        binding.chipCurrentSpeed.text = viewModel.formatSpeed(speed).replace("x", "").replace("X", "")
         highlightSelectedPreset(speed)
     }
 
@@ -143,15 +138,16 @@ class SpeedControlBottomSheetFragment : BottomSheetDialogFragment() {
 
     private fun createPresetChip(inflater: LayoutInflater, speed: Float): Chip {
         val context = requireContext()
-        val chipDrawable = ChipDrawable.createFromAttributes(context, null, 0, R.style.FilterChips)
+        val chipDrawable = ChipDrawable.createFromAttributes(context, null, 0, R.style.SpeedControlChipV2)
         return Chip(context).apply {
             setChipDrawable(chipDrawable)
-            setTextAppearance(R.style.FeedFilterChipText)
             text = viewModel.formatSpeed(speed)
             isCheckable = false
             tag = speed
+            setTextColor(ContextCompat.getColor(context, R.color.colorInactiveChipText))
+            chipIcon = null
+            isChipIconVisible = false
             setOnClickListener {
-                Timber.tag("SPEED").d("1) preset chip clicked -> speed=%.2f", speed)
                 viewModel.setPlaybackSpeed(speed)
             }
             setOnLongClickListener {
@@ -164,15 +160,31 @@ class SpeedControlBottomSheetFragment : BottomSheetDialogFragment() {
 
     private fun highlightSelectedPreset(currentSpeed: Float) {
         val chipGroup = binding.chipGroupPresets
+        val context = requireContext()
         for (index in 0 until chipGroup.childCount) {
             val chip = chipGroup.getChildAt(index) as? Chip ?: continue
             val chipSpeed = (chip.tag as? Float) ?: continue
-            val strokeColor = ColorStateList.valueOf(MaterialColors.getColor(chip, colorPrimary))
-            if (abs(chipSpeed - currentSpeed) < 0.01f) {
-                chip.chipStrokeWidth = strokeWidth
-                chip.chipStrokeColor = strokeColor
+            
+            val shouldBeActive = abs(chipSpeed - currentSpeed) < 0.01f
+            if (shouldBeActive) {
+                val activeDrawable = ChipDrawable.createFromAttributes(
+                    context, null, 0, R.style.SpeedControlChipV2_Active
+                )
+                chip.setChipDrawable(activeDrawable)
+                chip.setTextColor(ContextCompat.getColor(context, R.color.colorChipActiveText))
+                chip.chipIcon = ContextCompat.getDrawable(context, R.drawable.ic_check_circle)
+                chip.chipIconTint = ColorStateList.valueOf(
+                    ContextCompat.getColor(context, R.color.colorChipActiveIcon)
+                )
+                chip.isChipIconVisible = true
             } else {
-                chip.chipStrokeWidth = 0f
+                val normalDrawable = ChipDrawable.createFromAttributes(
+                    context, null, 0, R.style.SpeedControlChipV2
+                )
+                chip.setChipDrawable(normalDrawable)
+                chip.setTextColor(ContextCompat.getColor(context, R.color.colorInactiveChipText))
+                chip.chipIcon = null
+                chip.isChipIconVisible = false
             }
         }
     }

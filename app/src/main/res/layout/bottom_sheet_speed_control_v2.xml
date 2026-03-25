@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/bg_bottom_sheet_rounded"
+    android:clipToOutline="true"
+    android:outlineProvider="background"
+    android:paddingBottom="@dimen/dp_medium"
+    android:paddingStart="@dimen/dp_large"
+    android:paddingEnd="@dimen/dp_large">
+
+    <!-- Handle -->
+    <View
+        android:id="@+id/dragHandle"
+        android:layout_marginTop="@dimen/dp_medium"
+        android:layout_width="48dp"
+        android:layout_height="@dimen/dp_small"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="24dp"
+        android:background="@color/colorDisabled"
+        android:alpha="0.3"
+        android:contentDescription="@string/speed_control_drag_handle_content_description" />
+
+    <!-- Header/Current Speed -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:layout_marginBottom="48dp">
+
+        <TextView
+            android:id="@+id/tvPlaybackSpeedTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Speed Control"
+            android:textColor="@color/colorTextSecondary"
+            android:textSize="10sp"
+            android:fontFamily="sans-serif-medium"
+            android:letterSpacing="0.2"
+            android:textAllCaps="true"
+            android:layout_marginBottom="8dp" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/chipCurrentSpeed"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="72sp"
+                android:textColor="@color/colorPrimary"
+                android:fontFamily="sans-serif-medium"
+                android:textStyle="bold"
+                android:letterSpacing="-0.04"
+                tools:text="1.55" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="x"
+                android:textSize="24sp"
+                android:textColor="@color/colorPrimaryVariant"
+                android:fontFamily="sans-serif-medium" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Speed Slider Control -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="48dp">
+
+        <ImageButton
+            android:id="@+id/btnDecreaseSpeed"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/bg_speed_button"
+            android:src="@drawable/ic_remove"
+            android:layout_marginEnd="24dp"
+            app:tint="@color/colorTextSecondary" />
+
+        <FrameLayout
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1">
+
+            <com.google.android.material.slider.Slider
+                android:id="@+id/sliderSpeed"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:valueFrom="0.5"
+                android:valueTo="3.0"
+                android:stepSize="0.05"
+                android:value="1.0"
+                android:background="@null"
+                app:thumbColor="@color/colorPrimary"
+                app:thumbElevation="4dp"
+                app:trackColorActive="@color/colorPrimary"
+                app:trackColorInactive="@color/colorDisabled"
+                app:trackHeight="6dp"
+                app:haloColor="@android:color/transparent"
+                app:tickColorActive="@android:color/transparent"
+                app:tickColorInactive="@android:color/transparent" />
+        </FrameLayout>
+
+        <ImageButton
+            android:id="@+id/btnIncreaseSpeed"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/bg_speed_button_primary"
+            android:src="@drawable/ic_add"
+            android:layout_marginStart="24dp"
+            app:tint="@color/colorTextPrimary" />
+    </LinearLayout>
+
+    <!-- Saved Speeds Section -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_marginBottom="@dimen/dp_large_less">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="@dimen/dp_medium">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <ImageView
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:src="@drawable/ic_bookmark_filled"
+                    android:layout_marginEnd="8dp"
+                    app:tint="@color/colorTextSecondary" />
+
+                <TextView
+                    android:id="@+id/tvPresetsLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Saved Speeds"
+                    android:textColor="@color/colorTextSecondary"
+                    android:textSize="11sp"
+                    android:fontFamily="sans-serif-medium"
+                    android:textAllCaps="true"
+                    android:letterSpacing="0.2" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:alpha="0.6">
+
+                <ImageView
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
+                    android:src="@drawable/ic_info_outline"
+                    android:layout_marginEnd="6dp"
+                    app:tint="@color/colorTextSecondary" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Hold to clear"
+                    android:textColor="@color/colorTextSecondary"
+                    android:textSize="10sp"
+                    android:fontFamily="sans-serif-medium"
+                    android:textAllCaps="true"
+                    android:letterSpacing="0.1" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/chipGroupPresets"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            app:chipSpacingHorizontal="8dp"
+            app:chipSpacingVertical="8dp"
+            app:singleLine="true">
+
+            <!-- Preset chips will be added programmatically -->
+        </com.google.android.material.chip.ChipGroup>
+
+        <!-- Add New Button -->
+        <ImageButton
+            android:id="@+id/btnAddNewSpeed"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_marginTop="@dimen/dp_medium"
+            android:layout_marginEnd="@dimen/dp_medium"
+            android:layout_gravity="end"
+            android:background="@drawable/bg_add_speed_button"
+            android:src="@drawable/ic_bookmark_add"
+            app:tint="@color/colorTextSecondary" />
+    </LinearLayout>
+
+    <!-- Info text -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="@dimen/dp_small"
+        android:text="Adjustments are saved automatically to your vault."
+        android:textColor="@color/colorTextSecondary"
+        android:textSize="12sp"
+        android:fontFamily="sans-serif"
+        android:alpha="0.4"
+        android:gravity="center"
+        android:fontStyle="italic" />
+
+</LinearLayout>

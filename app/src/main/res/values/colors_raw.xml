@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Цветовая палитра Nocturne Gold для тестирования -->
+    
+    <!-- Backgrounds -->
+    <color name="colorBackground">#131313</color>
+    <color name="colorSurface">#1C1C1C</color>
+    
+    <!-- Gold Accents -->
+    <color name="colorPrimary">#E6AF2E</color>
+    <color name="colorPrimaryVariant">#FFCC61</color>
+    <color name="colorDisabled">#353534</color>
+
+    <!-- New Chip Colors for maximum contrast -->
+    <color name="colorInactiveChipBackground">#3D3522</color> <!-- Глубокая темная бронза -->
+    <color name="colorInactiveChipText">#E6AF2E</color>       <!-- Мягкий золотой, как основной цвет темы -->
+    
+    <!-- Text -->
+    <color name="colorTextPrimary">#FFFFFF</color>
+    <color name="colorTextSecondary">#D3C5AE</color>
+    
+    <!-- Special colors for chips -->
+    <color name="colorChipActiveText">#131313</color>
+    <color name="colorChipActiveIcon">#131313</color>
+    
+    <!-- Blue Accent -->
+    <color name="colorAccentBlue">#4DB6AC</color>
+    
+    <!-- Реально используемые цвета в проекте -->
+    
+    <!-- Светлая тема (old_light_) -->
+    <color name="old_light_colorPrimary">#607D8B</color>                    <!-- blueGray_600 -->
+    <color name="old_light_colorPrimaryVariant">#455A64</color>            <!-- blueGray_700 -->
+    <color name="old_light_colorOnPrimary">#CFD8DC</color>                 <!-- blueGray_100 -->
+    <color name="old_light_colorSecondary">#B0BEC5</color>                 <!-- blueGray_200 -->
+    <color name="old_light_colorOnSecondary">#78909C</color>               <!-- blueGray_400 -->
+    <color name="old_light_colorTertiary">#FAFAFA</color>                   <!-- gray_50 -->
+    <color name="old_light_colorOnPrimarySurface">#CFD8DC</color>           <!-- blueGray_100 -->
+    <color name="old_light_colorBackground">#FFFFFF</color>                 <!-- white -->
+    <color name="old_light_colorText">#212121</color>                       <!-- gray_900 -->
+    <color name="old_light_colorOnSurface">#37474F</color>                  <!-- blueGray_800 -->
+    <color name="old_light_indicatorColor">#78909C</color>                  <!-- blueGray_400 -->
+    <color name="old_light_actionModeBackground">#F06292</color>            <!-- pink_a200 -->
+    <color name="old_light_chipBackground">#B0BEC5</color>                  <!-- blueGray_200 -->
+    <color name="old_light_chipIconTint">#607D8B</color>                    <!-- blueGray_600 -->
+    <color name="old_light_chipTextColor">#37474F</color>                   <!-- blueGray_800 -->
+    <color name="old_light_chipRippleColor">#B0BEC5</color>                 <!-- blueGray_200 -->
+    <color name="old_light_chipStrokeColor">#607D8B</color>                 <!-- blueGray_600 -->
+    <color name="old_light_outlineColor">#EC407A</color>                    <!-- pink_a400 -->
+    
+    <!-- Темная тема (old_dark_) -->
+    <color name="old_dark_colorPrimary">#c7b500</color>                     <!-- yellow_medium -->
+    <color name="old_dark_colorPrimaryVariant">#615a00</color>               <!-- yellow_x2_dark -->
+    <color name="old_dark_colorOnPrimary">#ffe70e</color>                    <!-- yellow_light -->
+    <color name="old_dark_colorSecondary">#B0BEC5</color>                    <!-- blueGray_200 -->
+    <color name="old_dark_colorOnSecondary">#0E8080</color>                  <!-- sea_800 -->
+    <color name="old_dark_colorTertiary">#212121</color>                     <!-- gray_900 -->
+    <color name="old_dark_colorOnPrimarySurface">#212121</color>             <!-- gray_900 -->
+    <color name="old_dark_colorBackground">#0C0C0C</color>                   <!-- gray_1000 -->
+    <color name="old_dark_colorText">#EEEEEE</color>                         <!-- gray_200 -->
+    <color name="old_dark_colorOnSurface">#615a00</color>                    <!-- yellow_x2_dark -->
+    <color name="old_dark_indicatorColor">#c7b500</color>                     <!-- yellow_medium -->
+    <color name="old_dark_actionModeBackground">#0E9496</color>               <!-- sea_700 -->
+    <color name="old_dark_chipBackground">#616161</color>                    <!-- gray_700 -->
+    <color name="old_dark_chipIconTint">#c7b500</color>                      <!-- yellow_medium -->
+    <color name="old_dark_chipTextColor">#c7b500</color>                     <!-- yellow_medium -->
+    <color name="old_dark_chipCloseIconTint">#ffe70e</color>                 <!-- yellow_light -->
+    <color name="old_dark_dialogTitleTextColor">#EEEEEE</color>               <!-- gray_200 -->
+    <color name="old_dark_dialogButtonBackground">#455A64</color>            <!-- blueGray_700 -->
+    <color name="old_dark_dialogButtonText">#F5F5F5</color>                  <!-- gray_100 -->
+    <color name="old_dark_dialogButtonTextSecondary">#B0BEC5</color>          <!-- blueGray_200 -->
+    
+    <!-- Универсальные цвета (используются в обеих темах) -->
+    <color name="old_statusBarColor">#000000</color>                         <!-- black -->
+    <color name="old_appBarBackground">#000000</color>                       <!-- black -->
+    <color name="old_dragIndicatorTint">#29C3CC</color>                      <!-- sea_400 -->
+    <color name="old_downloadIconTint">#00a53d</color>                       <!-- green_medium -->
+    <color name="old_favoriteIconTint">#F50057</color>                       <!-- pink_a400 -->
+    <color name="old_queueIconTint">#FFBB86FC</color>                        <!-- purple_200 -->
+    <color name="old_selectedIconTint">#0E9496</color>                       <!-- sea_700 -->
+    <color name="old_filterIconTint">#F50057</color>                         <!-- pink_a400 -->
+    <color name="old_snackbarErrorBackground">#FF5252</color>
+    <color name="old_snackbarErrorText">#FFFFFF</color>
+    <color name="old_snackbarActionText">#FFEB3B</color>
+    <color name="old_snackbarInfoBackground">#2196F3</color>
+    <color name="old_snackbarInfoText">#FFFFFF</color>
+    <color name="old_launcherBackground">#ebd52c</color>
+    
+    <!-- Недостающие цвета (возможно, используются в коде) -->
+    <color name="old_colorAccent">#2196F3</color>                            <!-- стандартный accent blue -->
+</resources>

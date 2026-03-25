@@ -1,34 +1,27 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
-    <!--  todo -> .NoActionBar ??  -->
     <style name="Theme.Echoproto" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <!-- Primary brand color. -->
-        <item name="colorPrimary">@color/blueGray_600</item>
-        <item name="colorPrimaryVariant">@color/blueGray_700</item>
-        <item name="colorOnPrimary">@color/blueGray_100</item>
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryVariant">@color/colorPrimaryVariant</item>
+        <item name="colorOnPrimary">@color/colorChipActiveText</item>
         <!-- Secondary brand color. -->
-        <item name="colorSecondary">@color/blueGray_200</item>
+        <item name="colorSecondary">@color/colorAccentBlue</item>
         <item name="colorSecondaryVariant">@color/white</item>
-        <item name="colorOnSecondary">@color/blueGray_400</item>
-        <item name="colorTertiary">@color/gray_50</item>
-        <item name="colorOnPrimarySurface">@color/blueGray_100</item>
+        <item name="colorOnSecondary">@color/colorTextSecondary</item>
+        <item name="colorTertiary">@color/colorSurface</item>
+        
         <!-- Status bar color. -->
         <item name="android:statusBarColor" tools:targetApi="l">@color/black</item>
         
-        <!-- Customize your theme here. -->
+        <item name="android:colorBackground">@color/colorBackground</item>
+        <item name="android:textColor">@color/colorTextPrimary</item>
+        <item name="colorOnSurface">@color/colorTextPrimary</item>
 
-        <item name="android:colorBackground">@color/white</item>
-        <item name="android:textColor">@color/gray_900</item>
-        <item name="colorOnSurface">@color/blueGray_800</item>
-
-        <item name="indicatorColor">@color/blueGray_400</item>
-        <item name="actionModeBackground">@color/pink_a200</item>
         <item name="alertDialogTheme">@style/AlertDialogTheme</item>
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
         <item name="windowActionModeOverlay">true</item>
-
-        <item name="floatingActionButtonStyle">@style/FloatingActionButtonStyle</item>
     </style>
 
     <!--  styles for DialogFragment  -->
@@ -37,102 +30,49 @@
         <item name="buttonBarNegativeButtonStyle">@style/NegativeButtonStyle</item>
     </style>
     <style name="NegativeButtonStyle" parent="Widget.MaterialComponents.Button.TextButton.Dialog">
-        <item name="android:textColor">@color/colorAccent</item>
+        <item name="android:textColor">@color/colorPrimary</item>
     </style>
     <style name="PositiveButtonStyle" parent="Widget.MaterialComponents.Button.TextButton.Dialog">
-        <item name="android:textColor">@color/colorAccent</item>
+        <item name="android:textColor">@color/colorPrimary</item>
     </style>
 
-    <!--    rounded corners at imageView into RecyclerView  -->
-    <style name="roundedCornerImageViewStile">
-        <item name="cornerFamily">rounded</item>
-        <item name="cornerSize">5%</item>
+    <!-- Legacy Style to fix build error in bottom_sheet_speed_control.xml -->
+    <style name="SpeedControlChip" parent="SpeedControlChipV2" />
+
+    <!-- Speed Control Chip V2 (Inactive) -->
+    <style name="SpeedControlChipV2" parent="Widget.MaterialComponents.Chip.Action">
+        <item name="chipBackgroundColor">@color/colorInactiveChipBackground</item>
+        <item name="android:textColor">@color/colorInactiveChipText</item>
+        <item name="android:textAppearance">@style/TextAppearance.SpeedChip.Inactive</item>
+        <item name="rippleColor">@color/colorPrimary</item>
+        <item name="chipStrokeWidth">0dp</item>
+        <item name="cornerSize">24dp</item>
+        <item name="android:paddingStart">12dp</item>
+        <item name="android:paddingEnd">12dp</item>
+        <item name="android:minWidth">60dp</item>
     </style>
 
-    <!--    -->
-    <style name="CheckBoxStateButton" parent="Widget.Material3.Button.OutlinedButton.Icon">
-        <item name="android:textSize">12sp</item>
-        <item name="background">@color/blueGray_200</item>
-        <item name="colorOutline">@color/pink_a400</item>
-        <item name="strokeWidth">3dp</item>
+    <style name="TextAppearance.SpeedChip.Inactive" parent="TextAppearance.MaterialComponents.Body2">
+        <item name="android:textColor">@color/colorInactiveChipText</item>
+        <item name="android:textStyle">bold</item>
     </style>
 
-    <!--  Filter Chips  -->
+    <!-- Speed Control Chip V2 (Active) -->
+    <style name="SpeedControlChipV2.Active" parent="SpeedControlChipV2">
+        <item name="chipBackgroundColor">@color/colorPrimaryVariant</item>
+        <item name="android:textColor">@color/colorChipActiveText</item>
+        <item name="android:textAppearance">@style/TextAppearance.SpeedChip.Active</item>
+        <item name="chipIconTint">@color/colorChipActiveIcon</item>
+        <item name="elevation">4dp</item>
+    </style>
+
+    <style name="TextAppearance.SpeedChip.Active" parent="TextAppearance.MaterialComponents.Body2">
+        <item name="android:textColor">@color/colorChipActiveText</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <!-- Filter Chips -->
     <style name="FilterChips" parent="Widget.MaterialComponents.Chip.Action">
         <item name="android:animateLayoutChanges">true</item>
     </style>
-
-    <style name="FeedFilterDialogTitle" parent="TextAppearance.MaterialComponents.Headline6">
-        <item name="android:textColor">?attr/colorOnSurface</item>
-    </style>
-
-    <style name="FeedFilterDialogButtonFilled" parent="Widget.MaterialComponents.Button">
-        <item name="android:textColor">?attr/colorOnPrimary</item>
-    </style>
-
-    <style name="FeedFilterDialogButtonText" parent="Widget.MaterialComponents.Button.TextButton">
-        <item name="android:textColor">?attr/colorPrimary</item>
-    </style>
-
-    <style name="FeedFilterChipText" parent="TextAppearance.MaterialComponents.Body2">
-        <item name="android:textColor">@color/blueGray_700</item>
-    </style>
-
-    <style name="SpeedControlChip" parent="Widget.MaterialComponents.Chip.Action">
-        <item name="chipBackgroundColor">@color/blueGray_50</item>
-        <item name="chipIconTint">@color/blueGray_600</item>
-        <item name="android:textColor">@color/blueGray_800</item>
-        <item name="rippleColor">@color/blueGray_200</item>
-        <item name="chipStrokeColor">?attr/colorPrimary</item>
-        <item name="chipStrokeWidth">@dimen/speed_chip_stroke_width</item>
-        <item name="shapeAppearance">@style/ShapeAppearance.MaterialComponents.SmallComponent</item>
-    </style>
-
-    <!-- Новые стили для v2 с цветовой схемой Nocturne Gold -->
-    <style name="SpeedControlChipV2" parent="Widget.MaterialComponents.Chip.Action">
-        <item name="chipBackgroundColor">@color/colorPrimary</item>
-        <item name="chipIconTint">@color/colorTextPrimary</item>
-        <item name="android:textColor">@color/colorTextPrimary</item>
-        <item name="rippleColor">@color/colorPrimaryVariant</item>
-        <item name="chipStrokeColor">@color/colorPrimary</item>
-        <item name="chipStrokeWidth">0dp</item>
-        <item name="shapeAppearance">@style/ShapeAppearance.MaterialComponents.SmallComponent</item>
-        <item name="android:textAppearance">@style/TextAppearance.MaterialComponents.Body2</item>
-        <item name="android:textSize">14sp</item>
-        <item name="android:fontFamily">sans-serif-medium</item>
-        <item name="android:paddingStart">20dp</item>
-        <item name="android:paddingEnd">20dp</item>
-        <item name="android:paddingTop">10dp</item>
-        <item name="android:paddingBottom">10dp</item>
-    </style>
-
-    <!-- Active state for selected speed chip v2 -->
-    <style name="SpeedControlChipV2.Active">
-        <item name="chipBackgroundColor">@color/colorPrimary</item>
-        <item name="chipIconTint">@color/colorTextPrimary</item>
-        <item name="android:textColor">@color/colorTextPrimary</item>
-        <item name="rippleColor">@color/colorPrimaryVariant</item>
-        <item name="chipStrokeColor">@color/colorPrimary</item>
-        <item name="elevation">4dp</item>
-        <item name="android:paddingStart">16dp</item>
-        <item name="android:paddingEnd">16dp</item>
-    </style>
-
-
-    <!--    different shapes for FAB    -->
-    <style name="FloatingActionButtonStyle" parent="Widget.Design.FloatingActionButton">
-        <item name="shapeAppearanceOverlay">@style/FabShapeStyleDefault</item>
-    </style>
-
-    <style name="FabShapeStyleDefault" parent="ShapeAppearance.MaterialComponents.SmallComponent">
-        <item name="cornerSize">50%</item>
-    </style>
-
-    <style name="FabShapeStyleRound" parent="ShapeAppearance.MaterialComponents.SmallComponent">
-        <item name="cornerSize">0dp</item>
-        <item name="cornerSizeTopLeft">80%</item>
-        <item name="cornerFamily">cut</item>
-        <item name="cornerFamilyTopLeft">rounded</item>
-    </style>
-
 </resources>

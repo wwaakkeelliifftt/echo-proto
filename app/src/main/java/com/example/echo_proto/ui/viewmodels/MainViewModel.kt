@@ -189,7 +189,9 @@ class MainViewModel @Inject constructor(
         _playbackSpeedPresets.postValue(currentPresets)
     }
 
-    fun formatSpeed(speed: Float): String = String.format(Locale.US, "%.2fx", speed)
+    fun formatSpeed(speed: Float): String = String.format(Locale.US, "%.2f", speed)
+        .replace("x", "")
+        .replace("X", "")
 
     fun playOrToggleEpisode(mediaItem: Episode, toggle: Boolean = false) {
         val isPrepared = playbackState.value?.isPrepared ?: false

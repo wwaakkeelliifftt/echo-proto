@@ -28,11 +28,11 @@ object Constants {
     const val MEDIA_SESSION_ACTION_SET_SPEED = "media_action_set_speed"
     const val EXTRA_PLAYBACK_SPEED = "extra_playback_speed"
     const val DEFAULT_PLAYBACK_SPEED = 1.0f
-    const val PLAYBACK_SPEED_MIN = 0.75f
-    const val PLAYBACK_SPEED_MAX = 2.0f
+    const val PLAYBACK_SPEED_MIN = 0.5f
+    const val PLAYBACK_SPEED_MAX = 3.0f
     const val PLAYBACK_SPEED_STEP = 0.05f
     const val PLAYBACK_SPEED_BUTTON_STEP = 0.1f
-    const val PLAYBACK_SPEED_PRESET_LIMIT = 5
+    const val PLAYBACK_SPEED_PRESET_LIMIT = 4
     // ?? realizovat?
 //    const val SHARED_PREFERENCE_LAST_EPISODE_ID_KEY = "last_episode_id_key"
 //    const val SHARED_PREFERENCE_LAST_POSITION_KEY = "last_position_key"
