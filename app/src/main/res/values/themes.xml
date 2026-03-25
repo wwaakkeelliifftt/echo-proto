@@ -75,4 +75,65 @@
     <style name="FilterChips" parent="Widget.MaterialComponents.Chip.Action">
         <item name="android:animateLayoutChanges">true</item>
     </style>
+
+    <!-- Episode Detail V2 Text Appearances -->
+    <style name="TextAppearance.EpisodeDetail.Title" parent="TextAppearance.MaterialComponents.Headline5">
+        <item name="android:textColor">@color/colorOnSurface</item>
+        <item name="android:fontFamily">@font/manrope_bold</item>
+        <item name="android:textSize">28sp</item>
+        <item name="android:maxLines">3</item>
+        <item name="android:ellipsize">end</item>
+    </style>
+
+    <style name="TextAppearance.EpisodeDetail.Metadata" parent="TextAppearance.MaterialComponents.Body2">
+        <item name="android:textColor">@color/colorOnSurfaceVariant</item>
+        <item name="android:textSize">14sp</item>
+    </style>
+
+    <style name="TextAppearance.EpisodeDetail.Loading" parent="TextAppearance.MaterialComponents.Caption">
+        <item name="android:textColor">@color/colorPrimary</item>
+        <item name="android:textSize">10sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textAllCaps">true</item>
+    </style>
+
+    <style name="TextAppearance.EpisodeDetail.Button" parent="TextAppearance.MaterialComponents.Button">
+        <item name="android:textColor">@color/colorOnSurface</item>
+        <item name="android:fontFamily">@font/manrope_bold</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:textAllCaps">true</item>
+    </style>
+
+    <style name="TextAppearance.EpisodeDetail.SectionLabel" parent="TextAppearance.MaterialComponents.Body2">
+        <item name="android:textColor">@color/colorOnSurfaceVariant</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textAllCaps">true</item>
+        <item name="android:letterSpacing">0.2</item>
+    </style>
+
+    <style name="TextAppearance.EpisodeDetail.Description" parent="TextAppearance.MaterialComponents.Body1">
+        <item name="android:textColor">@color/colorOnSurfaceVariant</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:lineSpacingMultiplier">1.2</item>
+    </style>
+
+    <style name="TextAppearance.EpisodeDetail.Chapter.Time" parent="TextAppearance.MaterialComponents.Body2">
+        <item name="android:textColor">@color/colorPrimary</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:fontFamily">monospace</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="TextAppearance.EpisodeDetail.Chapter.Title" parent="TextAppearance.MaterialComponents.Subtitle1">
+        <item name="android:textColor">@color/colorOnSurface</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="TextAppearance.EpisodeDetail.Chapter.Description" parent="TextAppearance.MaterialComponents.Body2">
+        <item name="android:textColor">@color/colorOnSurfaceVariant</item>
+        <item name="android:textSize">14sp</item>
+    </style>
+
 </resources>

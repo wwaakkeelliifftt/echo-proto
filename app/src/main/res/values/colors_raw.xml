@@ -6,6 +6,12 @@
     <color name="colorBackground">#131313</color>
     <color name="colorSurface">#1C1C1C</color>
     
+    <!-- Material 3 Surface Containers (для EpisodeDetail V2) -->
+    <color name="colorSurfaceContainerLowest">#1C1C1C</color>
+    <color name="colorSurfaceContainerLow">#222222</color>
+    <color name="colorSurfaceContainerHighest">#3D3D3D</color>
+    <color name="colorSurfaceVariant">#353534</color>
+    
     <!-- Gold Accents -->
     <color name="colorPrimary">#E6AF2E</color>
     <color name="colorPrimaryVariant">#FFCC61</color>
@@ -18,6 +24,8 @@
     <!-- Text -->
     <color name="colorTextPrimary">#FFFFFF</color>
     <color name="colorTextSecondary">#D3C5AE</color>
+    <color name="colorOnSurface">#E5E2E1</color>
+    <color name="colorOnSurfaceVariant">#D3C5AE</color>
     
     <!-- Special colors for chips -->
     <color name="colorChipActiveText">#131313</color>

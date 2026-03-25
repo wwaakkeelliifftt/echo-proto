@@ -42,6 +42,14 @@
     <string name="speed_control_preset_exists">Такая скорость уже сохранена</string>
     <string name="speed_control_preset_removed">Скорость удалена</string>
 
+    <!-- Episode Detail V2 -->
+    <string name="episode_detail_title">Description</string>
+    <string name="queue_button">QUEUE</string>
+    <string name="play_button">PLAY</string>
+    <string name="download_button">DOWNLOAD</string>
+    <string name="show_notes_label">Show Notes</string>
+    <string name="chapter_markers_label">Chapter Markers</string>
+
     <string name="queue_summary_template">В очереди %1$d эпизодов. Время воспроизведения: %2$s</string>
 
 </resources>
