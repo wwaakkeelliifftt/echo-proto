@@ -28,15 +28,19 @@ import com.example.echo_proto.ui.viewmodels.EpisodeDetailViewModel
 import com.example.echo_proto.ui.viewmodels.MainViewModel
 import com.example.echo_proto.util.Resource
 import com.example.echo_proto.util.getDateFromLong
+import com.example.echo_proto.util.getSizeFromTimeDuration
 import dagger.hilt.android.AndroidEntryPoint
 import java.util.UUID
 import androidx.core.view.MenuHost
 import androidx.core.view.MenuProvider
 import androidx.core.content.ContextCompat
+import com.google.android.material.appbar.AppBarLayout
+import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.delay
+import kotlin.math.abs
 
 @AndroidEntryPoint
-@RequiresApi(Build.VERSION_CODES.N) // progressbar
+@RequiresApi(Build.VERSION_CODES.N)
 class EpisodeDetailFragmentV2 : Fragment() {
 
     private var _binding: FragmentEpisodeDetailV2Binding? = null
@@ -55,6 +59,25 @@ class EpisodeDetailFragmentV2 : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         subscribeToObservers()
         setupMenu()
+        setupCollapsingLogic()
+    }
+
+    private fun setupCollapsingLogic() {
+        binding.appBarLayout.addOnOffsetChangedListener(AppBarLayout.OnOffsetChangedListener { appBarLayout, verticalOffset ->
+            val totalScrollRange = appBarLayout.totalScrollRange
+            if (totalScrollRange == 0) return@OnOffsetChangedListener
+
+            val percentage = abs(verticalOffset).toFloat() / totalScrollRange
+
+            // Плавное исчезновение расширенного контента
+            binding.expandedContent.alpha = 1f - percentage
+            
+            // Плавное появление элементов в Toolbar (Title + Pinned Download Button)
+            // Появляются после 60% скролла
+            val pinnedAlpha = if (percentage > 0.6f) (percentage - 0.6f) / 0.4f else 0f
+            binding.tvTitleCollapsed.alpha = pinnedAlpha
+            binding.btnDownloadPinned.alpha = pinnedAlpha
+        })
     }
 
     private fun subscribeToObservers() {
@@ -73,11 +96,12 @@ class EpisodeDetailFragmentV2 : Fragment() {
 
         binding.apply {
             tvTitle.text = episode.title
+            tvTitleCollapsed.text = episode.title
             tvDescription.text = episode.description
             
             val date = episode.timestamp.getDateFromLong()
-            val size = 66 
-            tvMetadata.text = "$date • ${size}mb"
+            val size = episode.duration.getSizeFromTimeDuration()
+            tvMetadata.text = "$date  ·  $size"
 
             updateActionButtons(episode)
         }
@@ -85,7 +109,6 @@ class EpisodeDetailFragmentV2 : Fragment() {
         activity?.invalidateOptionsMenu()
     }
 
-    @RequiresApi(Build.VERSION_CODES.N)
     private fun updateActionButtons(episode: Episode) {
         val context = requireContext()
         val goldColor = ContextCompat.getColor(context, R.color.colorPrimary)
@@ -140,20 +163,21 @@ class EpisodeDetailFragmentV2 : Fragment() {
     private fun updateDownloadButton(episode: Episode, gold: Int, black: Int, sand: Int) {
         val darkLowest = ContextCompat.getColor(requireContext(), R.color.colorSurfaceContainerLowest)
         
-        binding.btnDownload.apply {
-            icon = ContextCompat.getDrawable(context, R.drawable.ic_download)
+        // Синхронно обновляем обе кнопки
+        listOf(binding.btnDownload, binding.btnDownloadPinned).forEach { button ->
+            button.icon = ContextCompat.getDrawable(requireContext(), R.drawable.ic_download)
             if (episode.isDownloaded) {
-                text = "DELETE"
-                setBackgroundColor(gold)
-                setTextColor(black)
-                iconTint = ColorStateList.valueOf(black)
-                setOnClickListener { viewModel.deleteEpisodeFromDevice(episode.id) }
+                button.text = "DELETE"
+                button.setBackgroundColor(gold)
+                button.setTextColor(black)
+                button.iconTint = ColorStateList.valueOf(black)
+                button.setOnClickListener { viewModel.deleteEpisodeFromDevice(episode.id) }
             } else {
-                text = "DOWNLOAD"
-                setBackgroundColor(darkLowest)
-                setTextColor(sand)
-                iconTint = ColorStateList.valueOf(sand)
-                setOnClickListener { downloadEpisode(episode.id) }
+                button.text = "DOWNLOAD"
+                button.setBackgroundColor(darkLowest)
+                button.setTextColor(sand)
+                button.iconTint = ColorStateList.valueOf(sand)
+                button.setOnClickListener { downloadEpisode(episode.id) }
             }
         }
     }
@@ -201,12 +225,14 @@ class EpisodeDetailFragmentV2 : Fragment() {
     }
 
     private fun updateDownloadButtonState(text: String, isLoading: Boolean) {
-        binding.btnDownload.text = text
-        if (isLoading) {
-            binding.btnDownload.strokeWidth = 2
-            binding.btnDownload.strokeColor = ContextCompat.getColorStateList(requireContext(), R.color.colorPrimary)
-        } else {
-            binding.btnDownload.strokeWidth = 0
+        listOf(binding.btnDownload, binding.btnDownloadPinned).forEach { button ->
+            button.text = text
+            if (isLoading) {
+                button.strokeWidth = 2
+                button.strokeColor = ContextCompat.getColorStateList(requireContext(), R.color.colorPrimary)
+            } else {
+                button.strokeWidth = 0
+            }
         }
     }
 

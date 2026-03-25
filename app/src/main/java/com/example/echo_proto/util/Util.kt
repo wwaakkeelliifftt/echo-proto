@@ -7,6 +7,7 @@ import java.util.Locale
 import java.util.TimeZone
 import kotlin.math.abs
 import kotlin.math.roundToInt
+import kotlin.time.Duration.Companion.minutes
 
 fun String?.getTimeInMillisFromString(): Long {
     if (this == null) {
@@ -24,7 +25,7 @@ fun String?.getTimeInMillisFromString(): Long {
 
 // todo: add size parser
 fun Long.getDateFromLong(): String {
-    val sdf = SimpleDateFormat("dd.MM.yy  ·  HH:mm", Locale.ROOT) //  \u00B7  HH:mm  ·  ?..mb", Locale.ROOT)
+    val sdf = SimpleDateFormat("dd.MM.yy", Locale.ROOT) //  \u00B7  HH:mm  ·  ?..mb", Locale.ROOT)
     val date = Calendar.getInstance().also { it.timeInMillis = this }
     return sdf.format(date.time)
 }
@@ -34,6 +35,12 @@ fun Long.getCurrentTimeFromLong(): String {
     sdf.timeZone = TimeZone.getTimeZone("UTC")
     val data = Calendar.getInstance().also { it.timeInMillis = this }
     return sdf.format(data.time)
+}
+
+fun Int.getSizeFromTimeDuration(): String {
+    val minutes = this / 60.0
+    val multiplyer = minutes * 1.2
+    return "${String.format(Locale.ROOT, "%.0f", multiplyer)} Mb"
 }
 
 fun Int.getTimeFromSeconds(): String {

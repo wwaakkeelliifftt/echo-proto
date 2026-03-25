@@ -14,87 +14,148 @@
         android:background="@color/colorBackground"
         app:elevation="0dp">
 
-        <LinearLayout
-            android:id="@+id/episodeInfoContainer"
+        <com.google.android.material.appbar.CollapsingToolbarLayout
+            android:id="@+id/collapsingToolbar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:paddingHorizontal="24dp"
-            android:paddingTop="16dp"
-            android:paddingBottom="24dp">
+            app:layout_scrollFlags="scroll|exitUntilCollapsed|snap"
+            app:titleEnabled="false">
 
-            <com.google.android.material.textview.MaterialTextView
-                android:id="@+id/tvTitle"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:textAppearance="@style/TextAppearance.EpisodeDetail.Title"
-                android:maxLines="5"
-                android:ellipsize="end"
-                tools:text="The Architect of Silence: Designing Post-Digital Soundscapes" />
-
-            <com.google.android.material.textview.MaterialTextView
-                android:id="@+id/tvMetadata"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:textAppearance="@style/TextAppearance.EpisodeDetail.Metadata"
-                tools:text="58 mins • 66mb" />
-
+            <!-- Expanded Content (Main header content) -->
             <LinearLayout
+                android:id="@+id/expandedContent"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
-                android:orientation="vertical">
+                android:orientation="vertical"
+                android:paddingHorizontal="24dp"
+                android:paddingTop="16dp"
+                android:paddingBottom="24dp"
+                app:layout_collapseMode="parallax"
+                app:layout_collapseParallaxMultiplier="0.7">
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/tvTitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textAppearance="@style/TextAppearance.EpisodeDetail.Title"
+                    android:maxLines="5"
+                    android:ellipsize="end"
+                    tools:text="The Architect of Silence: Designing Post-Digital Soundscapes" />
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/tvMetadata"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:textAppearance="@style/TextAppearance.EpisodeDetail.Metadata"
+                    tools:text="58 mins • 66mb" />
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal">
+                    android:layout_marginTop="24dp"
+                    android:orientation="vertical">
 
+                    <LinearLayout
+                        android:id="@+id/buttonsRow"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnAddToQueue"
+                            android:layout_width="0dp"
+                            android:layout_height="56dp"
+                            android:layout_weight="1"
+                            android:layout_marginEnd="4dp"
+                            android:text="@string/queue_button"
+                            android:textAppearance="@style/TextAppearance.EpisodeDetail.Button"
+                            app:cornerRadius="12dp"
+                            app:backgroundTint="@color/colorSurfaceContainerHighest" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnPlay"
+                            android:layout_width="0dp"
+                            android:layout_height="56dp"
+                            android:layout_weight="1"
+                            android:layout_marginStart="4dp"
+                            android:text="@string/play_button"
+                            android:textAppearance="@style/TextAppearance.EpisodeDetail.Button"
+                            app:cornerRadius="12dp"
+                            app:backgroundTint="@color/colorSurfaceContainerHighest"
+                            app:icon="@drawable/ic_play_arrow"
+                            app:iconGravity="textStart" />
+                    </LinearLayout>
+
+                    <!-- Main Download Button (Expanded) -->
                     <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnAddToQueue"
-                        android:layout_width="0dp"
+                        android:id="@+id/btnDownload"
+                        android:layout_width="match_parent"
                         android:layout_height="56dp"
-                        android:layout_weight="1"
-                        android:layout_marginEnd="4dp"
-                        android:text="@string/queue_button"
+                        android:layout_marginTop="8dp"
+                        android:text="@string/download_button"
                         android:textAppearance="@style/TextAppearance.EpisodeDetail.Button"
                         app:cornerRadius="12dp"
-                        app:backgroundTint="@color/colorSurfaceContainerHighest" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnPlay"
-                        android:layout_width="0dp"
-                        android:layout_height="56dp"
-                        android:layout_weight="1"
-                        android:layout_marginStart="4dp"
-                        android:text="@string/play_button"
-                        android:textAppearance="@style/TextAppearance.EpisodeDetail.Button"
-                        app:cornerRadius="12dp"
-                        app:backgroundTint="@color/colorSurfaceContainerHighest"
-                        app:icon="@drawable/ic_play_arrow"
+                        app:backgroundTint="@color/colorSurfaceContainerLowest"
+                        app:icon="@drawable/ic_download"
                         app:iconGravity="textStart" />
 
                 </LinearLayout>
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnDownload"
-                    android:layout_width="match_parent"
-                    android:layout_height="56dp"
-                    android:layout_marginTop="8dp"
-                    android:text="@string/download_button"
-                    android:textAppearance="@style/TextAppearance.EpisodeDetail.Button"
-                    app:cornerRadius="12dp"
-                    app:backgroundTint="@color/colorSurfaceContainerLowest"
-                    app:strokeWidth="0dp"
-                    app:icon="@drawable/ic_download"
-                    app:iconGravity="textStart" />
-
             </LinearLayout>
 
-        </LinearLayout>
+            <!-- Sticky/Pinned Content (Visible when collapsed) -->
+            <androidx.appcompat.widget.Toolbar
+                android:id="@+id/toolbarPinned"
+                android:layout_width="match_parent"
+                android:layout_height="80dp"
+                app:contentInsetStart="0dp"
+                app:layout_collapseMode="pin">
 
-        <!-- Fixed Separator Progress Bar (Nocturne Gold Style) -->
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:paddingHorizontal="24dp">
+
+                    <com.google.android.material.textview.MaterialTextView
+                        android:id="@+id/tvTitleCollapsed"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="16dp"
+                        android:alpha="0"
+                        android:ellipsize="end"
+                        android:fontFamily="@font/manrope"
+                        android:maxLines="1"
+                        android:textColor="@color/colorOnSurface"
+                        android:textSize="20sp"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintEnd_toStartOf="@+id/btnDownloadPinned"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        tools:text="The Architect of Silence" />
+
+                    <!-- Small Download Button (Pinned) -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnDownloadPinned"
+                        android:layout_width="120dp"
+                        android:layout_height="44dp"
+                        android:alpha="0"
+                        android:text="@string/download_button"
+                        android:textAppearance="@style/TextAppearance.EpisodeDetail.Button"
+                        android:textSize="12sp"
+                        app:cornerRadius="10dp"
+                        app:backgroundTint="@color/colorSurfaceContainerLowest"
+                        app:icon="@drawable/ic_download"
+                        app:iconGravity="textStart"
+                        app:iconSize="16dp"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintTop_toTopOf="parent" />
+
+                </androidx.constraintlayout.widget.ConstraintLayout>
+            </androidx.appcompat.widget.Toolbar>
+
+        </com.google.android.material.appbar.CollapsingToolbarLayout>
+
         <com.google.android.material.progressindicator.LinearProgressIndicator
             android:id="@+id/progressBar"
             android:layout_width="match_parent"
@@ -129,19 +190,12 @@
                 android:orientation="vertical">
 
                 <com.google.android.material.textview.MaterialTextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="@string/show_notes_label"
-                    android:textAppearance="@style/TextAppearance.EpisodeDetail.SectionLabel" />
-
-                <com.google.android.material.textview.MaterialTextView
                     android:id="@+id/tvDescription"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="16dp"
                     android:textAppearance="@style/TextAppearance.EpisodeDetail.Description"
                     tools:text="In this episode, we sit down with world-renowned acoustic ecologist Julian Thorne to explore the hidden dimensions of silence in a world that never stops humming." />
-
             </LinearLayout>
 
             <LinearLayout
@@ -157,11 +211,8 @@
                     android:layout_height="wrap_content"
                     android:text="@string/chapter_markers_label"
                     android:textAppearance="@style/TextAppearance.EpisodeDetail.SectionLabel" />
-
             </LinearLayout>
-
         </LinearLayout>
-
     </androidx.core.widget.NestedScrollView>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
