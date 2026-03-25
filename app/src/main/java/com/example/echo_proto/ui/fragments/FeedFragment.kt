@@ -35,7 +35,7 @@ class FeedFragment : Fragment(), ItemZoneTouchHandler { //, ToolbarConfigurator 
 
     private var _binding: FragmentFeedBinding? = null
     private val binding get() = _binding!!
-    private lateinit var feedAdapter: FeedAdapter
+    private lateinit var feedAdapter: EpisodeFeedAdapterV2
     private val viewModel by viewModels<FeedViewModel>()
     private val mainViewModel by activityViewModels<MainViewModel>() // <<- best approach??
     private var actionMode: ActionMode? = null
@@ -57,10 +57,11 @@ class FeedFragment : Fragment(), ItemZoneTouchHandler { //, ToolbarConfigurator 
         }
 
         viewModel.rssFeed.observe(viewLifecycleOwner) { list ->
-            feedAdapter.submitList(list)
+            val feedItems = feedAdapter.submitFeedItems(list)
+            feedAdapter.notifyDataSetChanged()
             // Обновляем заголовок action mode если он активен
             if (isActionModeActive) {
-                val selectedCount = list.count { it.isSelected }
+                val selectedCount = feedItems.count { it is EpisodeFeedAdapterV2.FeedItem.Episode && it.episode.isSelected }
                 actionMode?.title = "Selected: $selectedCount"
                 Timber.tag("ACTION_MODE").d("Observer:: Selected count from list: $selectedCount")
                 // Если нет выбранных эпизодов, закрываем action mode
@@ -94,7 +95,7 @@ class FeedFragment : Fragment(), ItemZoneTouchHandler { //, ToolbarConfigurator 
 
     private fun setupRecyclerView() {
         // todo: null here - interface for drag in queueFragment
-        feedAdapter = FeedAdapter(this)
+        feedAdapter = EpisodeFeedAdapterV2(this)
         binding.recyclerViewFeed.apply {
             layoutManager = LinearLayoutManager(requireContext())
             adapter = feedAdapter
@@ -102,24 +103,34 @@ class FeedFragment : Fragment(), ItemZoneTouchHandler { //, ToolbarConfigurator 
 
             onItemClick { position ->
                 if (isActionModeActive) {
-                    viewModel.selectEpisodeField(position = position)
-                    // Заголовок обновится через Observer на rssFeed
+                    // TODO: Handle action mode click for new adapter
+                    Timber.d("Action mode click at position: $position")
                 } else {
-                    Timber.d("action mode == NULL")
+                    // Navigate to episode detail
+                    val item = feedAdapter.actualList.getOrNull(position)
+                    if (item is EpisodeFeedAdapterV2.FeedItem.Episode) {
+                        navigateToEpisodeDetailScreen(item.episode)
+                        Timber.d("Navigate to episode: ${item.episode.title}")
+                    }
                 }
             }
             onLongItemClick { position ->
                 if (!isActionModeActive) {
-                    actionModeHelper = ActionModeHelper(
-                        R.menu.menu_feed_action_mode,
-                        onActionItemClicked = { itemId -> handleActionModeItemClick(itemId) },
-                        onDestroyActionMode = { handleActionModeDestroy() }
-                    )
-                    actionMode = startActionMode(actionModeHelper, ActionMode.TYPE_PRIMARY)
-                    isActionModeActive = true
-                    feedAdapter.isActionModeActive = true
-                    viewModel.selectEpisodeField(position = position)
-                    // Заголовок обновится через Observer на rssFeed
+                    // Start action mode for new adapter
+                    val item = feedAdapter.actualList.getOrNull(position)
+                    if (item is EpisodeFeedAdapterV2.FeedItem.Episode) {
+                        // TODO: Start action mode
+                        Timber.d("Start action mode for episode: ${item.episode.title}")
+                        actionModeHelper = ActionModeHelper(
+                            R.menu.menu_feed_action_mode,
+                            onActionItemClicked = { itemId -> handleActionModeItemClick(itemId) },
+                            onDestroyActionMode = { handleActionModeDestroy() }
+                        )
+                        actionMode = startActionMode(actionModeHelper, ActionMode.TYPE_PRIMARY)
+                        isActionModeActive = true
+                        feedAdapter.isActionModeActive = true
+                        // TODO: Select episode in adapter
+                    }
                 } else {
                     actionMode?.finish()
                 }

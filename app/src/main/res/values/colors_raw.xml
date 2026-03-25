@@ -34,6 +34,12 @@
     <!-- Blue Accent -->
     <color name="colorAccentBlue">#4DB6AC</color>
     
+    <!-- Sand color for new episodes -->
+    <color name="colorNocturneSand">#D3C5AE</color>
+    
+    <!-- Outline variant for dividers -->
+    <color name="colorOutlineVariant">#9C8F7B</color>
+    
     <!-- Реально используемые цвета в проекте -->
     
     <!-- Светлая тема (old_light_) -->
