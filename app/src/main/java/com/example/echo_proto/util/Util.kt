@@ -43,6 +43,13 @@ fun Int.getSizeFromTimeDuration(): String {
     return "${String.format(Locale.ROOT, "%.0f", multiplyer)} Mb"
 }
 
+fun String.checkLessThenHour(): String {
+    if (this.startsWith("00:") && this.count { it == ':' } == 2) {
+        return this.substringAfter(':')
+    }
+    return this
+}
+
 fun Int.getTimeFromSeconds(): String {
     val hours = this / 3600
     val minutes = (this % 3600) / 60

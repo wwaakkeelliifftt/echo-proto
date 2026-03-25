@@ -34,6 +34,8 @@ import java.util.UUID
 import androidx.core.view.MenuHost
 import androidx.core.view.MenuProvider
 import androidx.core.content.ContextCompat
+import com.example.echo_proto.util.checkLessThenHour
+import com.example.echo_proto.util.getTimeFromSeconds
 import com.google.android.material.appbar.AppBarLayout
 import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.delay
@@ -101,7 +103,8 @@ class EpisodeDetailFragmentV2 : Fragment() {
             
             val date = episode.timestamp.getDateFromLong()
             val size = episode.duration.getSizeFromTimeDuration()
-            tvMetadata.text = "$date  ·  $size"
+            var duration = episode.duration.getTimeFromSeconds().checkLessThenHour()
+            tvMetadata.text = "$date  ·  $size  ·  $duration"
 
             updateActionButtons(episode)
         }
