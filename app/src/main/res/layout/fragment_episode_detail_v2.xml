@@ -189,13 +189,11 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical">
 
-                <com.google.android.material.textview.MaterialTextView
-                    android:id="@+id/tvDescription"
+                <WebView
+                    android:id="@+id/wvDescription"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:textAppearance="@style/TextAppearance.EpisodeDetail.Description"
-                    tools:text="In this episode, we sit down with world-renowned acoustic ecologist Julian Thorne to explore the hidden dimensions of silence in a world that never stops humming." />
+                    android:layout_marginTop="16dp" />
             </LinearLayout>
 
             <LinearLayout

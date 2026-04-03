@@ -215,7 +215,6 @@ class EpisodeFeedAdapterV2(
                 updateQueueButton(episode.isInQueue)
                 updatePlaybackButton(episode.hasListened)
                 updateDragHandle()
-                
                 setupClickListeners(episode)
             }
         }

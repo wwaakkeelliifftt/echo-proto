@@ -1,14 +1,19 @@
 package com.example.echo_proto.ui.fragments
 
+import android.content.Intent
 import android.content.res.ColorStateList
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.text.Html
 import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuInflater
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import androidx.annotation.RequiresApi
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
@@ -29,6 +34,7 @@ import com.example.echo_proto.ui.viewmodels.MainViewModel
 import com.example.echo_proto.util.Resource
 import com.example.echo_proto.util.getDateFromLong
 import com.example.echo_proto.util.getSizeFromTimeDuration
+import com.example.echo_proto.util.enrichForWebView
 import dagger.hilt.android.AndroidEntryPoint
 import java.util.UUID
 import androidx.core.view.MenuHost
@@ -39,6 +45,7 @@ import com.example.echo_proto.util.getTimeFromSeconds
 import com.google.android.material.appbar.AppBarLayout
 import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.delay
+import timber.log.Timber
 import kotlin.math.abs
 
 @AndroidEntryPoint
@@ -62,6 +69,7 @@ class EpisodeDetailFragmentV2 : Fragment() {
         subscribeToObservers()
         setupMenu()
         setupCollapsingLogic()
+        setupWebView()
     }
 
     private fun setupCollapsingLogic() {
@@ -99,7 +107,7 @@ class EpisodeDetailFragmentV2 : Fragment() {
         binding.apply {
             tvTitle.text = episode.title
             tvTitleCollapsed.text = episode.title
-            tvDescription.text = episode.description
+            loadDescriptionInWebView(episode.description)
             
             val date = episode.timestamp.getDateFromLong()
             val size = episode.duration.getSizeFromTimeDuration()
@@ -110,6 +118,119 @@ class EpisodeDetailFragmentV2 : Fragment() {
         }
 
         activity?.invalidateOptionsMenu()
+    }
+
+    private fun setupWebView() {
+        binding.wvDescription.apply {
+            settings.javaScriptEnabled = false
+            
+            webViewClient = object : WebViewClient() {
+                override fun onPageFinished(view: WebView?, url: String?) {
+                    super.onPageFinished(view, url)
+                    Timber.d("🎯 WebView: Episode description page finished loading")
+                }
+                
+                override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean {
+                    // Открывать ссылки во внешнем браузере
+                    try {
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                        startActivity(intent)
+                        Timber.d("🎯 WebView: Opening link in external browser: $url")
+                    } catch (e: Exception) {
+                        Timber.e("🚨 WebView: Failed to open link: $url", e)
+                    }
+                    return true // Блокируем загрузку в WebView
+                }
+            }
+            
+            setBackgroundColor(android.graphics.Color.TRANSPARENT)
+        }
+    }
+
+    private fun loadDescriptionInWebView(description: String) {
+        val formattedHtml = createStyledHtml(description)
+        binding.wvDescription.loadDataWithBaseURL(
+            null,
+            formattedHtml,
+            "text/html",
+            "UTF-8",
+            null
+        )
+    }
+
+    private fun createStyledHtml(description: String): String {
+        return """
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <style>
+                    body {
+                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                        font-size: 16sp;
+                        line-height: 1.6;
+                        color: ${getCurrentTextColor()};
+                        margin: 0;
+                        padding: 0;
+                        background-color: transparent;
+                    }
+                    a {
+                        color: ${getCurrentLinkColor()};
+                        text-decoration: underline;
+                    }
+                    p {
+                        margin: 0.5em 0;
+                    }
+                    strong, b {
+                        font-weight: bold;
+                    }
+                    em, i {
+                        font-style: italic;
+                    }
+                    code {
+                        background-color: rgba(128, 128, 128, 0.2);
+                        padding: 2px 4px;
+                        border-radius: 3px;
+                        font-family: monospace;
+                    }
+                    ul, ol {
+                        margin: 0.5em 0;
+                        padding-left: 1.5em;
+                    }
+                    li {
+                        margin: 0.2em 0;
+                    }
+                </style>
+            </head>
+            <body>
+                ${description.enrichForWebView()}
+            </body>
+            </html>
+        """.trimIndent()
+    }
+
+    private fun getCurrentTextColor(): String {
+        return if (isDarkTheme()) {
+            "#FFFFFF" // белый для темной темы
+        } else {
+            "#000000" // черный для светлой темы
+        }
+    }
+
+    private fun getCurrentLinkColor(): String {
+        return if (isDarkTheme()) {
+            "#4FC3F7" // голубой для темной темы
+        } else {
+            "#1976D2" // синий для светлой темы
+        }
+    }
+
+    private fun isDarkTheme(): Boolean {
+        return when (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) {
+            android.content.res.Configuration.UI_MODE_NIGHT_YES -> true
+            else -> false
+        }
     }
 
     private fun updateActionButtons(episode: Episode) {

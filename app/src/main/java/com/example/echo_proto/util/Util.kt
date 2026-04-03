@@ -14,38 +14,30 @@ fun String?.getTimeInMillisFromString(): Long {
         return 0L
     }
     
-    // 🎯 FIXED: Use English Locale for RSS dates (they're always in English)
     val rssLocale = Locale.ENGLISH
     
-    // Try multiple date formats for different RSS feeds
     val formats = listOf(
-        "EEE, d MMM yyyy HH:mm:ss Z",  // Fri, 31 May 2019 15:19:48 +0000
-        "EEE, d MMM yyyy HH:mm:ss z",  // Wed, 03 Apr 2024 12:00:00 GMT
-        "d MMM yyyy HH:mm:ss Z",       // 31 May 2019 15:19:48 +0000
-        "yyyy-MM-dd HH:mm:ss",         // 2019-05-31 15:19:48
-        "yyyy-MM-dd'T'HH:mm:ss'Z'",     // 2019-05-31T15:19:48Z
-        "EEE, d MMM yyyy HH:mm:ss 'UTC'" // Sat, 28 Mar 2026 18:03:36 UTC
+        "EEE, d MMM yyyy HH:mm:ss Z",
+        "EEE, d MMM yyyy HH:mm:ss z",
+        "d MMM yyyy HH:mm:ss Z",
+        "yyyy-MM-dd HH:mm:ss",
+        "yyyy-MM-dd'T'HH:mm:ss'Z'",
+        "EEE, d MMM yyyy HH:mm:ss 'UTC'"
     )
     
     for (formatString in formats) {
         try {
             val format = SimpleDateFormat(formatString, rssLocale)
             val result = format.parse(this)
-            Timber.d("✅ Date parsing SUCCESS: '$this' with format '$formatString' -> ${result.time}")
             return result.time
         } catch (e: Exception) {
-            // Try next format
         }
     }
-    
-    Timber.e("🚨 Date parsing FAILED for all formats: '$this'")
-    Timber.e("🚨 Using current time as fallback - this will show wrong date!")
     return System.currentTimeMillis()
 }
 
-// todo: add size parser
 fun Long.getDateFromLong(): String {
-    val sdf = SimpleDateFormat("dd.MM.yy", Locale.ROOT) //  \u00B7  HH:mm  ·  ?..mb", Locale.ROOT)
+    val sdf = SimpleDateFormat("dd.MM.yy", Locale.ROOT)
     val date = Calendar.getInstance().also { it.timeInMillis = this }
     return sdf.format(date.time)
 }
@@ -87,9 +79,59 @@ fun Float.normalizePlaybackSpeed(): Float {
     val clamped = this.coerceIn(Constants.PLAYBACK_SPEED_MIN, Constants.PLAYBACK_SPEED_MAX)
     val steps = (clamped / Constants.PLAYBACK_SPEED_STEP).roundToInt()
     return (steps * Constants.PLAYBACK_SPEED_STEP).let {
-        // avoid floating errors
-        String.format(Locale.US, "%.2f", it).toFloat()
+        if (it < 0) Constants.PLAYBACK_SPEED_MIN
+        else if (it > Constants.PLAYBACK_SPEED_MAX) Constants.PLAYBACK_SPEED_MAX
+        else it
     }
+}
+
+/**
+ * Выделяет таймкоды в тексте и оборачивает их в span с цветом Nocturne Gold
+ */
+fun String.highlightTimestamps(): String {
+    val goldColor = "#E6AF2E" 
+    val timestampPattern = Regex("""\b(\d{1,2}:\d{2}(?::\d{2})?)\b""")
+
+    return timestampPattern.replace(this) { match ->
+        val timestamp = match.value
+        "<span style=\"color: $goldColor; font-weight: bold; font-family: monospace; background-color: rgba(230, 175, 46, 0.1); padding: 2px 4px; border-radius: 3px;\">$timestamp</span>"
+    }
+}
+
+/**
+ * Конвертирует URL в тексте в кликабельные HTML ссылки Nocturne Gold
+ */
+fun String.makeLinksClickable(): String {
+    val goldColor = "#E6AF2E"
+    val urlPattern = Regex("""\b((?:https?://|www\.)[^\s<>]+)\b""")
+    
+    return urlPattern.replace(this) { match ->
+        val url = match.value
+        val fullUrl = if (url.startsWith("www.")) "https://$url" else url
+        "<a href=\"$fullUrl\" target=\"_blank\" rel=\"noopener noreferrer\" style=\"color: $goldColor; text-decoration: underline; font-weight: 600;\">$url</a>"
+    }
+}
+
+fun String.enrichForWebView(): String {
+    return if (this.containsHtmlTags()) {
+        this.highlightTimestamps()
+    } else {
+        this.makeLinksClickable().highlightTimestamps()
+    }
+}
+
+private fun String.containsHtmlTags(): Boolean {
+    val htmlPatterns = listOf(
+        Regex("""<a[^>]+>"""),
+        Regex("""<img[^>]+>"""),
+        Regex("""<p[^>]*>"""),
+        Regex("""<strong>"""),
+        Regex("""<em>"""),
+        Regex("""<ul>"""),
+        Regex("""<ol>"""),
+        Regex("""<li>""")
+    )
+    return htmlPatterns.any { pattern -> pattern.containsMatchIn(this) }
 }
 
 fun Float?.isCloseTo(other: Float, epsilon: Float = 0.01f): Boolean {

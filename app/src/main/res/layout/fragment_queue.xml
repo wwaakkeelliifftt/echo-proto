@@ -10,15 +10,21 @@
         android:id="@+id/tv_queue_summary"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="?attr/colorPrimary"
+        android:background="@color/colorSurface"
         android:paddingStart="@dimen/dp_medium"
         android:paddingTop="@dimen/dp_small"
         android:paddingEnd="@dimen/dp_medium"
         android:paddingBottom="@dimen/dp_small"
+        android:fontFamily="@font/manrope"
         android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
-        android:textColor="?attr/colorOnPrimary"
+        android:textColor="@color/colorPrimary"
+        android:alpha="0.8"
+        app:lineHeight="20sp"
+        android:letterSpacing="0.02"
         android:textStyle="bold"
-        tools:text="В очереди 5 эпизодов. Время воспроизведения: 02:15:00" />
+        android:layout_gravity="center_horizontal"
+        tools:text="5 эпизодов  ·  время воспроизведения: 02:15:00" />
+        <!-- android:textColor="@color/colorOnSurfaceVariant" -->
 
     <FrameLayout
         android:layout_width="match_parent"
@@ -50,13 +56,15 @@
                 android:layout_width="80dp"
                 android:layout_height="80dp"
                 android:src="@drawable/ic_menu_feed"
-                app:tint="?colorOnSecondary" />
+                app:tint="@color/colorOnSurfaceVariant" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:paddingVertical="@dimen/dp_large"
                 android:text="Плейлист пуст"
+                android:fontFamily="@font/manrope"
+                android:textColor="@color/colorOnSurfaceVariant"
                 android:textSize="@dimen/dp_medium"/>
         </LinearLayout>
 

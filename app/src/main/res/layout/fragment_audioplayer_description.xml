@@ -1,29 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:paddingStart="@dimen/dp_medium_less"
-    android:paddingEnd="@dimen/dp_medium_less"
-    android:orientation="vertical" >
+    android:background="@color/colorBackground">
 
     <com.example.echo_proto.ui.view.NestedScrollableHost
+        android:id="@+id/scrollHost"
         android:layout_width="match_parent"
-        android:layout_weight="1"
-        android:layout_height="0dp">
+        android:layout_height="0dp"
+        app:layout_constraintBottom_toTopOf="@+id/dtnToPlayer"
+        app:layout_constraintTop_toTopOf="parent">
 
         <androidx.core.widget.NestedScrollView
             android:id="@+id/descriptionScroll"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:fillViewport="true"
-            android:padding="@dimen/dp_medium">
+            android:padding="24dp">
 
             <TextView
                 android:id="@+id/tvPlayerDescription"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="DESCRIPTION THIS"
-                android:textSize="15sp" />
+                android:fontFamily="@font/manrope"
+                android:lineSpacingMultiplier="1.4"
+                android:textColor="@color/colorOnSurface"
+                android:textSize="16sp"
+                tools:text="Episode description will appear here..." />
 
         </androidx.core.widget.NestedScrollView>
 
@@ -31,10 +37,15 @@
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/dtnToPlayer"
+        style="@style/FeedFilterDialogButtonFilled"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginBottom="@dimen/dp_small"
         android:text="back"
-        android:layout_gravity="center_horizontal"
-        android:backgroundTint="?android:colorBackground" />
+        android:textColor="@color/colorPrimary"
+        android:backgroundTint="?android:colorBackground"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
 
-</LinearLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>
