@@ -13,14 +13,34 @@ fun String?.getTimeInMillisFromString(): Long {
     if (this == null) {
         return 0L
     }
-    val format = SimpleDateFormat("EEE, d MMM yyyy HH:mm:ss Z", Locale.ROOT)
-    return try {
-        val result = format.parse(this)
-        result.time
-    } catch (e: Exception) {
-        Timber.d(e, "Exception ------->>>> ${e.message}\n\n${e.printStackTrace()}")
-        System.currentTimeMillis()
+    
+    // 🎯 FIXED: Use English Locale for RSS dates (they're always in English)
+    val rssLocale = Locale.ENGLISH
+    
+    // Try multiple date formats for different RSS feeds
+    val formats = listOf(
+        "EEE, d MMM yyyy HH:mm:ss Z",  // Fri, 31 May 2019 15:19:48 +0000
+        "EEE, d MMM yyyy HH:mm:ss z",  // Wed, 03 Apr 2024 12:00:00 GMT
+        "d MMM yyyy HH:mm:ss Z",       // 31 May 2019 15:19:48 +0000
+        "yyyy-MM-dd HH:mm:ss",         // 2019-05-31 15:19:48
+        "yyyy-MM-dd'T'HH:mm:ss'Z'",     // 2019-05-31T15:19:48Z
+        "EEE, d MMM yyyy HH:mm:ss 'UTC'" // Sat, 28 Mar 2026 18:03:36 UTC
+    )
+    
+    for (formatString in formats) {
+        try {
+            val format = SimpleDateFormat(formatString, rssLocale)
+            val result = format.parse(this)
+            Timber.d("✅ Date parsing SUCCESS: '$this' with format '$formatString' -> ${result.time}")
+            return result.time
+        } catch (e: Exception) {
+            // Try next format
+        }
     }
+    
+    Timber.e("🚨 Date parsing FAILED for all formats: '$this'")
+    Timber.e("🚨 Using current time as fallback - this will show wrong date!")
+    return System.currentTimeMillis()
 }
 
 // todo: add size parser

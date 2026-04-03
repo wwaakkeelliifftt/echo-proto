@@ -5,14 +5,12 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
-import androidx.viewpager2.widget.ViewPager2
 import com.example.echo_proto.data.remote.FeedChannel
 import com.example.echo_proto.databinding.ViewpagerChannelsHostBinding
 import com.example.echo_proto.ui.adapters.ViewPagerFeedAdapter
 import com.example.echo_proto.ui.adapters.ZoomOutPageTransformer
 import com.google.android.material.tabs.TabLayoutMediator
 import dagger.hilt.android.AndroidEntryPoint
-import timber.log.Timber
 
 @AndroidEntryPoint
 class HostChannelsPager : Fragment() {
@@ -35,7 +33,7 @@ class HostChannelsPager : Fragment() {
 
     private fun setupViewPager() {
         val fragments = mutableListOf<Fragment>()
-        FeedChannel.listOfChannels.forEach { feedChannel ->
+        FeedChannel.channels.forEach { feedChannel ->
             val fragment = ChannelFragment.newInstance(feedChannel.id)
             fragments.add(fragment)
         }
@@ -46,7 +44,7 @@ class HostChannelsPager : Fragment() {
             offscreenPageLimit = fragments.size
         }
         TabLayoutMediator(binding.tabLayoutChannelsHost, binding.viewPagerChannelsHost) { tab, position ->
-            tab.text = "${position + 1}.${FeedChannel.listOfChannels[position].tabBadgeName}"
+            tab.text = "${position + 1}.${FeedChannel.channels[position].tabBadgeName}"
             tab.badge // todo: new episode counter??
         }.attach()
     }

@@ -50,14 +50,23 @@ class FeedFragment : Fragment(), ItemZoneTouchHandler { //, ToolbarConfigurator 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        Timber.d("🎯 FEED_FRAGMENT: Starting FeedFragment initialization")
         viewModel.getRssFeedFromDatabase()
         setupRecyclerView()
         binding.swipeRefreshFeed.setOnRefreshListener {
             swipeToUpdate()
         }
 
+        // 🔧 FIX: Observer for loading state
+        viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
+            Timber.d("🎯 FEED_FRAGMENT: Loading state changed: isLoading=$isLoading")
+            binding.swipeRefreshFeed.isRefreshing = isLoading
+        }
+
         viewModel.rssFeed.observe(viewLifecycleOwner) { list ->
+            Timber.d("🎯 FEED_FRAGMENT: RSS feed observed, list size=${list.size}")
             val feedItems = feedAdapter.submitFeedItems(list)
+            Timber.d("🎯 FEED_FRAGMENT: Feed items created, size=${feedItems.size}")
             feedAdapter.notifyDataSetChanged()
             // Обновляем заголовок action mode если он активен
             if (isActionModeActive) {
@@ -143,8 +152,10 @@ class FeedFragment : Fragment(), ItemZoneTouchHandler { //, ToolbarConfigurator 
     }
 
     private fun swipeToUpdate() {
-        val stopRefresh = viewModel.updateFeedRss()
-        binding.swipeRefreshFeed.isRefreshing = stopRefresh
+        Timber.d("🎯 FEED_FRAGMENT: Swipe to update triggered")
+        // 🔧 FIX: Don't manually manage isRefreshing here - let isLoading observer handle it
+        viewModel.updateFeedRss()
+        Timber.d("🎯 FEED_FRAGMENT: Update started, isLoading observer will manage spinner")
     }
 
     private fun handleActionModeItemClick(itemId: Int) {

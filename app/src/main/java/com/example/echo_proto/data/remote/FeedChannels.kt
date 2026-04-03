@@ -3,7 +3,7 @@ package com.example.echo_proto.data.remote
 data class FeedChannel(val id: Int, val name: String, val url: String, val tabBadgeName: String) {
 
     companion object {
-        val listOfChannels = listOf(
+        val _oldChannels = listOf(
             FeedChannel(0,"Живой Гвоздь", url = "https://worker.feed-master.com/yt/media/UCWAIvx2yYLK_xTYD4F2mUNw.xml", "Эхо"),
             FeedChannel(1, "Дилетант", url = "https://worker.feed-master.com/yt/media/UCuIE7-5QzeAR6EdZXwDRwuQ.xml", "Дилетант"),
             FeedChannel(2, "Ходорковский LIVE", url = "https://worker.feed-master.com/yt/media/UCBzDAjLfvBUBVMMP6-K-y0w.xml", "МБХ Медиа"),
@@ -24,6 +24,18 @@ data class FeedChannel(val id: Int, val name: String, val url: String, val tabBa
             FeedChannel(17, "Фишман", url = "https://worker.feed-master.com/yt/media/UCieHwWZXwzIwWEjGtmQ2y6A.xml", "Фишман"),
             FeedChannel(18, "Сергей Асланян", url = "https://worker.feed-master.com/yt/media//UCPemWOA2UiBwhTauetmz95w.xml", "Асланян"),
         )
+
+        val channels = listOf(
+            FeedChannel(0, "Мысли и методы","https://feeds.soundcloud.com/users/soundcloud:users:259154388/sounds.rss", "Мысли и Методы"),
+            FeedChannel(1, "Радио-Т", "https://feeds.feedburner.com/Radio-t", "Радио-Т"),
+            FeedChannel(2, "Запуск Звавтра", "https://feeds.transistor.fm/5f1e0bb2-458b-4ac4-8d85-f464a505f813","Запуск Завтра"),
+            FeedChannel(3, "Мы Обречены", "https://mavecloud.s3mts.ru/storage/feeds/37222.xml", "Мы Обречены"),
+            FeedChannel(4, "Podlodka", "https://feeds.soundcloud.com/users/soundcloud:users:291337106/sounds.rss", "Podlodka"),
+            FeedChannel(5, "DevOps Kitchen", "https://feed.podbean.com/devopskitchentalks/feed.xml", "DevOps Kitchen" ),
+            FeedChannel(6, "DevZen", "https://devzen.ru/feed/", "DevZen"),
+            FeedChannel(7,"Кверти", "https://redbarn.ru/feed/feed-podcasts/kverti/", "Кверти")
+        )
+
     }
 }
 

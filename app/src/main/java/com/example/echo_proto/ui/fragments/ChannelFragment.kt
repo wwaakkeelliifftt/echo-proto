@@ -42,7 +42,7 @@ class ChannelFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         val sourceId = arguments?.getInt(Constants.CHANNEL_ID) ?: 0
-        source = FeedChannel.listOfChannels[sourceId]
+        source = FeedChannel.channels[sourceId]
 
         viewModel.getRssChannelFromDatabase(feedChannel = source)
         setupRecyclerView()

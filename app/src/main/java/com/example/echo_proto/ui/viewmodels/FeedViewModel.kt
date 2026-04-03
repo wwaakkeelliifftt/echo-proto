@@ -40,18 +40,29 @@ class FeedViewModel @Inject constructor(
     private val _isDatabaseEmptyDialog = MutableLiveData(false)
     val isDatabaseEmptyDialog: LiveData<Boolean> get() = _isDatabaseEmptyDialog
 
-    // todo: circle progress indicator
-    private val _isLoading = MutableLiveData(true)
+    private val _isLoading = MutableLiveData(false) // 🔧 FIXED: Default to false
     val isLoading: LiveData<Boolean> get() = _isLoading
 
     fun updateFeedRss(): Boolean {
+        Timber.d("🎯 FEED_VM: updateFeedRss() called")
         viewModelScope.launch {
             val result = repository.updateFeedRss()
             result.collect { resource ->
                 when (resource) {
-                    is Resource.Loading -> Timber.d("..RSS FEED is LOADING with UPDATE")
-                    is Resource.Success -> _rssFeed.postValue(resource.data)
-                    is Resource.Error -> Timber.d("ERROR OCCUR at UPDATE")
+                    is Resource.Loading -> {
+                        Timber.d("🎯 FEED_VM: RSS feed update loading")
+                        _isLoading.postValue(true)
+                    }
+                    is Resource.Success -> {
+                        Timber.d("🎯 FEED_VM: RSS feed update success, episodes=${resource.data?.size}")
+                        _rssFeed.postValue(resource.data)
+                        _isLoading.postValue(false)
+                    }
+                    is Resource.Error -> {
+                        Timber.d("🎯 FEED_VM: RSS feed update error: ${resource.message}")
+                        _snackbarMessage.postValue(resource.message.toString())
+                        _isLoading.postValue(false)
+                    }
                 }
             }
         }
@@ -59,14 +70,28 @@ class FeedViewModel @Inject constructor(
     }
 
     fun getRssFeedFromDatabase() {
+        Timber.d("🎯 FEED_VM: getRssFeedFromDatabase() called")
         viewModelScope.launch {
             val result = repository.getRssFeedFromDatabase()
             result.collect { resource ->
                 when (resource) {
-                    is Resource.Loading -> Timber.d("LOADING RSS from DATABASE with init load")
-                    is Resource.Success -> _rssFeed.postValue(resource.data)
+                    is Resource.Loading -> {
+                        Timber.d("🎯 FEED_VM: RSS feed loading from database")
+                        _isLoading.postValue(true)
+                    }
+                    is Resource.Success -> {
+                        Timber.d("🎯 FEED_VM: RSS feed success, episodes=${resource.data?.size}")
+                        _rssFeed.postValue(resource.data)
+                        _isLoading.postValue(false)
+                    }
                     is Resource.Error -> {
+                        Timber.d("🎯 FEED_VM: RSS feed error: ${resource.message}")
+                        
+                        // 🔧 FIXED: Always stop loading on error, even if it's "Empty Database"
+                        _isLoading.postValue(false)
+                        
                         if (resource.message == Constants.DATABASE_EMPTY_MESSAGE && _isDatabaseEmptyDialog.value == false) {
+                            Timber.d("🎯 FEED_VM: Showing empty database dialog")
                             _isDatabaseEmptyDialog.postValue(true)
                             return@collect
                         }
@@ -77,7 +102,6 @@ class FeedViewModel @Inject constructor(
         }
     }
 
-    // TODO: EXTRA CHANGE
     fun refreshRssFeedPersonal_MODIFY() {
         _filterStringsSet.value = sharedPreferences.getStringSet(Constants.SHARED_PREFERENCES_INIT_KEY, emptySet())
         if (filterStringsSet.value.isNullOrEmpty()) {

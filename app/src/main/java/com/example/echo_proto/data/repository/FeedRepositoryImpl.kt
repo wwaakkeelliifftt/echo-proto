@@ -26,21 +26,23 @@ class FeedRepositoryImpl @Inject constructor(
         emit(Resource.Loading())
         try {
             val episode = db.dao.getEpisodeById(id = id).toEpisode()
-//            db.dao.getFlowEpisodeById(id = id).collect { episodeEntity ->
-//                emit(Resource.Success(data = episodeEntity.toEpisode()))
-//            }
             emit(Resource.Success(data = episode))
         } catch (e: Exception) {
             emit(Resource.Error(message = e.message))
         }
     }
 
-    // todo: make check with dialog message for bad xml code period on server
-    private suspend fun insertApiResponseToDatabase(channel: Channel): Boolean {
+    private suspend fun insertApiResponseToDatabase(channel: Channel, forcedChannelId: String? = null): Boolean {
         if (channel.articles.isEmpty()) {
-            Timber.d("-------------->>>>>>>>>>>>>>>PROBLEM<<<<<<<<<<<-----ParserHasBadResponse")
+            Timber.d("---------->>>>>>>>>>>>>>>> 🚨 RSS_PARSE: Empty articles list from RSS feed")
             return true
         }
+        
+        // 1. Используем channel.title (для RSSParser 4.0.2)
+        val finalChannelId = forcedChannelId ?: channel.title ?: "Unknown Channel"
+        
+        Timber.d("🎯 RSS_PARSE: Processing ${channel.articles.size} articles for channelId='$finalChannelId'")
+        
         val remoteEpisodesList = channel.articles.map { item ->
             EpisodeDto(
                 title = item.title ?: Constants.NO_DATA,
@@ -49,50 +51,61 @@ class FeedRepositoryImpl @Inject constructor(
                 description = item.description ?: "",
                 audioLink = item.audio ?: "",
                 videoLink = item.link ?: "",
-                duration = item.itunesArticleData?.duration ?: "0"
+                duration = item.itunesArticleData?.duration ?: "0",
+                channelId = finalChannelId,
+                channelImageUrl = channel.image?.url ?: "",
+                episodeImageUrl = item.image ?: ""
             )
-        }
-        remoteEpisodesList.forEach {
-            Timber.d("EpisodeDTO: channel=${it.rssId}, title=${it.title}, video=${it.videoLink}")
         }
 
         val episodesInDatabase = db.dao.getAllFeed()
-        val localEpisodesTitleSet = episodesInDatabase.map { it.title }.toHashSet()
-        val localEpisodeCrossLinkSet = episodesInDatabase.map { it.rssId }.toHashSet()
+        val localEpisodesGuidSet = episodesInDatabase.map { it.rssId }.toHashSet()
 
         val newEpisodes = remoteEpisodesList
-            .filterNot { localEpisodesTitleSet.contains(it.title) }
-            .filterNot { localEpisodeCrossLinkSet.contains(it.rssId) }
+            .filterNot { localEpisodesGuidSet.contains(it.rssId) }
             .filterNot { it.title == Constants.NO_DATA }
 
-        db.dao.insertEpisodesList(newEpisodes.map { it.toEpisodeEntity() })
+        if (forcedChannelId != null) {
+            val existingEpisodesToUpdate = episodesInDatabase.filter { localEpisode ->
+                remoteEpisodesList.any { remote -> remote.rssId == localEpisode.rssId } && 
+                localEpisode.channelId != forcedChannelId
+            }
+            
+            if (existingEpisodesToUpdate.isNotEmpty()) {
+                Timber.d("🔄 RSS_PARSE: Updating channelId for ${existingEpisodesToUpdate.size} existing episodes to '$forcedChannelId'")
+                val updatedEntities = existingEpisodesToUpdate.map { it.copy(channelId = forcedChannelId) }
+                db.dao.insertEpisodesList(updatedEntities)
+            }
+        }
+
+        if (newEpisodes.isNotEmpty()) {
+            Timber.d("🎯 RSS_PARSE: Found ${newEpisodes.size} new episodes to insert for '$finalChannelId'")
+            db.dao.insertEpisodesList(newEpisodes.map { it.toEpisodeEntity() })
+        }
+        
         return false
     }
 
-
-    override fun getRssFeedFromDatabase(): Flow<Resource<List<Episode>>> = flow {
-        emit(Resource.Loading())
-        try {
-            val episodeList = db.dao.getAllFeed().map { it.toEpisode() }
-            if (episodeList.isNullOrEmpty()) {
-                emit(Resource.Error(message = Constants.DATABASE_EMPTY_MESSAGE))
-                return@flow
+    // 🔧 FIXED: Now returns reactive Flow from database
+    override fun getRssFeedFromDatabase(): Flow<Resource<List<Episode>>> = 
+        db.dao.getAllFeedFlow().map { entities ->
+            if (entities.isNullOrEmpty()) {
+                Resource.Error(message = Constants.DATABASE_EMPTY_MESSAGE)
+            } else {
+                Resource.Success(data = entities.map { it.toEpisode() })
             }
-            emit(Resource.Success(data = episodeList))
-        } catch (e: Exception) {
-            emit(Resource.Error(message = Constants.DATABASE_ERROR_MESSAGE))
         }
-    }
 
     override fun updateFeedRss(): Flow<Resource<List<Episode>>> = flow {
         emit(Resource.Loading())
         try {
-            // todo: NEED MAKE CHECK for NETWORK CONNECTION
             val channelFullFeed = api.getFullChannelsFeed()
             val emptyListFlag = insertApiResponseToDatabase(channelFullFeed)
             if (emptyListFlag) {
                 emit(Resource.Error(data = emptyList(), message = Constants.ERROR_EMPTY_SERVER_RESPONSE))
             } else {
+                // При реактивном Flow нам не нужно делать повторный запрос здесь, 
+                // база сама "пушнет" изменения. Но для обратной совместимости метода:
                 val episodesList = db.dao.getAllFeed().map { it.toEpisode() }
                 emit(Resource.Success(data = episodesList))
             }
@@ -124,37 +137,42 @@ class FeedRepositoryImpl @Inject constructor(
             }
         }
 
-    // todo: need fix with for-loop validate queue - because true order go shuffle ---- USE POSITION
     override suspend fun changeEpisodeQueueStatus(id: Int) {
         val queueSize = db.dao.getQueueFeed().size
         val episode = db.dao.getEpisodeById(id = id)
-        Timber.tag("PLAY").d("📝 DB: Episode before change: id=${episode.id}, isInQueue=${episode.isInQueue}, indexInQueue=${episode.indexInQueue}, queueSize=$queueSize")
         val episodeNewState = if (episode.isInQueue) {
             episode.copy(isInQueue = false, indexInQueue = -1)
         } else {
             episode.copy(isInQueue = true, indexInQueue = queueSize)
         }
         db.dao.insertEpisode(episodeNewState)
-        Timber.tag("PLAY").d("📝 DB: Episode after change: id=${episodeNewState.id}, isInQueue=${episodeNewState.isInQueue}, indexInQueue=${episodeNewState.indexInQueue}")
     }
 
     override suspend fun changeEpisodeQueueIndex(id: Int, newPositionIndex: Int) {
         val episode = db.dao.getEpisodeById(id = id)
         val episodeWithNewIndex = episode.copy(indexInQueue = newPositionIndex)
-        Timber.d("DB_DAO::EE.copy(newIndex=$newPositionIndex, title=${episode.title}")
         db.dao.insertEpisode(episodeWithNewIndex)
     }
 
     override fun getRssChannelFromDatabase(channel: FeedChannel): Flow<Resource<List<Episode>>> = flow {
         emit(Resource.Loading())
         try {
-            val result = db.dao.getChannelFeed(channelName = channel.name).map { it.toEpisode() }
+            val searchChannelId = channel.name 
+            val result = db.dao.new_getChannelFeed(channelId = searchChannelId).map { it.toEpisode() }
+            
             if (result.isNotEmpty()) {
                 emit(Resource.Success(data = result))
-            } else if (result.isNullOrEmpty()) {
-                Timber.d("---------->>>>>>>>>>>>>>>> EMPTY DATABASE FOR CHANNEL=${channel.name}")
-                emit(Resource.Error(message = Constants.DATABASE_EMPTY_MESSAGE, data = emptyList()))
-                return@flow
+            } else {
+                val allEpisodes = db.dao.getAllFeed()
+                val backupResult = allEpisodes.filter { 
+                    it.title.contains(channel.name, ignoreCase = true)
+                }.map { it.toEpisode() }
+                
+                if (backupResult.isNotEmpty()) {
+                    emit(Resource.Success(data = backupResult))
+                } else {
+                    emit(Resource.Error(message = Constants.DATABASE_EMPTY_MESSAGE, data = emptyList()))
+                }
             }
         } catch (e: Exception) {
             emit(Resource.Error(message = Constants.DATABASE_ERROR_MESSAGE))
@@ -164,15 +182,18 @@ class FeedRepositoryImpl @Inject constructor(
     override fun updateChannelRss(channel: FeedChannel): Flow<Resource<List<Episode>>> = flow {
         emit(Resource.Loading())
         try {
+            Timber.d("🎯 CHANNEL_UPDATE: Starting update for channel=${channel.name}")
             val channelRss = api.getChannelFeed(channel.url)
-            val emptyListFlag = insertApiResponseToDatabase(channelRss)
+            val emptyListFlag = insertApiResponseToDatabase(channelRss, forcedChannelId = channel.name)
+            
             if (emptyListFlag) {
                 emit(Resource.Error(data = emptyList(), message = Constants.ERROR_EMPTY_SERVER_RESPONSE))
             } else {
-                val episodesList = db.dao.getChannelFeed(channelName = channel.name).map { it.toEpisode() }
+                val episodesList = db.dao.new_getChannelFeed(channelId = channel.name).map { it.toEpisode() }
                 emit(Resource.Success(data = episodesList))
             }
         } catch (e: Exception) {
+            Timber.e("🚨 CHANNEL_UPDATE: Error for ${channel.name}: ${e.message}")
             emit(Resource.Error(data = emptyList(), message = Constants.ERROR_NETWORK))
         }
     }
@@ -189,6 +210,4 @@ class FeedRepositoryImpl @Inject constructor(
                 Resource.Success(emptyList())
             }
         }
-
 }
-

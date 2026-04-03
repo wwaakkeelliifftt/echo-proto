@@ -22,6 +22,10 @@ interface FeedDao {
     @Query("SELECT * FROM episodes_table ORDER BY timestamp DESC")
     suspend fun getAllFeed(): List<EpisodeEntity>
 
+    // 🔧 NEW: Reactive flow for the main feed
+    @Query("SELECT * FROM episodes_table ORDER BY timestamp DESC")
+    fun getAllFeedFlow(): Flow<List<EpisodeEntity>>
+
     // special list for exoplayer ??
     @Query("SELECT * FROM episodes_table WHERE isDownloaded = 1")
     fun getDownloadedEpisodes(): Flow<List<EpisodeEntity>>
@@ -31,6 +35,11 @@ interface FeedDao {
 
     @Query("SELECT * FROM episodes_table WHERE isInQueue = 1 ORDER BY indexInQueue ASC")
     fun getQueueFeedFlow(): Flow<List<EpisodeEntity>>
+
+    @Query("SELECT * FROM episodes_table " +
+            "WHERE channelId = :channelId " +
+            "ORDER BY timestamp DESC")
+    suspend fun new_getChannelFeed(channelId: String): List<EpisodeEntity>
 
     @Query("SELECT * FROM episodes_table " +
             "WHERE title LIKE '%' || lower(:channelName) || '%' " +

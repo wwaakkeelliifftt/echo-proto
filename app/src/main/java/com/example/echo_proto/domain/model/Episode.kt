@@ -19,7 +19,13 @@ data class Episode(
     val indexInQueue: Int,
     val hasListened: Boolean = false,
     var isSelected: Boolean = false,
-    val stopListeningAt: Long = 0L
+    val stopListeningAt: Long = 0L,
+    // TEMP FIX: Add channelId for proper channel filtering
+    val channelId: String = "",
+    // TEMP FIX: Add channel image URL
+    val channelImageUrl: String = "",
+    // TEMP FIX: Add episode image URL
+    val episodeImageUrl: String = ""
 ) {
     fun toEpisodeEntity(): EpisodeEntity {
         return EpisodeEntity(
@@ -37,7 +43,10 @@ data class Episode(
             isInQueue = isInQueue,
             indexInQueue = indexInQueue,
             hasListened = hasListened,
-            stopListeningAt = stopListeningAt
+            stopListeningAt = stopListeningAt,
+            channelId = channelId,  // TEMP FIX: Add channelId
+            channelImageUrl = channelImageUrl,  // TEMP FIX: Add channel image URL
+            episodeImageUrl = episodeImageUrl  // TEMP FIX: Add episode image URL
         )
     }
 }
