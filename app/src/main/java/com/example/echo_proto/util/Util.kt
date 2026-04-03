@@ -7,7 +7,6 @@ import java.util.Locale
 import java.util.TimeZone
 import kotlin.math.abs
 import kotlin.math.roundToInt
-import kotlin.time.Duration.Companion.minutes
 
 fun String?.getTimeInMillisFromString(): Long {
     if (this == null) {
@@ -75,6 +74,18 @@ fun Int.getTimeFromSeconds(): String {
     return "${output(hours)}:${output(minutes)}:${output(seconds)}"
 }
 
+/**
+ * Конвертирует строку таймкода (01:22:33 или 22:33) в миллисекунды
+ */
+fun String.timestampToMillis(): Long {
+    val parts = this.split(":").map { it.toLongOrNull() ?: 0L }
+    return when (parts.size) {
+        3 -> (parts[0] * 3600 + parts[1] * 60 + parts[2]) * 1000
+        2 -> (parts[0] * 60 + parts[1]) * 1000
+        else -> 0L
+    }
+}
+
 fun Float.normalizePlaybackSpeed(): Float {
     val clamped = this.coerceIn(Constants.PLAYBACK_SPEED_MIN, Constants.PLAYBACK_SPEED_MAX)
     val steps = (clamped / Constants.PLAYBACK_SPEED_STEP).roundToInt()
@@ -94,7 +105,8 @@ fun String.highlightTimestamps(): String {
 
     return timestampPattern.replace(this) { match ->
         val timestamp = match.value
-        "<span style=\"color: $goldColor; font-weight: bold; font-family: monospace; background-color: rgba(230, 175, 46, 0.1); padding: 2px 4px; border-radius: 3px;\">$timestamp</span>"
+        // Добавляем пробелы по бокам, чтобы фон выглядел как рамочка
+        "<a href=\"seek://$timestamp\" style=\"text-decoration: none;\">&nbsp;$timestamp&nbsp;</a>"
     }
 }
 

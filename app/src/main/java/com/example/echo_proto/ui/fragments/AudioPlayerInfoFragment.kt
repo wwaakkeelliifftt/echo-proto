@@ -10,6 +10,7 @@ import com.example.echo_proto.databinding.FragmentAudioPlayerInfoPageBinding
 import com.example.echo_proto.domain.model.Episode
 import com.example.echo_proto.ui.viewmodels.MainViewModel
 import com.example.echo_proto.util.getDateFromLong
+import com.example.echo_proto.util.loadLargeCover
 import dagger.hilt.android.AndroidEntryPoint
 import timber.log.Timber
 
@@ -63,5 +64,11 @@ class AudioPlayerInfoFragment : Fragment() {
     private fun bindEpisodeInfo(episode: Episode) = with(binding) {
         tvTitle.text = episode.title
         tvPubDateAndSize.text = episode.timestamp.getDateFromLong()
+        
+        // 🎨 Загружаем обложку эпизода, а если её нет - обложку канала
+        ivEpisodeCover.loadLargeCover(
+            url = episode.episodeImageUrl,
+            fallbackUrl = episode.channelImageUrl
+        )
     }
 }

@@ -1,70 +1,110 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:paddingStart="@dimen/dp_medium_less"
-    android:paddingEnd="@dimen/dp_medium_less">
+    android:paddingHorizontal="4dp">
 
+    <!-- Header / Title Section -->
     <com.google.android.material.textview.MaterialTextView
         android:id="@+id/tvTitle"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:gravity="center"
-        android:paddingBottom="@dimen/dp_small"
-        android:text="EPISODE FULL TITLE DESCRIPTION LINE WITH ALL INFORMATION"
-        android:textAppearance="@style/TextAppearance.MaterialComponents.Headline6"
+        android:layout_marginTop="16dp"
+        android:gravity="center_horizontal"
+        android:textSize="26sp"
+        android:fontFamily="@font/manrope_semibold"
+        android:letterSpacing="-0.01"
+        android:textColor="@color/colorOnSurface"
+        android:lineSpacingExtra="4dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent"
+        tools:text="Designing the Architecture of Silence in Post-Digital Era" />
 
+    <!-- Metadata Row -->
     <com.google.android.material.textview.MaterialTextView
         android:id="@+id/tvPubDateAndSize"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:alpha="0.7"
+        android:layout_marginTop="12dp"
         android:gravity="center"
-        android:text="21/12/42"
-        android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
+        android:fontFamily="@font/manrope"
+        android:textColor="@color/colorPrimary"
+        android:textSize="14sp"
+        android:letterSpacing="0.05"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tvTitle" />
+        app:layout_constraintTop_toBottomOf="@id/tvTitle"
+        tools:text="OCT 24, 2023  ·  66MB  ·  58 MIN" />
 
-<!--    <androidx.constraintlayout.widget.Guideline-->
-<!--        android:id="@+id/guidelineButtonRow"-->
-<!--        android:layout_width="wrap_content"-->
-<!--        android:layout_height="wrap_content"-->
-<!--        android:orientation="horizontal"-->
-<!--        app:layout_constraintGuide_percent="0.7" />-->
+    <!-- Cover Image with Shadow/Elevation -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/cardCover"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_margin="40dp"
+        app:cardCornerRadius="32dp"
+        app:cardElevation="8dp"
+        app:cardBackgroundColor="@color/colorSurfaceContainerLow"
+        app:strokeWidth="0dp"
+        app:layout_constraintBottom_toTopOf="@+id/buttonsContainer"
+        app:layout_constraintDimensionRatio="1:1"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/tvPubDateAndSize">
 
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btnChangeSpeed"
-        style="@style/FeedFilterDialogButtonFilled"
-        android:layout_width="wrap_content"
+        <ImageView
+            android:id="@+id/ivEpisodeCover"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="centerCrop"
+            tools:src="@drawable/ic_image_holder" />
+
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- Buttons Container (Bottom Fixed) -->
+    <LinearLayout
+        android:id="@+id/buttonsContainer"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="speed"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@id/dtnToDescription"
-        app:layout_constraintStart_toStartOf="parent" />
-
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/dtnToDescription"
-        style="@style/FeedFilterDialogButtonFilled"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="about"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@id/btnGoToYoutube"
-        app:layout_constraintStart_toEndOf="@id/btnChangeSpeed" />
-
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btnGoToYoutube"
-        style="@style/FeedFilterDialogButtonFilled"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="youtube"
+        android:layout_marginBottom="@dimen/dp_medium_less"
+        android:gravity="center"
+        android:orientation="horizontal"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@id/dtnToDescription" />
+        app:layout_constraintStart_toStartOf="parent">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnChangeSpeed"
+            style="@style/FeedFilterDialogButtonFilled"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:text="speed"
+            android:textColor="@color/colorPrimary"
+            android:backgroundTint="?android:colorBackground" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/dtnToDescription"
+            style="@style/FeedFilterDialogButtonFilled"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:text="about"
+            android:textColor="@color/colorPrimary"
+            android:backgroundTint="?android:colorBackground" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnGoToYoutube"
+            style="@style/FeedFilterDialogButtonFilled"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="youtube"
+            android:textColor="@color/colorPrimary"
+            android:backgroundTint="?android:colorBackground" />
+
+    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
