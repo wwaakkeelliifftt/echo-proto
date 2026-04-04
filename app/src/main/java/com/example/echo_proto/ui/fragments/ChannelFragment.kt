@@ -1,54 +1,101 @@
 package com.example.echo_proto.ui.fragments
 
-import com.example.echo_proto.data.remote.FeedChannel
+import android.annotation.SuppressLint
 import android.os.Bundle
 import android.view.*
-import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
+import androidx.lifecycle.lifecycleScope
+import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.example.echo_proto.R
+import com.example.echo_proto.data.remote.FeedChannel
 import com.example.echo_proto.databinding.FragmentChannelsBinding
-import com.example.echo_proto.ui.adapters.FeedAdapter
+import com.example.echo_proto.domain.model.Episode
+import com.example.echo_proto.ui.adapters.ChannelEpisodeAdapter
+import com.example.echo_proto.ui.adapters.ItemZoneTouchHandler
 import com.example.echo_proto.ui.common.observePlaybackState
 import com.example.echo_proto.ui.viewmodels.ChannelViewModel
 import com.example.echo_proto.ui.viewmodels.MainViewModel
 import com.example.echo_proto.util.Constants
+import com.example.echo_proto.util.loadFullScreenBackground
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.*
 import timber.log.Timber
-import androidx.core.view.MenuHost
-import androidx.core.view.MenuProvider
-import androidx.lifecycle.Lifecycle
 
 @AndroidEntryPoint
-class ChannelFragment : Fragment() {
+class ChannelFragment : Fragment(), ItemZoneTouchHandler {
 
     private var _binding: FragmentChannelsBinding? = null
     private val binding get() = _binding!!
 
-    private lateinit var rvAdapter: FeedAdapter
+    private lateinit var rvAdapter: ChannelEpisodeAdapter
     private val viewModel by viewModels<ChannelViewModel>()
     private val mainViewModel by activityViewModels<MainViewModel>()
 
     private lateinit var source: FeedChannel
+    private var dimJob: Job? = null
+    private var isDimmed = false
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
-        _binding = FragmentChannelsBinding.inflate(layoutInflater)
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
+        _binding = FragmentChannelsBinding.inflate(inflater, container, false)
         return binding.root
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
         val sourceId = arguments?.getInt(Constants.CHANNEL_ID) ?: 0
         source = FeedChannel.channels[sourceId]
 
-        viewModel.getRssChannelFromDatabase(feedChannel = source)
         setupRecyclerView()
-        observePlaybackState(mainViewModel, rvAdapter)
-        binding.swipeRefreshChannel.setOnRefreshListener { swipeToUpdate() }
+        setupObservers()
+        
+        binding.swipeRefreshChannel.setOnRefreshListener { 
+            viewModel.updateChannelRss(feedChannel = source) 
+        }
+        
+        binding.recyclerViewChannel.setOnTouchListener { _, event ->
+            if (event.action == MotionEvent.ACTION_MOVE) {
+                startBackgroundDimming()
+            }
+            false 
+        }
 
+        viewModel.getRssChannelFromDatabase(feedChannel = source)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        resetAndStartAnimations()
+    }
+
+    private fun resetAndStartAnimations() {
+        isDimmed = false
+        dimJob?.cancel()
+        
+        binding.ivChannelBackground.alpha = 0.15f
+        binding.recyclerViewChannel.alpha = 0.9f
+        binding.recyclerViewChannel.animate()
+            .alpha(1.0f)
+            .setDuration(400)
+            .start()
+    }
+
+    private fun setupRecyclerView() {
+        rvAdapter = ChannelEpisodeAdapter(this)
+        binding.recyclerViewChannel.apply {
+            adapter = rvAdapter
+            layoutManager = LinearLayoutManager(requireContext())
+            itemAnimator = null 
+        }
+        observePlaybackState(mainViewModel, rvAdapter)
+    }
+
+    private fun setupObservers() {
         viewModel.rssChannel.observe(viewLifecycleOwner) { channelList ->
             if (channelList.isNullOrEmpty()) {
                 binding.containerEmptyQueue.visibility = View.VISIBLE
@@ -56,61 +103,44 @@ class ChannelFragment : Fragment() {
             } else {
                 binding.containerEmptyQueue.visibility = View.GONE
                 rvAdapter.submitList(channelList)
-                channelList.forEach {
-                    Timber.d("CHANNEL FEED: rssId= ${it.rssId}, title=${it.title}, id=${it.id}, timestamp = ${it.timestamp}")
-                }
-            }
-        }
-
-        setupMenu()
-    }
-
-    private fun setupRecyclerView() {
-        rvAdapter = FeedAdapter(null)
-        binding.recyclerViewChannel.apply {
-            adapter = rvAdapter
-            layoutManager = LinearLayoutManager(requireContext())
-        }
-    }
-
-    private fun swipeToUpdate() {
-        val stopRefresh = viewModel.updateChannelRss(feedChannel = source)
-        binding.swipeRefreshChannel.isRefreshing = stopRefresh
-    }
-
-    private fun setupMenu() {
-        val menuHost: MenuHost = requireActivity()
-        menuHost.addMenuProvider(channelMenuProvider, viewLifecycleOwner, Lifecycle.State.RESUMED)
-    }
-
-    private val channelMenuProvider = object : MenuProvider {
-        override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
-            menu.clear()
-            menuInflater.inflate(R.menu.menu_top_channels, menu)
-        }
-
-        override fun onPrepareMenu(menu: Menu) { }
-
-        override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
-            return when (menuItem.itemId) {
-                R.id.mabChannelUpdate -> {
-                    viewModel.updateChannelRss(feedChannel = source)
-                    Toast.makeText(requireContext(), "UPDATE CHANNEL", Toast.LENGTH_SHORT).show()
-                    true
-                }
-
-                R.id.mabChannelFavourites -> {
-                    Toast.makeText(requireContext(), "ON SCREEN: #${source.name}", Toast.LENGTH_SHORT).show()
-                    viewModel.getRssChannelFromDatabase(feedChannel = source)
-                    true
-                }
-
-                else -> false
+                updateBackground(channelList.first())
             }
         }
     }
+
+    private fun updateBackground(episode: Episode) {
+        binding.ivChannelBackground.loadFullScreenBackground(episode.channelImageUrl)
+    }
+
+    private fun startBackgroundDimming() {
+        if (isDimmed || dimJob?.isActive == true) return
+        
+        dimJob = viewLifecycleOwner.lifecycleScope.launch {
+            delay(200)
+            if (isActive && _binding != null) {
+                binding.ivChannelBackground.animate()
+                    .alpha(0f)
+                    .setDuration(300)
+                    .start()
+                isDimmed = true
+            }
+        }
+    }
+
+    override fun navigateToEpisodeDetailScreen(episode: Episode) {
+        viewModel.navigateToDetailWithSharedPref(episode.id)
+        findNavController().navigate(R.id.globalActionToEpisodeDetailFragment)
+    }
+
+    override fun playPauseStateChanger(episode: Episode) {
+        mainViewModel.playOrToggleEpisode(episode, true)
+    }
+
+    override val isDraggableFragment: Boolean = false
+    override fun onStartDrag(viewHolder: RecyclerView.ViewHolder) = Unit
 
     override fun onDestroyView() {
+        dimJob?.cancel()
         super.onDestroyView()
         _binding = null
     }

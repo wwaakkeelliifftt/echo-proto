@@ -16,10 +16,6 @@ import com.example.echo_proto.R
 
 /**
  * Универсальное расширение для ImageView для загрузки обложек эпизодов
- * @param url Основная ссылка на изображение (эпизода)
- * @param fallbackUrl Резервная ссылка (например, изображение канала)
- * @param size Размер в dp (будет использоваться и для ширины, и для высоты)
- * @param cornerRadius Скругление углов в пикселях (по умолчанию 24)
  */
 fun ImageView.loadEpisodeImage(
     url: String?,
@@ -58,6 +54,20 @@ fun ImageView.loadEpisodeImage(
  */
 fun ImageView.loadLargeCover(url: String?, fallbackUrl: String? = null) {
     loadEpisodeImage(url, fallbackUrl = fallbackUrl, cornerRadius = 32)
+}
+
+/**
+ * Загружает фоновое изображение на весь экран (CenterCrop без скругления)
+ */
+fun ImageView.loadFullScreenBackground(url: String?) {
+    if (url.isNullOrEmpty()) return
+    
+    Glide.with(this)
+        .load(url)
+        .centerCrop()
+        .transition(DrawableTransitionOptions.withCrossFade(500))
+        .diskCacheStrategy(DiskCacheStrategy.ALL)
+        .into(this)
 }
 
 /**

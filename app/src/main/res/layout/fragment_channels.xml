@@ -2,9 +2,27 @@
 <FrameLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_height="match_parent"
     android:layout_width="match_parent"
-    android:background="@color/pink_50">
+    android:background="@color/colorBackground">
+
+    <!-- Background Channel Image (Immersive Effect) -->
+    <ImageView
+        android:id="@+id/ivChannelBackground"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:alpha="0.1"
+        tools:src="@drawable/ic_image_holder" />
+
+    <!-- Dark Overlay to ensure text readability -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/bg_bottom_sheet_handle"
+        android:alpha="0.6"
+        android:visibility="gone" />
 
     <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
         android:id="@+id/swipe_refresh_channel"
@@ -14,7 +32,9 @@
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recycler_view_channel"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:paddingBottom="80dp" />
 
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
@@ -23,19 +43,22 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:gravity="center"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:visibility="gone">
 
         <ImageView
             android:layout_width="80dp"
             android:layout_height="80dp"
             android:src="@drawable/ic_menu_feed"
-            app:tint="?colorOnSecondary" />
+            app:tint="@color/colorOnSurfaceVariant" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:paddingVertical="@dimen/dp_large"
-            android:text="Очеред пуста"
+            android:text="Нет эпизодов в этом канале"
+            android:fontFamily="@font/manrope"
+            android:textColor="@color/colorOnSurfaceVariant"
             android:textSize="@dimen/dp_medium"/>
     </LinearLayout>
 
