@@ -27,7 +27,6 @@ enum class State {
 }
 
 class MediaSource @Inject constructor(
-    // maybe need inject in serviceModule?
     private val db: FeedDatabase
 ) {
 
@@ -75,22 +74,17 @@ class MediaSource @Inject constructor(
             result.isNotEmpty() -> result
             else -> db.dao.getAllFeed().map { it.toEpisode() }
         }
-        Timber.tag("PLAY").d("📊 MediaSource refreshed: ${episodes.size} episodes from queue")
-        episodes.forEachIndexed { index, episode ->
-            Timber.tag("PLAY").d("  [$index] id=${episode.id}, title=${episode.title}, isInQueue=${episode.isInQueue}, indexInQueue=${episode.indexInQueue}")
-        }
+        Timber.tag("PLAY").d("📊 MediaSource refreshed: ${episodes.size} episodes")
     }
 
     fun asMediaSource(dataSourceFactory: DefaultDataSource.Factory): ConcatenatingMediaSource {
         val concatenatingMediaSource = ConcatenatingMediaSource()
         episodes.forEach { episode ->
-            // Преобразуем путь к локальному файлу в file:// URI для корректного воспроизведения
             val mediaUri = if (episode.isDownloaded && episode.downloadUrl.isNotEmpty()) {
                 val file = java.io.File(episode.downloadUrl)
                 if (file.exists()) {
                     android.net.Uri.fromFile(file)
                 } else {
-                    Timber.w("Downloaded file not found: ${episode.downloadUrl}, falling back to web URL")
                     episode.audioLink.toUri()
                 }
             } else {
@@ -100,17 +94,8 @@ class MediaSource @Inject constructor(
             val mediaItem = MediaItem.fromUri(mediaUri)
                 .buildUpon()
                 .setMimeType(MimeTypes.AUDIO_MPEG)
+                .setMediaId(episode.id.toString())
                 .build()
-
-            Timber.d("\n\t\tAS_MEDIA_SOURCE::title=${episode.title},\n\t\t" +
-                    "isDownloaded=${episode.isDownloaded},\n\t\t" +
-                    "mp3=${episode.downloadUrl},\n\t\t" +
-                    "web=${episode.audioLink},\n\t\t" +
-                    "mediaUri=${mediaUri}\n\t\t" +
-                    "mediaItem=${mediaItem}\n\t\t" +
-                    "mediaItem/metadata/title=${mediaItem.mediaMetadata.title}\n\t\t" +
-                    "mediaItem/metadata/description=${mediaItem.mediaMetadata.description}\n\t\t" +
-                    "mediaItem/metadata(full)=${mediaItem.mediaMetadata}")
 
             val mediaSource = ProgressiveMediaSource.Factory(dataSourceFactory)
                 .createMediaSource(mediaItem)
@@ -121,22 +106,7 @@ class MediaSource @Inject constructor(
 
 
     fun asMediaItems(): MutableList<MediaBrowserCompat.MediaItem> = episodes.map { episode ->
-        val description = MediaDescriptionCompat.Builder()
-            .setMediaUri(episode.audioLink.toUri())
-            .setTitle(episode.title)
-            .setMediaId(episode.mediaId)
-            .setDescription(episode.description)
-            .build()
-
-        Timber.d("MediaItem:Episode:" +
-                "audioLink=${episode.audioLink}\n" +
-                "audioLinkToUri=${episode.audioLink.toUri()}")
-//        MediaItem.Builder()
-//            .setMimeType(MimeTypes.APPLICATION_M3U8)
-//            .setUri(episode.audioLink.toUri())
-//            .setMediaId(episode.mediaId)
-//            .build()
-
+        val description = episode.asMediaDescriptionCompat()
         MediaBrowserCompat.MediaItem(description, FLAG_PLAYABLE)
     }.toMutableList()
 
@@ -155,13 +125,8 @@ class MediaSource @Inject constructor(
     suspend fun updateEpisodePosition(episodeId: Int, position: Long) {
         withContext(Dispatchers.IO) {
             db.dao.updateEpisodePosition(episodeId, position)
-            // Обновляем позицию в текущем списке эпизодов
             episodes = episodes.map { episode ->
-                if (episode.id == episodeId) {
-                    episode.copy(stopListeningAt = position)
-                } else {
-                    episode
-                }
+                if (episode.id == episodeId) episode.copy(stopListeningAt = position) else episode
             }
         }
     }
@@ -169,7 +134,6 @@ class MediaSource @Inject constructor(
     suspend fun markEpisodeAsListened(episodeId: Int) {
         withContext(Dispatchers.IO) {
             db.dao.markEpisodeAsListened(episodeId)
-            // Обновляем статус в текущем списке эпизодов
             episodes = episodes.map { episode ->
                 if (episode.id == episodeId) {
                     episode.copy(hasListened = true, stopListeningAt = 0, isInQueue = false, indexInQueue = -1)
@@ -182,27 +146,25 @@ class MediaSource @Inject constructor(
 
 }
 
-// TODO: MediaSource changeover ---------------------------------------------------------------
 fun Episode.asMediaDescriptionCompat(): MediaDescriptionCompat {
+    val finalIconUri = if (this.episodeImageUrl.isNotEmpty()) {
+        this.episodeImageUrl.toUri()
+    } else if (this.channelImageUrl.isNotEmpty()) {
+        this.channelImageUrl.toUri()
+    } else {
+        null
+    }
+
     val mmc = MediaMetadataCompat.Builder()
         .putString(METADATA_KEY_MEDIA_ID, this.id.toString())
         .putString(METADATA_KEY_TITLE, this.title)
         .putString(METADATA_KEY_DISPLAY_TITLE, this.title)
+        .putString(METADATA_KEY_DISPLAY_SUBTITLE, this.channelId)
         .putString(METADATA_KEY_DISPLAY_DESCRIPTION, this.description)
-
-        .putLong(METADATA_KEY_YEAR, this.timestamp).also { Timber.d("-----::TIMESTAMP::---->>>${this.timestamp}") }
-        .putString(METADATA_KEY_DATE, this.timestamp.toString()).also {
-            Timber.d("TIMESTAMP::episode[${this.id}]=${this.timestamp} / asString=${this.timestamp}")
-        }
-        .putLong(METADATA_KEY_DURATION, this.duration.toLong()).also {
-            Timber.d("DURATION::episode[${this.id}]=${this.duration} / asLong=${this.duration.toLong()}")
-        }
-//        .putLong(METADATA_KEY_DOWNLOAD_STATUS, MediaDescriptionCompat.STATUS_DOWNLOADED)
-//        .putLong(METADATA_KEY_TRACK_NUMBER, this.indexInQueue.toLong()) // check with assert to -1 ??
-
-//        .putString(METADATA_KEY_ART_URI, this.videoLink)
-        .putString(METADATA_KEY_MEDIA_URI, this.audioLink) // todo: <-- check WAT we save? file on disk or url
-//                .putString(METADATA_KEY_MEDIA_URI, episode.downloadUrl) // todo: <-- check WAT we save? file on disk or url
+        .putLong(METADATA_KEY_DURATION, this.duration.toLong())
+        .putString(METADATA_KEY_MEDIA_URI, this.audioLink)
+        .putString(METADATA_KEY_DISPLAY_ICON_URI, finalIconUri?.toString())
+        .putString(METADATA_KEY_ALBUM_ART_URI, finalIconUri?.toString())
         .build()
 
     return mmc.description

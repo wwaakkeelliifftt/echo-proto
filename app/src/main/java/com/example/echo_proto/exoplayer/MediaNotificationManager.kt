@@ -7,12 +7,12 @@ import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.MediaSessionCompat
 import com.example.echo_proto.R
 import com.example.echo_proto.util.Constants
-import com.google.android.exoplayer2.ExoPlayer
+import com.example.echo_proto.util.loadBitmapFromUri
 import com.google.android.exoplayer2.Player
 import com.google.android.exoplayer2.ui.PlayerNotificationManager
 
 class MediaNotificationManager(
-    context: Context,
+    private val context: Context,
     sessionToken: MediaSessionCompat.Token,
     notificationListener: PlayerNotificationManager.NotificationListener
 ) {
@@ -30,6 +30,8 @@ class MediaNotificationManager(
             .setSmallIconResourceId(R.drawable.ic_menu_full_tab_feed)
             .build().apply {
                 setMediaSessionToken(sessionToken)
+                setColorized(true)
+                setUseChronometer(true)
             }
     }
 
@@ -37,7 +39,7 @@ class MediaNotificationManager(
 
     private inner class DescriptionAdapter(
         private val mediaController: MediaControllerCompat
-        ): PlayerNotificationManager.MediaDescriptionAdapter {
+    ) : PlayerNotificationManager.MediaDescriptionAdapter {
 
         override fun getCurrentContentTitle(player: Player): CharSequence =
             mediaController.metadata.description.title.toString()
@@ -46,10 +48,17 @@ class MediaNotificationManager(
             mediaController.sessionActivity
 
         override fun getCurrentContentText(player: Player): CharSequence =
-            mediaController.metadata.description.description.toString()
+            mediaController.metadata.description.subtitle ?: ""
 
-        override fun getCurrentLargeIcon(player: Player, callback: PlayerNotificationManager.BitmapCallback): Bitmap? =
-            null
+        override fun getCurrentLargeIcon(
+            player: Player,
+            callback: PlayerNotificationManager.BitmapCallback
+        ): Bitmap? {
+            // 🎨 Используем наш хелпер для загрузки обложки
+            context.loadBitmapFromUri(mediaController.metadata.description.iconUri) { bitmap ->
+                callback.onBitmap(bitmap)
+            }
+            return null
+        }
     }
-
 }
