@@ -1,5 +1,6 @@
 package com.example.echo_proto.ui.fragments
 
+import android.animation.ValueAnimator
 import android.annotation.SuppressLint
 import android.os.Bundle
 import android.view.*
@@ -59,7 +60,7 @@ class ChannelFragment : Fragment(), ItemZoneTouchHandler {
         }
         
         binding.recyclerViewChannel.setOnTouchListener { _, event ->
-            if (event.action == MotionEvent.ACTION_MOVE) {
+            if (event.action == MotionEvent.ACTION_MOVE || event.action == MotionEvent.ACTION_DOWN) {
                 startBackgroundDimming()
             }
             false 
@@ -78,10 +79,14 @@ class ChannelFragment : Fragment(), ItemZoneTouchHandler {
         dimJob?.cancel()
         
         binding.ivChannelBackground.alpha = 0.15f
-        binding.recyclerViewChannel.alpha = 0.9f
+        if (::rvAdapter.isInitialized) {
+            rvAdapter.itemsBackgroundFactor = 0f
+        }
+
+        binding.recyclerViewChannel.alpha = 0.8f
         binding.recyclerViewChannel.animate()
             .alpha(1.0f)
-            .setDuration(400)
+            .setDuration(500)
             .start()
     }
 
@@ -120,8 +125,20 @@ class ChannelFragment : Fragment(), ItemZoneTouchHandler {
             if (isActive && _binding != null) {
                 binding.ivChannelBackground.animate()
                     .alpha(0f)
-                    .setDuration(300)
+                    .setDuration(400)
                     .start()
+                
+                // перехода эпизодов из черного в серый (0 -> 1)
+                ValueAnimator.ofFloat(0f, 1f).apply {
+                    duration = 700
+                    addUpdateListener { animator ->
+                        if (_binding != null) {
+                            rvAdapter.itemsBackgroundFactor = animator.animatedValue as Float
+                        }
+                    }
+                    start()
+                }
+
                 isDimmed = true
             }
         }
