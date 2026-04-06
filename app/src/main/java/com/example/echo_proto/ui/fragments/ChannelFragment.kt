@@ -78,7 +78,7 @@ class ChannelFragment : Fragment(), ItemZoneTouchHandler {
         isDimmed = false
         dimJob?.cancel()
         
-        binding.ivChannelBackground.alpha = 0.15f
+        binding.ivChannelBackground.alpha = 0.66f
         if (::rvAdapter.isInitialized) {
             rvAdapter.itemsBackgroundFactor = 0f
         }

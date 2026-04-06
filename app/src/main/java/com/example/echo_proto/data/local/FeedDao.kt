@@ -46,9 +46,13 @@ interface FeedDao {
             "ORDER BY timestamp DESC")
     suspend fun getChannelFeed(channelName: String): List<EpisodeEntity>
 
+    /**
+     * Search episodes where words start with the given query.
+     * Matches at the beginning of the string OR after a space.
+     */
     @Query("SELECT * FROM episodes_table " +
-            "WHERE title LIKE '%' || lower(:query) || '%' " +
-            "OR description LIKE '%' || lower(:query) || '%' " +
+            "WHERE (lower(title) LIKE lower(:query) || '%' OR lower(title) LIKE '% ' || lower(:query) || '%') " +
+            "OR (lower(description) LIKE lower(:query) || '%' OR lower(description) LIKE '% ' || lower(:query) || '%') " +
             "ORDER BY timestamp DESC")
     suspend fun searchByQuery(query: String): List<EpisodeEntity>
 

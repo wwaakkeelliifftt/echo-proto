@@ -1,15 +1,12 @@
 package com.example.echo_proto.ui.fragments
 
 import android.annotation.SuppressLint
-import android.content.SharedPreferences
 import android.os.Bundle
 import android.view.*
-import android.widget.Toast
 import androidx.appcompat.widget.SearchView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
-import androidx.navigation.NavOptions
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -23,7 +20,6 @@ import com.example.echo_proto.ui.viewmodels.MainViewModel
 import com.example.echo_proto.util.Constants
 import dagger.hilt.android.AndroidEntryPoint
 import timber.log.Timber
-import javax.inject.Inject
 import androidx.core.view.MenuHost
 import androidx.core.view.MenuProvider
 import androidx.lifecycle.Lifecycle
@@ -31,13 +27,13 @@ import com.example.echo_proto.ui.common.observePlaybackState
 import com.example.echo_proto.ui.common.ActionModeHelper
 
 @AndroidEntryPoint
-class FeedFragment : Fragment(), ItemZoneTouchHandler { //, ToolbarConfigurator {
+class FeedFragment : Fragment(), ItemZoneTouchHandler {
 
     private var _binding: FragmentFeedBinding? = null
     private val binding get() = _binding!!
     private lateinit var feedAdapter: EpisodeFeedAdapterV2
     private val viewModel by viewModels<FeedViewModel>()
-    private val mainViewModel by activityViewModels<MainViewModel>() // <<- best approach??
+    private val mainViewModel by activityViewModels<MainViewModel>()
     private var actionMode: ActionMode? = null
     private var isActionModeActive: Boolean = false
     private lateinit var actionModeHelper: ActionModeHelper
@@ -52,28 +48,24 @@ class FeedFragment : Fragment(), ItemZoneTouchHandler { //, ToolbarConfigurator 
 
         Timber.d("🎯 FEED_FRAGMENT: Starting FeedFragment initialization")
         viewModel.getRssFeedFromDatabase()
+        
         setupRecyclerView()
+        
         binding.swipeRefreshFeed.setOnRefreshListener {
             swipeToUpdate()
         }
 
-        // 🔧 FIX: Observer for loading state
         viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
-            Timber.d("🎯 FEED_FRAGMENT: Loading state changed: isLoading=$isLoading")
             binding.swipeRefreshFeed.isRefreshing = isLoading
         }
 
         viewModel.rssFeed.observe(viewLifecycleOwner) { list ->
             Timber.d("🎯 FEED_FRAGMENT: RSS feed observed, list size=${list.size}")
             val feedItems = feedAdapter.submitFeedItems(list)
-            Timber.d("🎯 FEED_FRAGMENT: Feed items created, size=${feedItems.size}")
-            feedAdapter.notifyDataSetChanged()
-            // Обновляем заголовок action mode если он активен
+            
             if (isActionModeActive) {
                 val selectedCount = feedItems.count { it is EpisodeFeedAdapterV2.FeedItem.Episode && it.episode.isSelected }
                 actionMode?.title = "Selected: $selectedCount"
-                Timber.tag("ACTION_MODE").d("Observer:: Selected count from list: $selectedCount")
-                // Если нет выбранных эпизодов, закрываем action mode
                 if (selectedCount == 0) {
                     actionMode?.finish()
                 }
@@ -90,88 +82,62 @@ class FeedFragment : Fragment(), ItemZoneTouchHandler { //, ToolbarConfigurator 
             }
         }
 
-        if (savedInstanceState != null) {
-            val emptyDatabaseDialog = parentFragmentManager.findFragmentByTag(Constants.DATABASE_EMPTY_TAG)
-                    as EmptyDatabaseDialogFragment?
-            emptyDatabaseDialog?.setListener {
-                viewModel.updateFeedRss()
-            }
-        }
-
         observePlaybackState(mainViewModel, feedAdapter)
         setupMenu()
     }
 
     private fun setupRecyclerView() {
-        // todo: null here - interface for drag in queueFragment
         feedAdapter = EpisodeFeedAdapterV2(this)
         binding.recyclerViewFeed.apply {
             layoutManager = LinearLayoutManager(requireContext())
             adapter = feedAdapter
-            itemAnimator = null  // Отключаем анимацию для устранения моргания
+            itemAnimator = null
+            
+            // 🔧 ADDED: Sticky Header Decoration
+            addItemDecoration(StickyHeaderDecoration(feedAdapter))
 
             onItemClick { position ->
                 if (isActionModeActive) {
-                    // TODO: Handle action mode click for new adapter
-                    Timber.d("Action mode click at position: $position")
+                    val item = feedAdapter.actualList.getOrNull(position)
+                    if (item is EpisodeFeedAdapterV2.FeedItem.Episode) {
+                        viewModel.selectEpisodeField(position)
+                    }
                 } else {
-                    // Navigate to episode detail
                     val item = feedAdapter.actualList.getOrNull(position)
                     if (item is EpisodeFeedAdapterV2.FeedItem.Episode) {
                         navigateToEpisodeDetailScreen(item.episode)
-                        Timber.d("Navigate to episode: ${item.episode.title}")
                     }
                 }
             }
             onLongItemClick { position ->
                 if (!isActionModeActive) {
-                    // Start action mode for new adapter
                     val item = feedAdapter.actualList.getOrNull(position)
                     if (item is EpisodeFeedAdapterV2.FeedItem.Episode) {
-                        // TODO: Start action mode
-                        Timber.d("Start action mode for episode: ${item.episode.title}")
                         actionModeHelper = ActionModeHelper(
                             R.menu.menu_feed_action_mode,
                             onActionItemClicked = { itemId -> handleActionModeItemClick(itemId) },
                             onDestroyActionMode = { handleActionModeDestroy() }
                         )
-                        actionMode = startActionMode(actionModeHelper, ActionMode.TYPE_PRIMARY)
+                        actionMode = requireActivity().startActionMode(actionModeHelper)
                         isActionModeActive = true
                         feedAdapter.isActionModeActive = true
-                        // TODO: Select episode in adapter
+                        viewModel.selectEpisodeField(position)
                     }
                 } else {
                     actionMode?.finish()
                 }
             }
-            onDoubleTapItemClick {
-                // not work..
-                Toast.makeText(requireContext(), "ONLY DOUBLE TAP $it", Toast.LENGTH_SHORT).show()
-            }
         }
     }
 
     private fun swipeToUpdate() {
-        Timber.d("🎯 FEED_FRAGMENT: Swipe to update triggered")
-        // 🔧 FIX: Don't manually manage isRefreshing here - let isLoading observer handle it
         viewModel.updateFeedRss()
-        Timber.d("🎯 FEED_FRAGMENT: Update started, isLoading observer will manage spinner")
     }
 
     private fun handleActionModeItemClick(itemId: Int) {
         when (itemId) {
-            R.id.amFeed_1 -> {
-                Toast.makeText(requireContext(), "FIRST", Toast.LENGTH_SHORT).show()
-                actionMode?.finish()
-            }
-            R.id.amFeed_2 -> {
-                Toast.makeText(requireContext(), "SECOND", Toast.LENGTH_SHORT).show()
-                actionMode?.finish()
-            }
             R.id.amFeed_AddToQueue -> {
                 viewModel.addSelectedEpisodesToQueue()
-                val count = viewModel.getSelectedEpisodesCount()
-                Toast.makeText(requireContext(), "ADD TO QUEUE ($count)", Toast.LENGTH_SHORT).show()
                 actionMode?.finish()
             }
         }
@@ -182,19 +148,6 @@ class FeedFragment : Fragment(), ItemZoneTouchHandler { //, ToolbarConfigurator 
         isActionModeActive = false
         feedAdapter.isActionModeActive = false
         actionMode = null
-    }
-
-    private fun updateActionModeTitle() {
-        val count = viewModel.getSelectedEpisodesCount()
-        val title = "Selected: $count"
-        Timber.tag("ACTION_MODE").d("updateActionModeTitle:: $title")
-        actionMode?.title = title
-    }
-
-    override fun onPause() {
-        super.onPause()
-        actionMode?.finish()
-        isActionModeActive = false
     }
 
     private fun setupMenu() {
@@ -209,20 +162,12 @@ class FeedFragment : Fragment(), ItemZoneTouchHandler { //, ToolbarConfigurator 
             configureSearch(menu)
         }
 
-        override fun onPrepareMenu(menu: Menu) {
-            configureSearch(menu)
-        }
-
         override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
             return when (menuItem.itemId) {
                 R.id.mabFeedUpdate -> {
-                    val done = viewModel.updateFeedRss()
-                    if (done) {
-                        Timber.d("rabotaet update?")
-                    }
+                    viewModel.updateFeedRss()
                     true
                 }
-
                 else -> false
             }
         }
@@ -239,9 +184,10 @@ class FeedFragment : Fragment(), ItemZoneTouchHandler { //, ToolbarConfigurator 
                 }
 
                 override fun onQueryTextChange(query: String?): Boolean {
-                    when {
-                        !query.isNullOrEmpty() -> viewModel.searchByQuery(query)
-                        query?.isEmpty() == true -> viewModel.updateFeedRss()
+                    if (!query.isNullOrEmpty()) {
+                        viewModel.searchByQuery(query)
+                    } else if (query?.isEmpty() == true) {
+                        viewModel.getRssFeedFromDatabase()
                     }
                     return true
                 }

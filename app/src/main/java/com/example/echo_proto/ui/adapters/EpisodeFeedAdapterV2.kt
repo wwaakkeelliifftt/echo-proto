@@ -69,31 +69,59 @@ class EpisodeFeedAdapterV2(
         }
     }
 
-    fun submitFeedItems(list: List<EpisodeFromDatabase>): MutableList<FeedItem>  {
-        val feedItems = mutableListOf<FeedItem>()
+    override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int, payloads: MutableList<Any>) {
+        if (payloads.isEmpty()) {
+            super.onBindViewHolder(holder, position, payloads)
+        } else {
+            val item = items[position]
+            if (item is FeedItem.Episode && holder is EpisodeViewHolder) {
+                val payloadSet = payloads.firstOrNull() as? Set<*>
+                if (payloadSet != null) {
+                    if (payloadSet.contains(PAYLOAD_SELECTED)) {
+                        // UI for selection if needed
+                    }
+                    if (payloadSet.contains(PAYLOAD_QUEUE)) {
+                        holder.updateQueueButton(item.episode.isInQueue)
+                    }
+                    if (payloadSet.contains(PAYLOAD_DOWNLOADED)) {
+                        // UI for downloaded if needed
+                    }
+                    if (payloadSet.contains(PAYLOAD_LISTENED)) {
+                        holder.updatePlaybackButton(item.episode.hasListened)
+                    }
+                    if (payloadSet.contains(PAYLOAD_PLAYBACK)) {
+                        holder.updatePlaybackButton(item.episode.hasListened)
+                    }
+                } else if (payloads.contains(PAYLOAD_PLAYBACK)) {
+                     holder.updatePlaybackButton(item.episode.hasListened)
+                }
+            }
+        }
+    }
+
+    fun submitFeedItems(list: List<EpisodeFromDatabase>): List<FeedItem>  {
+        // 🔧 FIX: Take a snapshot of the current list for DiffUtil
+        val oldList = ArrayList(items)
+        val newList = mutableListOf<FeedItem>()
 
         // Group episodes by date
         val episodesByDate = list.groupBy { episode ->
-            // Convert timestamp to date string
             episode.timestamp.getDateFromLong()
         }
         
         episodesByDate.forEach { (date, dateEpisodes) ->
-            // Add date header
-            feedItems.add(FeedItem.DateHeader(date, dateEpisodes.size))
-            
-            // Add episodes for this date
+            newList.add(FeedItem.DateHeader(date, dateEpisodes.size))
             dateEpisodes.forEach { episode ->
-                feedItems.add(FeedItem.Episode(episode))
+                newList.add(FeedItem.Episode(episode))
             }
         }
         
         val diffCallback = object : DiffUtil.Callback() {
-            override fun getOldListSize(): Int = items.size
-            override fun getNewListSize(): Int = feedItems.size
+            override fun getOldListSize(): Int = oldList.size
+            override fun getNewListSize(): Int = newList.size
             override fun areItemsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
-                val oldItem = items[oldItemPosition]
-                val newItem = feedItems[newItemPosition]
+                val oldItem = oldList[oldItemPosition]
+                val newItem = newList[newItemPosition]
                 
                 return when {
                     oldItem is FeedItem.DateHeader && newItem is FeedItem.DateHeader -> 
@@ -105,12 +133,12 @@ class EpisodeFeedAdapterV2(
             }
 
             override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
-                return items[oldItemPosition] == feedItems[newItemPosition]
+                return oldList[oldItemPosition] == newList[newItemPosition]
             }
 
             override fun getChangePayload(oldItemPosition: Int, newItemPosition: Int): Any? {
-                val oldItem = items[oldItemPosition]
-                val newItem = feedItems[newItemPosition]
+                val oldItem = oldList[oldItemPosition]
+                val newItem = newList[newItemPosition]
                 val payload = mutableSetOf<String>()
                 
                 if (oldItem is FeedItem.Episode && newItem is FeedItem.Episode) {
@@ -123,29 +151,33 @@ class EpisodeFeedAdapterV2(
                 return payload.ifEmpty { null }
             }
         }
+        
         val diffResult = DiffUtil.calculateDiff(diffCallback)
+        
+        // Update the internal list AFTER calculating the diff
         items.clear()
-        items.addAll(feedItems)
+        items.addAll(newList)
+        
+        // Dispatch updates to the adapter
         diffResult.dispatchUpdatesTo(this)
-        Timber.d("FEED_ADAPTER_V2: submit size=${list.size}")
-        return feedItems
+        
+        Timber.d("FEED_ADAPTER_V2: submit size=${list.size}, items size=${items.size}")
+        return newList
     }
 
     override fun updatePlaybackState(playingEpisodeId: Int?, isPlaying: Boolean) {
         val oldPlayingId = currentPlayingEpisodeId
         val oldIsPlaying = isCurrentlyPlaying
         
-        // Если ничего не изменилось — не обновляем
         if (oldPlayingId == playingEpisodeId && oldIsPlaying == isPlaying) return
         
         currentPlayingEpisodeId = playingEpisodeId
         isCurrentlyPlaying = isPlaying
         
-        // Обновляем только изменённые элементы
-        val oldPosition = actualList.indexOfFirst { 
+        val oldPosition = items.indexOfFirst { 
             (it as? FeedItem.Episode)?.episode?.id == oldPlayingId 
         }
-        val newPosition = actualList.indexOfFirst { 
+        val newPosition = items.indexOfFirst { 
             (it as? FeedItem.Episode)?.episode?.id == playingEpisodeId 
         }
         
@@ -219,7 +251,7 @@ class EpisodeFeedAdapterV2(
             }
         }
 
-        private fun updateFavoriteButton(isFavorite: Boolean) {
+        fun updateFavoriteButton(isFavorite: Boolean) {
             binding.btnFavorite.apply {
                 drawable.colorFilter = if (isFavorite) {
                     PorterDuffColorFilter(
@@ -235,7 +267,7 @@ class EpisodeFeedAdapterV2(
             }
         }
 
-        private fun updateQueueButton(isInQueue: Boolean) {
+        fun updateQueueButton(isInQueue: Boolean) {
             binding.btnQueue.apply {
                 drawable.colorFilter = if (isInQueue) {
                     PorterDuffColorFilter(
@@ -251,7 +283,7 @@ class EpisodeFeedAdapterV2(
             }
         }
 
-        private fun updatePlaybackButton(hasListened: Boolean) {
+        fun updatePlaybackButton(hasListened: Boolean) {
             binding.btnPlayback.apply {
                 val isCurrentEpisode = adapter.currentPlayingEpisodeId != null && currentEpisode.id == adapter.currentPlayingEpisodeId
                 val iconRes = if (isCurrentEpisode && adapter.isCurrentlyPlaying) {
@@ -260,17 +292,11 @@ class EpisodeFeedAdapterV2(
                     R.drawable.ic_play_circle
                 }
                 setImageResource(iconRes)
-                drawable.colorFilter = if (hasListened) {
-                    PorterDuffColorFilter(
-                        ContextCompat.getColor(itemView.context, R.color.colorNocturneSand), 
-                        PorterDuff.Mode.SRC_ATOP
-                    )
-                } else {
-                    PorterDuffColorFilter(
-                        ContextCompat.getColor(itemView.context, R.color.colorNocturneSand), 
-                        PorterDuff.Mode.SRC_ATOP
-                    )
-                }
+                // Use colorNocturneSand for all states as in original code, or customize
+                drawable.colorFilter = PorterDuffColorFilter(
+                    ContextCompat.getColor(itemView.context, R.color.colorNocturneSand), 
+                    PorterDuff.Mode.SRC_ATOP
+                )
             }
         }
 
