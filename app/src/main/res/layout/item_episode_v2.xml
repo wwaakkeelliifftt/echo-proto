@@ -14,34 +14,49 @@
     android:foreground="?attr/selectableItemBackground">
 
     <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/container"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingStart="4dp"
+        android:paddingStart="12dp"
         android:paddingTop="16dp"
-        android:paddingEnd="16dp"
+        android:paddingEnd="12dp"
         android:paddingBottom="16dp">
 
-        <!-- Drag handle -->
+        <!-- Drag handle (Visible only in Queue with lock off) -->
         <ImageView
             android:id="@+id/dragHandle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="0dp"
-            android:layout_marginEnd="4dp"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
             android:src="@drawable/ic_drag_indicator"
             app:tint="@color/colorAccentBlue"
+            android:visibility="gone"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent" />
 
-        <!-- Episode info -->
+        <!-- Episode Cover Image -->
+        <com.google.android.material.imageview.ShapeableImageView
+            android:id="@+id/ivCover"
+            android:layout_width="52dp"
+            android:layout_height="52dp"
+            android:layout_marginStart="4dp"
+            android:scaleType="centerCrop"
+            android:background="@color/colorSurfaceContainerHighest"
+            app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.SmallComponent"
+            app:layout_constraintStart_toEndOf="@id/dragHandle"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            tools:src="@tools:sample/avatars" />
+
+        <!-- Episode info container -->
         <LinearLayout
             android:id="@+id/episodeInfo"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="4dp"
+            android:layout_marginStart="12dp"
+            android:layout_marginEnd="8dp"
             android:orientation="vertical"
-            app:layout_constraintStart_toEndOf="@id/dragHandle"
+            app:layout_constraintStart_toEndOf="@id/ivCover"
             app:layout_constraintEnd_toStartOf="@id/actionButtons"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent">
@@ -53,15 +68,17 @@
                 android:textAppearance="@style/TextAppearance.EpisodeFeed.Title"
                 android:maxLines="2"
                 android:ellipsize="end"
-                tools:text="The Architecture of Silence: Designing Acoustic Sanctuaries..." />
+                android:textColor="@color/colorTextPrimary"
+                tools:text="The Architecture of Silence: Designing Acoustic Sanctuaries" />
 
             <TextView
                 android:id="@+id/tvEpisodeMetadata"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
+                android:layout_marginTop="2dp"
                 android:textAppearance="@style/TextAppearance.EpisodeFeed.Metadata"
-                android:alpha="0.6"
+                android:textColor="@color/colorTextSecondary"
+                android:alpha="0.7"
                 tools:text="Sonic Landscapes • 42:15" />
 
         </LinearLayout>
@@ -72,37 +89,33 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
+            android:gravity="center_vertical"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent">
 
-            <!-- Favorite button -->
             <ImageButton
                 android:id="@+id/btnFavorite"
                 android:layout_width="32dp"
                 android:layout_height="32dp"
-                android:layout_marginTop="4dp"
-                android:layout_marginEnd="8dp"
                 android:background="?attr/selectableItemBackground"
                 android:src="@drawable/ic_favorite"
                 app:tint="@color/colorOnSurfaceVariant" />
 
-            <!-- Queue button -->
             <ImageButton
                 android:id="@+id/btnQueue"
-                android:layout_marginTop="4dp"
                 android:layout_width="32dp"
                 android:layout_height="32dp"
-                android:layout_marginEnd="8dp"
+                android:layout_marginStart="2dp"
                 android:background="?attr/selectableItemBackground"
                 android:src="@drawable/button_ic_queue_add"
                 app:tint="@color/colorOnSurfaceVariant" />
 
-            <!-- Play/Pause button -->
             <ImageButton
                 android:id="@+id/btnPlayback"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_marginStart="4dp"
                 android:background="?attr/selectableItemBackground"
                 android:src="@drawable/ic_play_circle"
                 app:tint="@color/colorAccentBlue" />

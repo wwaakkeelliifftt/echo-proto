@@ -5,6 +5,8 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.echo_proto.data.local.prefs.EpisodeDisplayOptions
+import com.example.echo_proto.data.local.prefs.SettingsManager
 import com.example.echo_proto.domain.model.Episode
 import com.example.echo_proto.domain.repository.FeedRepository
 import com.example.echo_proto.util.Constants
@@ -12,6 +14,7 @@ import com.example.echo_proto.util.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
@@ -19,7 +22,8 @@ import javax.inject.Inject
 @HiltViewModel
 class FeedViewModel @Inject constructor(
     private val repository: FeedRepository,
-    private val sharedPreferences: SharedPreferences
+    private val sharedPreferences: SharedPreferences,
+    private val settingsManager: SettingsManager
 ): ViewModel() {
 
     private val _rssFeed = MutableLiveData(listOf<Episode>())
@@ -28,11 +32,12 @@ class FeedViewModel @Inject constructor(
     private val _rssFeedPersonal = MutableLiveData(listOf<Episode>())
     val rssFeedPersonal: LiveData<List<Episode>> get() = _rssFeedPersonal
 
+    // 🔧 RESTORED: Filter state for Personal Feed (used by FeedFilterListDialogFragment)
     private val _filterStringsSet = MutableLiveData(emptySet<String>())
     val filterStringsSet: LiveData<Set<String>> get() = _filterStringsSet
 
-    private val _notifyAdapterUpdateFlag = MutableLiveData(false)
-    val notifyAdapterUpdateFlag: LiveData<Boolean> get() = _notifyAdapterUpdateFlag
+    private val _isLoading = MutableLiveData(false)
+    val isLoading: LiveData<Boolean> get() = _isLoading
 
     private val _snackbarMessage = MutableLiveData("")
     val snackbarMessage: LiveData<String> get() =  _snackbarMessage
@@ -40,31 +45,28 @@ class FeedViewModel @Inject constructor(
     private val _isDatabaseEmptyDialog = MutableLiveData(false)
     val isDatabaseEmptyDialog: LiveData<Boolean> get() = _isDatabaseEmptyDialog
 
-    private val _isLoading = MutableLiveData(false)
-    val isLoading: LiveData<Boolean> get() = _isLoading
+    // Display options from SettingsManager
+    val displayOptions: StateFlow<EpisodeDisplayOptions> = settingsManager.getOptionsFlow("feed")
 
     private var searchJob: Job? = null
+    private var _searchQuery = MutableLiveData<String?>(null)
+    val searchQuery: LiveData<String?> get() = _searchQuery
 
-    fun updateFeedRss(): Boolean {
-        viewModelScope.launch {
-            repository.updateFeedRss().collect { resource ->
-                when (resource) {
-                    is Resource.Loading -> _isLoading.postValue(true)
-                    is Resource.Success -> {
-                        _rssFeed.postValue(resource.data ?: emptyList())
-                        _isLoading.postValue(false)
-                    }
-                    is Resource.Error -> {
-                        _snackbarMessage.postValue(resource.message.toString())
-                        _isLoading.postValue(false)
-                    }
-                }
-            }
-        }
-        return false
+    init {
+        getRssFeedFromDatabase()
+        // Initialize filters from Prefs
+        val filterSet = sharedPreferences.getStringSet(Constants.SHARED_PREFERENCES_INIT_KEY, emptySet()) ?: emptySet()
+        _filterStringsSet.value = filterSet
+        refreshRssFeedPersonal()
+    }
+
+    fun updateDisplayOptions(options: EpisodeDisplayOptions) {
+        settingsManager.saveDisplayOptions("feed", options)
     }
 
     fun getRssFeedFromDatabase() {
+        if (!_searchQuery.value.isNullOrEmpty()) return
+        
         viewModelScope.launch {
             repository.getRssFeedFromDatabase().collect { resource ->
                 when (resource) {
@@ -77,19 +79,45 @@ class FeedViewModel @Inject constructor(
                         _isLoading.postValue(false)
                         if (resource.message == Constants.DATABASE_EMPTY_MESSAGE && _isDatabaseEmptyDialog.value == false) {
                             _isDatabaseEmptyDialog.postValue(true)
-                            return@collect
                         }
-                        _snackbarMessage.postValue(resource.message.toString())
                     }
                 }
             }
         }
     }
 
+    fun searchByQuery(query: String) {
+        _searchQuery.value = query
+        searchJob?.cancel()
+        searchJob = viewModelScope.launch {
+            delay(300L)
+            repository.searchByQuery(query).collect { resource ->
+                if (resource is Resource.Success) {
+                    _rssFeed.postValue(resource.data ?: emptyList())
+                }
+            }
+        }
+    }
+
+    fun clearSearch() {
+        _searchQuery.value = null
+        getRssFeedFromDatabase()
+    }
+
+    fun updateFeedRss(): Boolean {
+        viewModelScope.launch {
+            repository.updateFeedRss().collect { resource ->
+                if (resource is Resource.Success) {
+                    _rssFeed.postValue(resource.data ?: emptyList())
+                }
+            }
+        }
+        return false
+    }
+
+    // 🔧 RESTORED: Personal Feed Filtering Logic
     fun refreshRssFeedPersonal() {
-        val filterSet = sharedPreferences.getStringSet(Constants.SHARED_PREFERENCES_INIT_KEY, emptySet()) ?: emptySet()
-        _filterStringsSet.value = filterSet
-        
+        val filterSet = _filterStringsSet.value ?: emptySet()
         if (filterSet.isEmpty()) {
             _rssFeedPersonal.postValue(emptyList())
             return
@@ -109,67 +137,43 @@ class FeedViewModel @Inject constructor(
         }
     }
 
-    init {
-        getRssFeedFromDatabase()
+    fun addNewFilterToRssFeedPersonalFilters(newFilter: String) {
+        val updatedFilterSet = _filterStringsSet.value?.plus(newFilter) ?: setOf(newFilter)
+        _filterStringsSet.value = updatedFilterSet
+        refreshRssFeedPersonal()
     }
 
-    fun initDatabaseMessageSuccess() = _isDatabaseEmptyDialog.postValue(false)
-
-    fun changeEpisodeInQueueStatus(position: Int, source: LiveData<List<Episode>>) {
-        viewModelScope.launch {
-            source.value?.getOrNull(position)?.let { episode ->
-                repository.changeEpisodeQueueStatus(id = episode.id)
-            }
-        }
+    fun removeFilterFromRssFeedPersonal(filter: String) {
+        val updatedFilterSet = _filterStringsSet.value?.minus(filter) ?: emptySet()
+        _filterStringsSet.value = updatedFilterSet
+        refreshRssFeedPersonal()
     }
 
-    fun searchByQuery(query: String) {
-        searchJob?.cancel()
-        searchJob = viewModelScope.launch {
-            delay(300L)
-            repository.searchByQuery(query).collect { resource ->
-                when (resource) {
-                    is Resource.Loading -> Timber.d("QUERY LOADING ->> $query")
-                    is Resource.Success -> {
-                        _rssFeed.postValue(resource.data ?: emptyList())
-                    }
-                    is Resource.Error -> {
-                        if (resource.message == Constants.DATABASE_SEARCH_QUERY_RESULT_IS_EMPTY) {
-                             _rssFeed.postValue(emptyList())
-                        }
-                        _snackbarMessage.postValue(resource.message.toString())
-                    }
-                }
-            }
-        }
+    fun saveRssFeedPersonalFiltersIntoSharedPref() {
+        sharedPreferences.edit()
+            .putStringSet(Constants.SHARED_PREFERENCES_INIT_KEY, _filterStringsSet.value)
+            .apply()
     }
 
-    fun selectEpisodeField(position: Int): Int {
-        val currentList = _rssFeed.value?.toMutableList() ?: return 0
+    // --- Action Mode Logic ---
+
+    fun selectEpisodeField(position: Int) {
+        val currentList = _rssFeed.value?.toMutableList() ?: return
         currentList.getOrNull(position)?.let { episode ->
-            val newEpisodeState = episode.copy(isSelected = !episode.isSelected)
-            currentList[position] = newEpisodeState
+            currentList[position] = episode.copy(isSelected = !episode.isSelected)
             _rssFeed.postValue(currentList)
-            return currentList.count { it.isSelected }
         }
-        return getSelectedEpisodesCount()
-    }
-
-    fun getSelectedEpisodesCount(): Int {
-        return _rssFeed.value?.count { it.isSelected } ?: 0
     }
 
     fun unselectAllFields() {
         val currentList = _rssFeed.value ?: return
-        val newList = currentList.map { it.copy(isSelected = false) }
-        _rssFeed.postValue(newList)
+        _rssFeed.postValue(currentList.map { it.copy(isSelected = false) })
     }
 
     fun addSelectedEpisodesToQueue() {
         viewModelScope.launch {
-            val toQueueList = _rssFeed.value?.filter { it.isSelected } ?: emptyList()
-            toQueueList.forEach { episode ->
-                repository.changeEpisodeQueueStatus(episode.id)
+            _rssFeed.value?.filter { it.isSelected }?.forEach { 
+                repository.changeEpisodeQueueStatus(it.id)
             }
             getRssFeedFromDatabase()
         }
@@ -181,35 +185,5 @@ class FeedViewModel @Inject constructor(
             .apply()
     }
 
-    fun addNewFilterToRssFeedPersonalFilters(newFilter: String) {
-        val updatedFilterSet = filterStringsSet.value?.plus(newFilter) ?: setOf(newFilter)
-        _filterStringsSet.postValue(updatedFilterSet)
-        sharedPreferences.edit()
-            .putStringSet(Constants.SHARED_PREFERENCES_INIT_KEY, updatedFilterSet)
-            .apply()
-        refreshRssFeedPersonal()
-    }
-
-    fun removeFilterFromRssFeedPersonal(filter: String) {
-        val updatedFilterSet = filterStringsSet.value?.minus(filter) ?: emptySet()
-        _filterStringsSet.postValue(updatedFilterSet)
-        sharedPreferences.edit()
-            .putStringSet(Constants.SHARED_PREFERENCES_INIT_KEY, updatedFilterSet)
-            .apply()
-        refreshRssFeedPersonal()
-    }
-
-    fun saveRssFeedPersonalFiltersIntoSharedPref() {
-        sharedPreferences.edit()
-            .putStringSet(Constants.SHARED_PREFERENCES_INIT_KEY, filterStringsSet.value)
-            .apply()
-    }
-
-    fun clearRssFeedPersonalFilters() {
-        _filterStringsSet.postValue(emptySet())
-        sharedPreferences.edit()
-            .remove(Constants.SHARED_PREFERENCES_INIT_KEY)
-            .apply()
-        refreshRssFeedPersonal()
-    }
+    fun initDatabaseMessageSuccess() = _isDatabaseEmptyDialog.postValue(false)
 }

@@ -3,6 +3,7 @@ package com.example.echo_proto.ui.fragments
 import android.annotation.SuppressLint
 import android.os.Bundle
 import android.view.*
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.SearchView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
@@ -15,6 +16,7 @@ import com.example.echo_proto.databinding.FragmentFeedBinding
 import com.example.echo_proto.domain.model.Episode
 import com.example.echo_proto.ui.adapters.*
 import com.example.echo_proto.ui.dialogs.EmptyDatabaseDialogFragment
+import com.example.echo_proto.ui.dialogs.DisplaySettingsBottomSheet
 import com.example.echo_proto.ui.viewmodels.FeedViewModel
 import com.example.echo_proto.ui.viewmodels.MainViewModel
 import com.example.echo_proto.util.Constants
@@ -23,8 +25,10 @@ import timber.log.Timber
 import androidx.core.view.MenuHost
 import androidx.core.view.MenuProvider
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
 import com.example.echo_proto.ui.common.observePlaybackState
 import com.example.echo_proto.ui.common.ActionModeHelper
+import kotlinx.coroutines.flow.collectLatest
 
 @AndroidEntryPoint
 class FeedFragment : Fragment(), ItemZoneTouchHandler {
@@ -50,24 +54,41 @@ class FeedFragment : Fragment(), ItemZoneTouchHandler {
         viewModel.getRssFeedFromDatabase()
         
         setupRecyclerView()
-        
-        binding.swipeRefreshFeed.setOnRefreshListener {
-            swipeToUpdate()
-        }
+        observeViewModel()
+        setupMenu()
+    }
+
+    private fun observeViewModel() {
+        binding.swipeRefreshFeed.setOnRefreshListener { viewModel.updateFeedRss() }
 
         viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
             binding.swipeRefreshFeed.isRefreshing = isLoading
         }
 
         viewModel.rssFeed.observe(viewLifecycleOwner) { list ->
-            Timber.d("🎯 FEED_FRAGMENT: RSS feed observed, list size=${list.size}")
-            val feedItems = feedAdapter.submitFeedItems(list)
+            // Update items whenever data changes
+            feedAdapter.submitFeedItems(list)
             
             if (isActionModeActive) {
-                val selectedCount = feedItems.count { it is EpisodeFeedAdapterV2.FeedItem.Episode && it.episode.isSelected }
+                val selectedCount = feedAdapter.actualList.count { it is EpisodeFeedAdapterV2.FeedItem.Episode && it.episode.isSelected }
                 actionMode?.title = "Selected: $selectedCount"
-                if (selectedCount == 0) {
-                    actionMode?.finish()
+                if (selectedCount == 0) actionMode?.finish()
+            }
+        }
+
+        // Observe display options for this screen
+        viewLifecycleOwner.lifecycleScope.launchWhenStarted {
+            viewModel.displayOptions.collectLatest { options ->
+                val oldOptions = feedAdapter.actualList.any { it is EpisodeFeedAdapterV2.FeedItem.DateHeader }
+                val newOptions = options.showDateHeaders
+                
+                // 🔧 FIX: If header visibility changed, we MUST re-submit items to rebuild list structure
+                feedAdapter.updateDisplayOptions(options)
+                
+                if (oldOptions != newOptions) {
+                    viewModel.rssFeed.value?.let { list ->
+                        feedAdapter.submitFeedItems(list)
+                    }
                 }
             }
         }
@@ -77,13 +98,11 @@ class FeedFragment : Fragment(), ItemZoneTouchHandler {
                 EmptyDatabaseDialogFragment().apply {
                     setListener { viewModel.updateFeedRss() }
                 }.show(parentFragmentManager, Constants.DATABASE_EMPTY_TAG)
-
                 viewModel.initDatabaseMessageSuccess()
             }
         }
 
         observePlaybackState(mainViewModel, feedAdapter)
-        setupMenu()
     }
 
     private fun setupRecyclerView() {
@@ -92,54 +111,60 @@ class FeedFragment : Fragment(), ItemZoneTouchHandler {
             layoutManager = LinearLayoutManager(requireContext())
             adapter = feedAdapter
             itemAnimator = null
-            
-            // 🔧 ADDED: Sticky Header Decoration
             addItemDecoration(StickyHeaderDecoration(feedAdapter))
 
             onItemClick { position ->
-                if (isActionModeActive) {
-                    val item = feedAdapter.actualList.getOrNull(position)
-                    if (item is EpisodeFeedAdapterV2.FeedItem.Episode) {
+                val item = feedAdapter.actualList.getOrNull(position)
+                if (item is EpisodeFeedAdapterV2.FeedItem.Episode) {
+                    if (isActionModeActive) {
                         viewModel.selectEpisodeField(position)
-                    }
-                } else {
-                    val item = feedAdapter.actualList.getOrNull(position)
-                    if (item is EpisodeFeedAdapterV2.FeedItem.Episode) {
+                    } else {
                         navigateToEpisodeDetailScreen(item.episode)
                     }
                 }
             }
+
             onLongItemClick { position ->
                 if (!isActionModeActive) {
-                    val item = feedAdapter.actualList.getOrNull(position)
-                    if (item is EpisodeFeedAdapterV2.FeedItem.Episode) {
-                        actionModeHelper = ActionModeHelper(
-                            R.menu.menu_feed_action_mode,
-                            onActionItemClicked = { itemId -> handleActionModeItemClick(itemId) },
-                            onDestroyActionMode = { handleActionModeDestroy() }
-                        )
-                        actionMode = requireActivity().startActionMode(actionModeHelper)
-                        isActionModeActive = true
-                        feedAdapter.isActionModeActive = true
-                        viewModel.selectEpisodeField(position)
-                    }
-                } else {
-                    actionMode?.finish()
+                    showItemActionDialog(position)
                 }
             }
         }
     }
 
-    private fun swipeToUpdate() {
-        viewModel.updateFeedRss()
+    private fun showItemActionDialog(position: Int) {
+        val options = arrayOf("Display Settings", "Multiple Choice Selection")
+        AlertDialog.Builder(requireContext())
+            .setTitle("Episode Actions")
+            .setItems(options) { _, which ->
+                when (which) {
+                    0 -> openDisplaySettings()
+                    1 -> startSelectionMode(position)
+                }
+            }
+            .show()
+    }
+
+    private fun openDisplaySettings() {
+        DisplaySettingsBottomSheet.newInstance("feed").show(parentFragmentManager, DisplaySettingsBottomSheet.TAG)
+    }
+
+    private fun startSelectionMode(position: Int) {
+        actionModeHelper = ActionModeHelper(
+            R.menu.menu_feed_action_mode,
+            onActionItemClicked = { itemId -> handleActionModeItemClick(itemId) },
+            onDestroyActionMode = { handleActionModeDestroy() }
+        )
+        actionMode = requireActivity().startActionMode(actionModeHelper)
+        isActionModeActive = true
+        feedAdapter.isActionModeActive = true
+        viewModel.selectEpisodeField(position)
     }
 
     private fun handleActionModeItemClick(itemId: Int) {
-        when (itemId) {
-            R.id.amFeed_AddToQueue -> {
-                viewModel.addSelectedEpisodesToQueue()
-                actionMode?.finish()
-            }
+        if (itemId == R.id.amFeed_AddToQueue) {
+            viewModel.addSelectedEpisodesToQueue()
+            actionMode?.finish()
         }
     }
 
@@ -159,39 +184,24 @@ class FeedFragment : Fragment(), ItemZoneTouchHandler {
         override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
             menu.clear()
             menuInflater.inflate(R.menu.menu_top_feed, menu)
-            configureSearch(menu)
-        }
-
-        override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
-            return when (menuItem.itemId) {
-                R.id.mabFeedUpdate -> {
-                    viewModel.updateFeedRss()
-                    true
-                }
-                else -> false
-            }
-        }
-
-        private fun configureSearch(menu: Menu) {
             val searchItem = menu.findItem(R.id.mabFeedSearch)
             val searchView = searchItem?.actionView as? SearchView ?: return
             searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
-                override fun onQueryTextSubmit(query: String?): Boolean {
-                    if (!query.isNullOrEmpty()) {
-                        viewModel.searchByQuery(query)
-                    }
-                    return true
-                }
-
+                override fun onQueryTextSubmit(query: String?): Boolean = true
                 override fun onQueryTextChange(query: String?): Boolean {
-                    if (!query.isNullOrEmpty()) {
-                        viewModel.searchByQuery(query)
-                    } else if (query?.isEmpty() == true) {
-                        viewModel.getRssFeedFromDatabase()
-                    }
+                    if (!query.isNullOrEmpty()) viewModel.searchByQuery(query)
+                    else viewModel.clearSearch()
                     return true
                 }
             })
+        }
+
+        override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
+            if (menuItem.itemId == R.id.mabFeedUpdate) {
+                viewModel.updateFeedRss()
+                return true
+            }
+            return false
         }
     }
 

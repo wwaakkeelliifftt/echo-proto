@@ -3,7 +3,6 @@ package com.example.echo_proto.ui.fragments
 import android.os.Bundle
 import android.view.*
 import androidx.fragment.app.Fragment
-import androidx.viewpager2.widget.ViewPager2
 import com.example.echo_proto.databinding.ViewpagerFeedHostBinding
 import com.example.echo_proto.ui.adapters.ViewPagerFeedAdapter
 import com.example.echo_proto.ui.adapters.ZoomOutPageTransformer
@@ -39,9 +38,13 @@ class HostFeedPager: Fragment() {
             setPageTransformer(ZoomOutPageTransformer())
             offscreenPageLimit = fragments.size
         }
+        
         TabLayoutMediator(binding.tabLayoutFeedHost, binding.viewPagerFeedHost) { tab, position ->
-            tab.text = feedHostPagerAdapter.fragments[position]::class.java.simpleName
-            tab.badge // todo: new episode counter??
+            tab.text = when(position) {
+                0 -> "ALL"
+                1 -> "FILTERED"
+                else -> "TAB"
+            }
         }.attach()
     }
 
@@ -49,5 +52,4 @@ class HostFeedPager: Fragment() {
         super.onDestroyView()
         _binding = null
     }
-
 }

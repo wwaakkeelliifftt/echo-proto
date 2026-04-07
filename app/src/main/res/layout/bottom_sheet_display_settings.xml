@@ -1,0 +1,269 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/colorSurface">
+
+    <!-- Conventional Drag Handle -->
+    <View
+        android:id="@+id/dragHandleIndicator"
+        android:layout_width="40dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="12dp"
+        android:background="@drawable/bg_optimize_option"
+        android:backgroundTint="@color/colorPrimary" />
+
+    <!-- Fixed Header Section -->
+    <LinearLayout
+        android:id="@+id/headerContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingHorizontal="24dp"
+        android:paddingTop="16dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Display Settings"
+            android:textAppearance="@style/TextAppearance.Material3.TitleLarge"
+            android:textColor="@color/colorPrimary"
+            android:layout_marginBottom="16dp"/>
+
+        <!-- Screen Selection Dropdown -->
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="2dp"
+            android:background="@drawable/bg_optimize_option"
+            android:layout_marginBottom="16dp">
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/menuScreenSelector"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:boxStrokeWidth="0dp"
+                app:boxStrokeWidthFocused="0dp"
+                app:hintEnabled="false">
+
+                <AutoCompleteTextView
+                    android:id="@+id/autoCompleteScreenSelector"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="none"
+                    android:textAppearance="@style/TextAppearance.EpisodeFeed.Title"
+                    android:textColor="@color/colorPrimary"
+                    android:paddingTop="12dp"
+                    android:paddingBottom="12dp"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    tools:text="Feed Screen" />
+
+            </com.google.android.material.textfield.TextInputLayout>
+        </FrameLayout>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="LIVE PREVIEW"
+            android:textAppearance="@style/TextAppearance.EpisodeFeed.Metadata"
+            android:textColor="@color/colorTextSecondary"
+            android:textSize="10sp"
+            android:letterSpacing="0.1"
+            android:layout_marginBottom="8dp"/>
+
+        <LinearLayout
+            android:id="@+id/previewContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@color/colorBackground"
+            android:orientation="vertical"
+            android:padding="8dp">
+            
+            <include
+                android:id="@+id/previewHeader"
+                layout="@layout/item_episode_header_v2" />
+                
+            <include
+                android:id="@+id/previewItem"
+                layout="@layout/item_episode_v2" />
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="16dp"
+            android:background="@color/colorOutlineVariant"
+            android:alpha="0.3" />
+    </LinearLayout>
+
+    <!-- Scrollable Options Section -->
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/optionsScrollView"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="24dp">
+
+            <com.google.android.material.switchmaterial.SwitchMaterial
+                android:id="@+id/switchCompactMode"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Compact Paddings"
+                android:textAppearance="@style/TextAppearance.EpisodeFeed.Title"
+                android:textSize="14sp"
+                android:layout_marginBottom="12dp"
+                app:thumbTint="@color/colorPrimary"
+                app:trackTint="@color/colorInactiveChipBackground"/>
+
+            <com.google.android.material.switchmaterial.SwitchMaterial
+                android:id="@+id/switchImageCover"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Show Image Cover"
+                android:textAppearance="@style/TextAppearance.EpisodeFeed.Title"
+                android:textSize="14sp"
+                android:layout_marginBottom="12dp"
+                app:thumbTint="@color/colorPrimary"
+                app:trackTint="@color/colorInactiveChipBackground"/>
+
+            <com.google.android.material.switchmaterial.SwitchMaterial
+                android:id="@+id/switchDateHeaders"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Show Date Headers"
+                android:textAppearance="@style/TextAppearance.EpisodeFeed.Title"
+                android:textSize="14sp"
+                android:layout_marginBottom="12dp"
+                app:thumbTint="@color/colorPrimary"
+                app:trackTint="@color/colorInactiveChipBackground"/>
+
+            <!-- Metadata Section Group -->
+            <LinearLayout
+                android:id="@+id/containerMetadata"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="12dp"
+                android:layout_marginBottom="12dp"
+                android:background="@drawable/bg_optimize_option">
+
+                <com.google.android.material.switchmaterial.SwitchMaterial
+                    android:id="@+id/switchMetadata"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Show Metadata"
+                    android:textAppearance="@style/TextAppearance.EpisodeFeed.Title"
+                    android:textSize="14sp"
+                    app:thumbTint="@color/colorPrimary"
+                    app:trackTint="@color/colorInactiveChipBackground"/>
+
+                <LinearLayout
+                    android:id="@+id/layoutOptimizeSpace"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginTop="8dp"
+                    android:paddingTop="8dp"
+                    android:visibility="gone">
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="@color/colorOutlineVariant"
+                        android:alpha="0.2"
+                        android:layout_marginBottom="8dp"/>
+
+                    <com.google.android.material.switchmaterial.SwitchMaterial
+                        android:id="@+id/switchOptimizeSpace"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Optimize Space (Ultra Compact)"
+                        android:textAppearance="@style/TextAppearance.EpisodeFeed.Title"
+                        android:textColor="@color/colorPrimary"
+                        android:textSize="12sp"
+                        app:thumbTint="@color/colorPrimary"
+                        app:trackTint="@color/colorInactiveChipBackground"/>
+                    
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Removes empty lines and shrinks covers"
+                        android:textAppearance="@style/TextAppearance.EpisodeFeed.Metadata"
+                        android:textSize="9sp"
+                        android:alpha="0.8"
+                        android:textColor="@color/colorTextSecondary"
+                        android:layout_marginStart="4dp"/>
+                </LinearLayout>
+            </LinearLayout>
+
+            <com.google.android.material.switchmaterial.SwitchMaterial
+                android:id="@+id/switchFavorite"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Show Favorite Button"
+                android:textAppearance="@style/TextAppearance.EpisodeFeed.Title"
+                android:textSize="14sp"
+                android:layout_marginBottom="12dp"
+                app:thumbTint="@color/colorPrimary"
+                app:trackTint="@color/colorInactiveChipBackground"/>
+
+            <com.google.android.material.switchmaterial.SwitchMaterial
+                android:id="@+id/switchQueue"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Show Queue Button"
+                android:textAppearance="@style/TextAppearance.EpisodeFeed.Title"
+                android:textSize="14sp"
+                android:layout_marginBottom="24dp"
+                app:thumbTint="@color/colorPrimary"
+                app:trackTint="@color/colorInactiveChipBackground"/>
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+    <!-- Fixed Bottom Action Bar -->
+    <LinearLayout
+        android:id="@+id/bottomActionsContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="24dp"
+        android:background="@color/colorSurface">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnReset"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="wrap_content"
+            android:layout_height="56dp"
+            android:layout_marginEnd="12dp"
+            android:text="Reset"
+            android:textColor="@color/colorPrimary"
+            android:textAppearance="@style/TextAppearance.EpisodeDetail.Button"
+            app:cornerRadius="12dp"
+            app:backgroundTint="@color/colorInactiveChipBackground"/>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnClose"
+            android:layout_width="0dp"
+            android:layout_height="56dp"
+            android:layout_weight="1"
+            android:text="Apply Settings"
+            android:textAppearance="@style/TextAppearance.EpisodeDetail.Button"
+            app:cornerRadius="12dp"
+            app:backgroundTint="@color/colorSurfaceContainerHighest"/>
+
+    </LinearLayout>
+
+</LinearLayout>
