@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.Bundle
 import android.view.*
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.SearchView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
@@ -17,10 +18,10 @@ import com.example.echo_proto.R
 import com.example.echo_proto.databinding.FragmentQueueBinding
 import com.example.echo_proto.domain.model.Episode
 import com.example.echo_proto.ui.adapters.*
+import com.example.echo_proto.ui.dialogs.DisplaySettingsBottomSheet
 import com.example.echo_proto.ui.viewmodels.MainViewModel
 import com.example.echo_proto.ui.viewmodels.QueueViewModel
 import com.example.echo_proto.util.Constants
-import com.example.echo_proto.util.Resource
 import com.example.echo_proto.util.getTimeFromSeconds
 import dagger.hilt.android.AndroidEntryPoint
 import timber.log.Timber
@@ -30,15 +31,17 @@ import androidx.lifecycle.Lifecycle
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.DrawableCompat
 import androidx.core.view.children
+import androidx.lifecycle.lifecycleScope
 import com.example.echo_proto.ui.common.observePlaybackState
+import kotlinx.coroutines.flow.collectLatest
 
 @AndroidEntryPoint
-class QueueFragment : Fragment(), ItemZoneTouchHandler { //, ToolbarConfigurator {
+class QueueFragment : Fragment(), ItemZoneTouchHandler {
 
     private var _binding: FragmentQueueBinding? = null
     private val binding get() = _binding!!
 
-    private lateinit var queueAdapter: FeedAdapter
+    private lateinit var queueAdapter: EpisodeFeedAdapterV2
     private val viewModel by viewModels<QueueViewModel>()
     private val mainViewModel by activityViewModels<MainViewModel>()
 
@@ -67,11 +70,8 @@ class QueueFragment : Fragment(), ItemZoneTouchHandler { //, ToolbarConfigurator
 
     override fun onResume() {
         super.onResume()
-        // Обновляем плейлист при возврате на фрагмент очереди
-        // updatePlaylist() в MediaService проверит, нужно ли реальное обновление
         mainViewModel.refreshPlayerPlaylist()
     }
-
 
     private fun subscribeToObservers() {
         viewModel.rssQueue.observe(viewLifecycleOwner) { queueList ->
@@ -80,10 +80,6 @@ class QueueFragment : Fragment(), ItemZoneTouchHandler { //, ToolbarConfigurator
                 queueAdapter.submitList(emptyList())
                 updatePlayerPlaylistIfNeeded(emptyList())
             } else {
-                Timber.d("OBSERVE_RSS-QUEUE::::::::::::::::::getListUpdate")
-                queueList.forEachIndexed { i, episode->
-                    Timber.d("index=$i, queueIndex=${episode.indexInQueue}, title=${episode.title}")
-                }
                 binding.containerEmptyQueue.visibility = View.GONE
                 queueAdapter.submitList(queueList)
                 updatePlayerPlaylistIfNeeded(queueList)
@@ -101,10 +97,26 @@ class QueueFragment : Fragment(), ItemZoneTouchHandler { //, ToolbarConfigurator
         }
 
         viewModel.isLockedQueue.observe(viewLifecycleOwner) { isLocked ->
-            Timber.d("OBSERVE_SEPARATE:isLockedQueue::status=$isLocked")
             val animate = pendingHandleAnimation
             pendingHandleAnimation = false
             changeQueueLocker(isLocked = isLocked, animateHandles = animate)
+        }
+
+        // Observe display options
+        viewLifecycleOwner.lifecycleScope.launchWhenStarted {
+            viewModel.displayOptions.collectLatest { options ->
+                val oldHasHeaders = queueAdapter.actualList.any { it is EpisodeFeedAdapterV2.FeedItem.DateHeader }
+                val newHasHeaders = options.showDateHeaders
+                
+                queueAdapter.updateDisplayOptions(options)
+                
+                // If grouping changed, we MUST re-submit the list to rebuild FeedItems
+                if (oldHasHeaders != newHasHeaders) {
+                    viewModel.rssQueue.value?.let { list ->
+                        queueAdapter.submitList(list)
+                    }
+                }
+            }
         }
     }
 
@@ -116,7 +128,7 @@ class QueueFragment : Fragment(), ItemZoneTouchHandler { //, ToolbarConfigurator
         val finalAlpha = if (isLocked) 0.15f else 0.8f
         binding.recyclerView.post {
             binding.recyclerView.children.forEach { child ->
-                val handle = child.findViewById<View>(R.id.dragAndDrop) ?: return@forEach
+                val handle = child.findViewById<View>(R.id.dragHandle) ?: return@forEach
                 handle.animate().cancel()
                 handle.alpha = startAlpha
                 handle.scaleX = startScale
@@ -140,10 +152,6 @@ class QueueFragment : Fragment(), ItemZoneTouchHandler { //, ToolbarConfigurator
 
     private fun updatePlayerPlaylistIfNeeded(queueList: List<Episode>) {
         val newSnapshot = queueList.map { it.id }
-        newSnapshot.forEach { id -> Timber.tag("QUEUE").d("new__--__Snapshot::id=$id") }
-        lastQueueIdsSnapshot.forEach { id -> Timber.tag("QUEUE").d("last_____Snapshot::id=$id") }
-        Timber.tag("QUEUE").d("----_____Snapshot::----")
-
         if (newSnapshot != lastQueueIdsSnapshot) {
             lastQueueIdsSnapshot = newSnapshot
             mainViewModel.refreshPlayerPlaylist()
@@ -151,27 +159,16 @@ class QueueFragment : Fragment(), ItemZoneTouchHandler { //, ToolbarConfigurator
     }
 
     private fun setupRecyclerView() {
-        queueAdapter = FeedAdapter(this)
+        queueAdapter = EpisodeFeedAdapterV2(this)
         binding.recyclerView.apply {
             adapter = queueAdapter
             layoutManager = LinearLayoutManager(requireContext())
-            // itemAnimator оставляем для корректной работы drag & drop
-
-            onItemClick {
-                Timber.d("ON_ITEM_CLICK: pos=$it")
-            }
-            onLongItemClick { _ -> }
-
-            queueAdapter.setClickListener { _ ->
-//                Timber.d("CLICK_ON EPISODE TO PLAY: ${episode.title}")
-            }
         }
 
         binding.recyclerView.addOnChildAttachStateChangeListener(object : RecyclerView.OnChildAttachStateChangeListener {
             override fun onChildViewAttachedToWindow(view: View) {
                 syncHandleAlpha(view)
             }
-
             override fun onChildViewDetachedFromWindow(view: View) {}
         })
     }
@@ -179,10 +176,10 @@ class QueueFragment : Fragment(), ItemZoneTouchHandler { //, ToolbarConfigurator
     private fun syncHandleAlpha(child: View? = null) {
         val alpha = queueAdapter.dragHandleAlpha
         if (child != null) {
-            child.findViewById<View>(R.id.dragAndDrop)?.alpha = alpha
+            child.findViewById<View>(R.id.dragHandle)?.alpha = alpha
         } else {
             binding.recyclerView.children.forEach { item ->
-                item.findViewById<View>(R.id.dragAndDrop)?.alpha = alpha
+                item.findViewById<View>(R.id.dragHandle)?.alpha = alpha
             }
         }
     }
@@ -234,11 +231,36 @@ class QueueFragment : Fragment(), ItemZoneTouchHandler { //, ToolbarConfigurator
     }
 
     override fun playPauseStateChanger(episode: Episode) {
-        Timber.d("CLICK_ON EPISODE TO PLAY: ${episode.title}")
-        mainViewModel.playOrToggleEpisode(mediaItem = episode, true) // without "toggle" at this
+        mainViewModel.playOrToggleEpisode(mediaItem = episode, true)
     }
 
-    private fun getSwipeCallback(context: Context, source: ViewModel, adapter: FeedAdapter): SwipeToDeleteCallback_Queue {
+    override fun onEpisodeLongClick(episode: Episode, position: Int) {
+        showItemActionDialog(position)
+    }
+
+    private fun showItemActionDialog(position: Int) {
+        val options = arrayOf("Display Settings", "Multiple Choice Selection")
+        AlertDialog.Builder(requireContext())
+            .setTitle("Episode Actions")
+            .setItems(options) { _, which ->
+                when (which) {
+                    0 -> openDisplaySettings()
+                    1 -> startSelectionMode(position)
+                }
+            }
+            .show()
+    }
+
+    private fun openDisplaySettings() {
+        DisplaySettingsBottomSheet
+            .newInstance(DisplaySettingsBottomSheet.QUEUE_SCREEN)
+            .show(parentFragmentManager, DisplaySettingsBottomSheet.TAG)
+    }
+
+    // todo: need implement
+    private fun startSelectionMode(position: Int) = 100500
+
+    private fun getSwipeCallback(context: Context, source: ViewModel, adapter: EpisodeFeedAdapterV2): SwipeToDeleteCallback_Queue {
         return object : SwipeToDeleteCallback_Queue(context = context, sourceViewModel = source, queueAdapter = adapter) {
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
                 val pos = viewHolder.bindingAdapterPosition
@@ -249,13 +271,6 @@ class QueueFragment : Fragment(), ItemZoneTouchHandler { //, ToolbarConfigurator
                 queueAdapter.notifyItemRemoved(pos)
                 Toast.makeText(requireContext(), "Remove from queue, pos = $pos", Toast.LENGTH_SHORT).show()
             }
-        }
-    }
-
-
-    private fun updateQueueIndexes() {
-        queueAdapter.actualList.forEachIndexed { index, episode ->
-            Timber.d("actualList ------- AFTER: index=$index, episodeIndex=${episode.indexInQueue}, q=${episode.isInQueue}, title=${episode.title}")
         }
     }
 
@@ -275,7 +290,6 @@ class QueueFragment : Fragment(), ItemZoneTouchHandler { //, ToolbarConfigurator
 
     private val queueMenuProvider = object : MenuProvider {
         override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
-            Timber.d(">>>>>>>>>>>-------------onCreateMenu::::QUEUE")
             menu.clear()
             menuInflater.inflate(R.menu.menu_top_queue, menu)
             queueLockMenuItem = menu.findItem(R.id.mabQueueFix)
@@ -296,7 +310,6 @@ class QueueFragment : Fragment(), ItemZoneTouchHandler { //, ToolbarConfigurator
                     viewModel.updateQueueLocker()
                     true
                 }
-
                 else -> false
             }
         }
@@ -321,11 +334,6 @@ class QueueFragment : Fragment(), ItemZoneTouchHandler { //, ToolbarConfigurator
                 }
             })
         }
-    }
-
-    override fun onStop() {
-        super.onStop()
-        updateQueueIndexes()
     }
 
     override fun onDestroyView() {

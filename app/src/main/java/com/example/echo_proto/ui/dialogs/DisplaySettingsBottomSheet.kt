@@ -28,20 +28,21 @@ class DisplaySettingsBottomSheet : BottomSheetDialogFragment() {
     private var _binding: BottomSheetDisplaySettingsBinding? = null
     private val binding get() = _binding!!
 
-    private var initialScreenKey: String = "feed"
-    private var currentScreenKey: String = "feed"
+    private var initialScreenKey: String = FEED_SCREEN
+    private var currentScreenKey: String = FEED_SCREEN
     private lateinit var currentOptions: EpisodeDisplayOptions
 
     private val screenOptions = mapOf(
-        "Queue Screen" to "queue",
-        "Feed Screen" to "feed",
-        "Channels Screen" to "channels",
-        "Downloads Screen" to "downloads"
+        "Main Feed Screen" to FEED_SCREEN,
+        "Personal Feed Screen" to PERSONAL_SCREEN,
+        "Queue Screen" to QUEUE_SCREEN,
+        "Channels Feed Screen" to CHANNELS_SCREEN,
+        "Downloads Screen" to DOWNLOADS_SCREEN
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        initialScreenKey = arguments?.getString(ARG_SCREEN_KEY) ?: "feed"
+        initialScreenKey = arguments?.getString(ARG_SCREEN_KEY) ?: FEED_SCREEN
         currentScreenKey = initialScreenKey
     }
 
@@ -91,7 +92,7 @@ class DisplaySettingsBottomSheet : BottomSheetDialogFragment() {
 
         binding.autoCompleteScreenSelector.setOnItemClickListener { _, _, position, _ ->
             val selectedName = adapter.getItem(position)
-            val newKey = screenOptions[selectedName] ?: "feed"
+            val newKey = screenOptions[selectedName] ?: FEED_SCREEN
             if (newKey != currentScreenKey) {
                 currentScreenKey = newKey
                 currentOptions = settingsManager.loadDisplayOptions(currentScreenKey)
@@ -102,18 +103,15 @@ class DisplaySettingsBottomSheet : BottomSheetDialogFragment() {
     }
 
     private fun setupPreview() {
-        // Bind Header Preview
         val headerBinding = ItemEpisodeHeaderV2Binding.bind(binding.previewHeader.root)
         headerBinding.apply {
             tvDateHeader.text = "TODAY"
             tvEpisodeCount.text = "12 EPISODES"
-            // Reduce divider weight for preview to keep text visible
             val params = viewDivider.layoutParams as ViewGroup.MarginLayoutParams
             params.width = (40 * resources.displayMetrics.density).toInt()
             viewDivider.layoutParams = params
         }
 
-        // Bind Item Preview
         val previewBinding = ItemEpisodeV2Binding.bind(binding.previewItem.root)
         previewBinding.apply {
             tvEpisodeTitle.text = "Preview: The Architecture of Silence"
@@ -166,9 +164,8 @@ class DisplaySettingsBottomSheet : BottomSheetDialogFragment() {
             switchQueue.setOnClickListener(onToggleListener)
 
             btnReset.setOnClickListener {
-                // Reset to default values (using logic from loadDisplayOptions fallback)
                 val defaultOptions = EpisodeDisplayOptions(
-                    showDateHeaders = currentScreenKey == "feed" 
+                    showDateHeaders = currentScreenKey == FEED_SCREEN 
                 )
                 currentOptions = defaultOptions
                 updateSwitchesFromOptions()
@@ -183,7 +180,6 @@ class DisplaySettingsBottomSheet : BottomSheetDialogFragment() {
     }
 
     private fun updatePreviewVisibility(options: EpisodeDisplayOptions) {
-        // Toggle header visibility in preview
         binding.previewHeader.root.visibility = if (options.showDateHeaders) View.VISIBLE else View.GONE
 
         val previewBinding = ItemEpisodeV2Binding.bind(binding.previewItem.root)
@@ -223,6 +219,11 @@ class DisplaySettingsBottomSheet : BottomSheetDialogFragment() {
 
     companion object {
         const val TAG = "DisplaySettingsBottomSheet"
+        const val QUEUE_SCREEN = "queue"
+        const val FEED_SCREEN = "feed"
+        const val PERSONAL_SCREEN = "personal"
+        const val CHANNELS_SCREEN = "channels"
+        const val DOWNLOADS_SCREEN = "downloads"
         private const val ARG_SCREEN_KEY = "arg_screen_key"
 
         fun newInstance(screenKey: String): DisplaySettingsBottomSheet {

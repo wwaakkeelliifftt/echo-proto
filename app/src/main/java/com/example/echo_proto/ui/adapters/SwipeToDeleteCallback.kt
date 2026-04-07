@@ -40,19 +40,16 @@ abstract class SwipeToDeleteCallback(context: Context):
             return
         }
 
-        // Draw the red delete background
         background.color = backgroundColor
         background.setBounds(itemView.right + dX.toInt(), itemView.top, itemView.right, itemView.bottom)
         background.draw(c)
 
-        // Calculate position of delete icon
         val deleteIconTop = itemView.top + (itemHeight - intrinsicHeight) / 2
         val deleteIconMargin = (itemHeight - intrinsicHeight) / 2
         val deleteIconLeft = itemView.right - deleteIconMargin - intrinsicWidth
         val deleteIconRight = itemView.right - deleteIconMargin
         val deleteIconBottom = deleteIconTop + intrinsicHeight
 
-        // Draw the delete icon
         iconDelete.setBounds(deleteIconLeft, deleteIconTop, deleteIconRight, deleteIconBottom)
         iconDelete.draw(c)
 
@@ -72,7 +69,7 @@ abstract class SwipeToDeleteCallback(context: Context):
 abstract class SwipeToDeleteCallback_Queue(
     context: Context,
     private val sourceViewModel: ViewModel,
-    private val queueAdapter: FeedAdapter
+    private val queueAdapter: EpisodeFeedAdapterV2
 ) : ItemTouchHelper.Callback() {
 
     private val iconDelete = ContextCompat.getDrawable(context, R.drawable.button_ic_delete)!!
@@ -109,19 +106,16 @@ abstract class SwipeToDeleteCallback_Queue(
             return
         }
 
-        // Draw the red delete background
         background.color = backgroundColor
         background.setBounds(itemView.right + dX.toInt(), itemView.top, itemView.right, itemView.bottom)
         background.draw(c)
 
-        // Calculate position of delete icon
         val deleteIconTop = itemView.top + (itemHeight - intrinsicHeight) / 2
         val deleteIconMargin = (itemHeight - intrinsicHeight) / 2
         val deleteIconLeft = itemView.right - deleteIconMargin - intrinsicWidth
         val deleteIconRight = itemView.right - deleteIconMargin
         val deleteIconBottom = deleteIconTop + intrinsicHeight
 
-        // Draw the delete icon
         iconDelete.setBounds(deleteIconLeft, deleteIconTop, deleteIconRight, deleteIconBottom)
         iconDelete.draw(c)
 
@@ -132,8 +126,7 @@ abstract class SwipeToDeleteCallback_Queue(
         canvas?.drawRect(left, top, right, bottom, clearPaint)
     }
 
-    // need "off" to modify drag&drop without long press
-    override fun isLongPressDragEnabled(): Boolean = false // super.isLongPressDragEnabled()
+    override fun isLongPressDragEnabled(): Boolean = false
 
     override fun onMove(
         recyclerView: RecyclerView,
@@ -179,9 +172,9 @@ abstract class SwipeToDeleteCallback_Queue(
     override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
         super.clearView(recyclerView, viewHolder)
         viewHolder.itemView.alpha = 1f
-        val items = queueAdapter.currentItems()
+        val episodes = queueAdapter.currentEpisodes()
         (sourceViewModel as? QueueViewModel)?.let { vm ->
-            items.forEachIndexed { index, episode ->
+            episodes.forEachIndexed { index, episode ->
                 vm.updateEpisodeIndex(episodeId = episode.id, newIndex = index)
             }
         }

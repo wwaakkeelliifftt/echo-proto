@@ -272,5 +272,11 @@ class MainViewModel @Inject constructor(
             .apply()
     }
 
+    // добавлена 7.04.26 / нужно почистить все персональные вьюмодели и использовать общий метод отсюда. либо переработать логику перехода и вынести ее куда-нибудь еще
+    fun navigateToDetailWithSharedPref(episodeId: Int) {
+        sharedPreferences.edit()
+            .putInt(Constants.SHARED_PREFERENCE_EPISODE_DETAIL_ID_KEY, episodeId)
+            .apply()
+    }
 
 }

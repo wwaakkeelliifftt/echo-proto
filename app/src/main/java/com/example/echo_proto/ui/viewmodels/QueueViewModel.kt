@@ -5,12 +5,15 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.echo_proto.data.local.prefs.EpisodeDisplayOptions
+import com.example.echo_proto.data.local.prefs.SettingsManager
 import com.example.echo_proto.domain.model.Episode
 import com.example.echo_proto.domain.repository.FeedRepository
 import com.example.echo_proto.util.Constants
 import com.example.echo_proto.util.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
@@ -18,8 +21,9 @@ import javax.inject.Inject
 @HiltViewModel
 class QueueViewModel @Inject constructor(
     private val repository: FeedRepository,
-    private val sharedPreferences: SharedPreferences
-) :ViewModel() {
+    private val sharedPreferences: SharedPreferences,
+    private val settingsManager: SettingsManager
+) : ViewModel() {
 
     private val _rssQueue = MutableLiveData(listOf<Episode>())
     val rssQueue: LiveData<List<Episode>> get() = _rssQueue
@@ -33,6 +37,9 @@ class QueueViewModel @Inject constructor(
     private val _isLockedQueue = MutableLiveData(true)
     val isLockedQueue: LiveData<Boolean> get() = _isLockedQueue
 
+    // Display options for Queue screen
+    val displayOptions: StateFlow<EpisodeDisplayOptions> = settingsManager.getOptionsFlow("queue")
+
     fun updateQueueRss(): Boolean {
         viewModelScope.launch {
             repository.getRssQueueFromDatabase().collect { resource ->
@@ -44,11 +51,8 @@ class QueueViewModel @Inject constructor(
                             ?.sortedBy { it.indexInQueue } ?: emptyList()
                         _rssQueue.postValue(sortedResult)
                         updateQueueStats(sortedResult)
-                        Timber.d("Episodes QUEUE list.size = ${sortedResult.size}")
-                        // Когда очередь обновляется, MediaSource автоматически обновится через Flow
                     }
                     is Resource.Error -> {
-                        Timber.e("Error loading queue: ${resource.message}")
                         val fallback = resource.data?.filter { it.isInQueue } ?: emptyList()
                         _rssQueue.postValue(fallback)
                         updateQueueStats(fallback)
@@ -79,7 +83,6 @@ class QueueViewModel @Inject constructor(
             val episode = source.value?.get(position)
             if (episode != null) {
                 repository.changeEpisodeQueueStatus(id = episode.id)
-                // Очередь обновится автоматически через Flow в updateQueueRss()
             }
         }
     }
@@ -89,14 +92,13 @@ class QueueViewModel @Inject constructor(
             delay(666L)
             repository.searchByQuery(query).collect { resource ->
                 when (resource) {
-                    is Resource.Loading -> Timber.d("QUERY LOADING ->> $query")
+                    is Resource.Loading -> {}
                     is Resource.Success -> {
                         val result = resource.data!!.filter { it.isInQueue }
                         _rssQueue.postValue(result)
                         updateQueueStats(result)
                     }
                     is Resource.Error -> {
-                        Timber.d("QUERY ERROR ->> $query \n\n ${Constants.DATABASE_SEARCH_QUERY_RESULT_IS_EMPTY}")
                         val fallback = resource.data?.filter { it.isInQueue } ?: emptyList()
                         _rssQueue.postValue(fallback)
                         updateQueueStats(fallback)
@@ -116,5 +118,4 @@ class QueueViewModel @Inject constructor(
         _queueCount.postValue(episodes.size)
         _queueDurationSeconds.postValue(episodes.sumOf { it.duration })
     }
-
 }

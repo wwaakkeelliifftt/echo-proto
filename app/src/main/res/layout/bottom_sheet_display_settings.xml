@@ -30,18 +30,18 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Display Settings"
+            android:layout_marginBottom="16dp"
+            android:text="Display settings for screen:"
             android:textAppearance="@style/TextAppearance.Material3.TitleLarge"
-            android:textColor="@color/colorPrimary"
-            android:layout_marginBottom="16dp"/>
+            android:textColor="@color/colorPrimary" />
 
         <!-- Screen Selection Dropdown -->
         <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:padding="2dp"
+            android:layout_marginBottom="16dp"
             android:background="@drawable/bg_optimize_option"
-            android:layout_marginBottom="16dp">
+            android:padding="2dp">
 
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/menuScreenSelector"
@@ -57,10 +57,10 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:inputType="none"
-                    android:textAppearance="@style/TextAppearance.EpisodeFeed.Title"
-                    android:textColor="@color/colorPrimary"
                     android:paddingTop="12dp"
                     android:paddingBottom="12dp"
+                    android:textAppearance="@style/TextAppearance.EpisodeFeed.Title"
+                    android:textColor="@color/colorPrimary"
                     android:textSize="16sp"
                     android:textStyle="bold"
                     tools:text="Feed Screen" />
@@ -71,12 +71,12 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:letterSpacing="0.1"
             android:text="LIVE PREVIEW"
             android:textAppearance="@style/TextAppearance.EpisodeFeed.Metadata"
             android:textColor="@color/colorTextSecondary"
-            android:textSize="10sp"
-            android:letterSpacing="0.1"
-            android:layout_marginBottom="8dp"/>
+            android:textSize="10sp" />
 
         <LinearLayout
             android:id="@+id/previewContainer"
@@ -85,11 +85,11 @@
             android:background="@color/colorBackground"
             android:orientation="vertical"
             android:padding="8dp">
-            
+
             <include
                 android:id="@+id/previewHeader"
                 layout="@layout/item_episode_header_v2" />
-                
+
             <include
                 android:id="@+id/previewItem"
                 layout="@layout/item_episode_v2" />
@@ -99,8 +99,8 @@
             android:layout_width="match_parent"
             android:layout_height="1dp"
             android:layout_marginTop="16dp"
-            android:background="@color/colorOutlineVariant"
-            android:alpha="0.3" />
+            android:alpha="0.3"
+            android:background="@color/colorOutlineVariant" />
     </LinearLayout>
 
     <!-- Scrollable Options Section -->

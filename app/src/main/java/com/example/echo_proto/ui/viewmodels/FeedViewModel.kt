@@ -9,6 +9,7 @@ import com.example.echo_proto.data.local.prefs.EpisodeDisplayOptions
 import com.example.echo_proto.data.local.prefs.SettingsManager
 import com.example.echo_proto.domain.model.Episode
 import com.example.echo_proto.domain.repository.FeedRepository
+import com.example.echo_proto.ui.dialogs.DisplaySettingsBottomSheet
 import com.example.echo_proto.util.Constants
 import com.example.echo_proto.util.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -32,21 +33,18 @@ class FeedViewModel @Inject constructor(
     private val _rssFeedPersonal = MutableLiveData(listOf<Episode>())
     val rssFeedPersonal: LiveData<List<Episode>> get() = _rssFeedPersonal
 
-    // 🔧 RESTORED: Filter state for Personal Feed (used by FeedFilterListDialogFragment)
     private val _filterStringsSet = MutableLiveData(emptySet<String>())
     val filterStringsSet: LiveData<Set<String>> get() = _filterStringsSet
 
     private val _isLoading = MutableLiveData(false)
     val isLoading: LiveData<Boolean> get() = _isLoading
 
-    private val _snackbarMessage = MutableLiveData("")
-    val snackbarMessage: LiveData<String> get() =  _snackbarMessage
-
     private val _isDatabaseEmptyDialog = MutableLiveData(false)
     val isDatabaseEmptyDialog: LiveData<Boolean> get() = _isDatabaseEmptyDialog
 
-    // Display options from SettingsManager
-    val displayOptions: StateFlow<EpisodeDisplayOptions> = settingsManager.getOptionsFlow("feed")
+    // Display options flows for both Feed and Personal Feed
+    val displayOptions: StateFlow<EpisodeDisplayOptions> = settingsManager.getOptionsFlow(DisplaySettingsBottomSheet.FEED_SCREEN)
+    val displayOptionsPersonal: StateFlow<EpisodeDisplayOptions> = settingsManager.getOptionsFlow(DisplaySettingsBottomSheet.PERSONAL_SCREEN)
 
     private var searchJob: Job? = null
     private var _searchQuery = MutableLiveData<String?>(null)
@@ -54,14 +52,9 @@ class FeedViewModel @Inject constructor(
 
     init {
         getRssFeedFromDatabase()
-        // Initialize filters from Prefs
         val filterSet = sharedPreferences.getStringSet(Constants.SHARED_PREFERENCES_INIT_KEY, emptySet()) ?: emptySet()
         _filterStringsSet.value = filterSet
         refreshRssFeedPersonal()
-    }
-
-    fun updateDisplayOptions(options: EpisodeDisplayOptions) {
-        settingsManager.saveDisplayOptions("feed", options)
     }
 
     fun getRssFeedFromDatabase() {
@@ -115,7 +108,6 @@ class FeedViewModel @Inject constructor(
         return false
     }
 
-    // 🔧 RESTORED: Personal Feed Filtering Logic
     fun refreshRssFeedPersonal() {
         val filterSet = _filterStringsSet.value ?: emptySet()
         if (filterSet.isEmpty()) {
@@ -154,8 +146,6 @@ class FeedViewModel @Inject constructor(
             .putStringSet(Constants.SHARED_PREFERENCES_INIT_KEY, _filterStringsSet.value)
             .apply()
     }
-
-    // --- Action Mode Logic ---
 
     fun selectEpisodeField(position: Int) {
         val currentList = _rssFeed.value?.toMutableList() ?: return

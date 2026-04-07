@@ -5,12 +5,15 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.echo_proto.data.local.prefs.EpisodeDisplayOptions
+import com.example.echo_proto.data.local.prefs.SettingsManager
 import com.example.echo_proto.data.remote.FeedChannel
 import com.example.echo_proto.domain.model.Episode
 import com.example.echo_proto.domain.repository.FeedRepository
 import com.example.echo_proto.util.Constants
 import com.example.echo_proto.util.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -19,11 +22,15 @@ import javax.inject.Inject
 @HiltViewModel
 class ChannelViewModel @Inject constructor(
     private val repository: FeedRepository,
-    private val sharedPreferences: SharedPreferences
+    private val sharedPreferences: SharedPreferences,
+    private val settingsManager: SettingsManager
 ): ViewModel() {
 
     private val _rssChannel = MutableLiveData<List<Episode>>(emptyList())
     val rssChannel: LiveData<List<Episode>> get() = _rssChannel
+
+    // Display options for Channels screen
+    val displayOptions: StateFlow<EpisodeDisplayOptions> = settingsManager.getOptionsFlow("channels")
 
     fun getRssChannelFromDatabase(feedChannel: FeedChannel) {
         viewModelScope.launch {
@@ -49,7 +56,6 @@ class ChannelViewModel @Inject constructor(
                 }
             }
         }
-        // todo: need to replace with boolean observer
         return false
     }
 
@@ -58,5 +64,4 @@ class ChannelViewModel @Inject constructor(
             .putInt(Constants.SHARED_PREFERENCE_EPISODE_DETAIL_ID_KEY, episodeId)
             .apply()
     }
-
 }

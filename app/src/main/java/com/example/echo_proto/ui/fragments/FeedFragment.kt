@@ -66,28 +66,29 @@ class FeedFragment : Fragment(), ItemZoneTouchHandler {
         }
 
         viewModel.rssFeed.observe(viewLifecycleOwner) { list ->
-            // Update items whenever data changes
-            feedAdapter.submitFeedItems(list)
+            feedAdapter.submitList(list)
             
             if (isActionModeActive) {
-                val selectedCount = feedAdapter.actualList.count { it is EpisodeFeedAdapterV2.FeedItem.Episode && it.episode.isSelected }
-                actionMode?.title = "Selected: $selectedCount"
-                if (selectedCount == 0) actionMode?.finish()
+                val selectedCount = feedAdapter.currentEpisodes().count { it.isSelected }
+                if (selectedCount == 0) {
+                    actionMode?.finish()
+                } else {
+                    actionMode?.title = "$selectedCount selected"
+                }
             }
         }
 
         // Observe display options for this screen
         viewLifecycleOwner.lifecycleScope.launchWhenStarted {
             viewModel.displayOptions.collectLatest { options ->
-                val oldOptions = feedAdapter.actualList.any { it is EpisodeFeedAdapterV2.FeedItem.DateHeader }
-                val newOptions = options.showDateHeaders
+                val oldHasHeaders = feedAdapter.actualList.any { it is EpisodeFeedAdapterV2.FeedItem.DateHeader }
+                val newHasHeaders = options.showDateHeaders
                 
-                // 🔧 FIX: If header visibility changed, we MUST re-submit items to rebuild list structure
                 feedAdapter.updateDisplayOptions(options)
                 
-                if (oldOptions != newOptions) {
+                if (oldHasHeaders != newHasHeaders) {
                     viewModel.rssFeed.value?.let { list ->
-                        feedAdapter.submitFeedItems(list)
+                        feedAdapter.submitList(list)
                     }
                 }
             }
@@ -112,24 +113,11 @@ class FeedFragment : Fragment(), ItemZoneTouchHandler {
             adapter = feedAdapter
             itemAnimator = null
             addItemDecoration(StickyHeaderDecoration(feedAdapter))
-
-            onItemClick { position ->
-                val item = feedAdapter.actualList.getOrNull(position)
-                if (item is EpisodeFeedAdapterV2.FeedItem.Episode) {
-                    if (isActionModeActive) {
-                        viewModel.selectEpisodeField(position)
-                    } else {
-                        navigateToEpisodeDetailScreen(item.episode)
-                    }
-                }
-            }
-
-            onLongItemClick { position ->
-                if (!isActionModeActive) {
-                    showItemActionDialog(position)
-                }
-            }
         }
+    }
+
+    override fun onEpisodeLongClick(episode: Episode, position: Int) {
+        showItemActionDialog(position)
     }
 
     private fun showItemActionDialog(position: Int) {
@@ -146,7 +134,9 @@ class FeedFragment : Fragment(), ItemZoneTouchHandler {
     }
 
     private fun openDisplaySettings() {
-        DisplaySettingsBottomSheet.newInstance("feed").show(parentFragmentManager, DisplaySettingsBottomSheet.TAG)
+        DisplaySettingsBottomSheet
+            .newInstance(DisplaySettingsBottomSheet.FEED_SCREEN)
+            .show(parentFragmentManager, DisplaySettingsBottomSheet.TAG)
     }
 
     private fun startSelectionMode(position: Int) {

@@ -7,6 +7,7 @@ import android.view.MenuInflater
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.SearchView
 import androidx.core.view.MenuHost
 import androidx.core.view.MenuProvider
@@ -20,15 +21,17 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.echo_proto.R
 import com.example.echo_proto.databinding.FragmentFeedPersonalBinding
 import com.example.echo_proto.domain.model.Episode
-import com.example.echo_proto.ui.adapters.FeedAdapter
+import com.example.echo_proto.ui.adapters.EpisodeFeedAdapterV2
 import com.example.echo_proto.ui.adapters.ItemZoneTouchHandler
 import com.example.echo_proto.ui.dialogs.FeedFilterListDialogFragment
 import com.example.echo_proto.ui.common.observePlaybackState
+import com.example.echo_proto.ui.dialogs.DisplaySettingsBottomSheet
 import com.example.echo_proto.ui.viewmodels.FeedViewModel
 import com.example.echo_proto.ui.viewmodels.MainViewModel
 import com.example.echo_proto.util.Constants
 import dagger.hilt.android.AndroidEntryPoint
-import timber.log.Timber
+import kotlinx.coroutines.flow.collectLatest
+import androidx.lifecycle.lifecycleScope
 
 @AndroidEntryPoint
 class FeedPersonalFragment: Fragment(), ItemZoneTouchHandler {
@@ -36,7 +39,7 @@ class FeedPersonalFragment: Fragment(), ItemZoneTouchHandler {
     private var _binding: FragmentFeedPersonalBinding? = null
     private val binding get() = _binding!!
 
-    private lateinit var feedPersonalAdapter: FeedAdapter
+    private lateinit var feedPersonalAdapter: EpisodeFeedAdapterV2
     private val viewModel by viewModels<FeedViewModel>()
     private val mainViewModel by activityViewModels<MainViewModel>()
 
@@ -59,15 +62,22 @@ class FeedPersonalFragment: Fragment(), ItemZoneTouchHandler {
 
         viewModel.rssFeedPersonal.observe(viewLifecycleOwner) { filterList ->
             feedPersonalAdapter.submitList(filterList)
-            filterList.forEach {
-                Timber.d("FeedPersonalFragment OBSERVE: Episode=${it.title}")
-            }
         }
 
-        if (savedInstanceState != null) {
-            // TODO: runtime crash because Fragment has constructor params. need to fix with @static companion fun
-            // val feedFilterListDialogFragment = parentFragmentManager.findFragmentByTag(Constants.FEED_FILTER_DIALOG_TAG)
-            //         as FeedFilterListDialogFragment?
+        // Observe display options for Personal Feed
+        viewLifecycleOwner.lifecycleScope.launchWhenStarted {
+            viewModel.displayOptionsPersonal.collectLatest { options ->
+                val oldHasHeaders = feedPersonalAdapter.actualList.any { it is EpisodeFeedAdapterV2.FeedItem.DateHeader }
+                val newHasHeaders = options.showDateHeaders
+                
+                feedPersonalAdapter.updateDisplayOptions(options)
+                
+                if (oldHasHeaders != newHasHeaders) {
+                    viewModel.rssFeedPersonal.value?.let { list ->
+                        feedPersonalAdapter.submitList(list)
+                    }
+                }
+            }
         }
 
         observePlaybackState(mainViewModel, feedPersonalAdapter)
@@ -75,8 +85,7 @@ class FeedPersonalFragment: Fragment(), ItemZoneTouchHandler {
     }
 
     private fun setupRecycler() {
-        // todo: null here - interface for drag in queueFragment
-        feedPersonalAdapter = FeedAdapter(this)
+        feedPersonalAdapter = EpisodeFeedAdapterV2(this)
         binding.recyclerViewFeedPersonal.apply {
             adapter = feedPersonalAdapter
             layoutManager = LinearLayoutManager(requireContext())
@@ -87,6 +96,32 @@ class FeedPersonalFragment: Fragment(), ItemZoneTouchHandler {
         val stopRefresh = viewModel.updateFeedRss()
         binding.swipeRefreshFeedPersonal.isRefreshing = stopRefresh
     }
+
+    override fun onEpisodeLongClick(episode: Episode, position: Int) {
+        showItemActionDialog(position)
+    }
+
+    private fun showItemActionDialog(position: Int) {
+        val options = arrayOf("Display Settings", "Multiple Choice Selection")
+        AlertDialog.Builder(requireContext())
+            .setTitle("Episode Actions")
+            .setItems(options) { _, which ->
+                when (which) {
+                    0 -> openDisplaySettings()
+                    1 -> startSelectionMode(position)
+                }
+            }
+            .show()
+    }
+
+    private fun openDisplaySettings() {
+        DisplaySettingsBottomSheet
+            .newInstance(DisplaySettingsBottomSheet.PERSONAL_SCREEN)
+            .show(parentFragmentManager, DisplaySettingsBottomSheet.TAG)
+    }
+
+    // todo: need implement
+    private fun startSelectionMode(position: Int) = 100500
 
     private fun setupMenu() {
         val menuHost: MenuHost = requireActivity()
@@ -111,7 +146,6 @@ class FeedPersonalFragment: Fragment(), ItemZoneTouchHandler {
                     dialog.show(childFragmentManager, Constants.FEED_FILTER_DIALOG_TAG)
                     true
                 }
-
                 else -> false
             }
         }
@@ -150,7 +184,11 @@ class FeedPersonalFragment: Fragment(), ItemZoneTouchHandler {
 
     override val isDraggableFragment: Boolean = false
     override fun onStartDrag(viewHolder: RecyclerView.ViewHolder) { }
-    override fun playPauseStateChanger(episode: Episode) { }
+    
+    override fun playPauseStateChanger(episode: Episode) {
+        mainViewModel.playOrToggleEpisode(episode, true)
+    }
+
     override fun navigateToEpisodeDetailScreen(episode: Episode) {
         viewModel.navigateToDetailWithSharedPref(episode.id)
         findNavController().navigate(R.id.globalActionToEpisodeDetailFragment)
