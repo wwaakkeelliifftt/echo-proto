@@ -17,35 +17,45 @@
         android:id="@+id/container"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingStart="12dp"
+        android:paddingStart="0dp"
         android:paddingTop="16dp"
         android:paddingEnd="12dp"
         android:paddingBottom="16dp">
 
-        <!-- Drag handle (Visible only in Queue with lock off) -->
-        <ImageView
+        <!-- Drag handle area (Exactly 32dp wide for perfect centering) -->
+        <FrameLayout
             android:id="@+id/dragHandle"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
-            android:src="@drawable/ic_drag_indicator"
-            app:tint="@color/colorAccentBlue"
+            android:layout_width="32dp"
+            android:layout_height="0dp"
             android:visibility="gone"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent" />
+            app:layout_constraintBottom_toBottomOf="parent"
+            tools:visibility="visible">
+
+            <ImageView
+                android:layout_width="16dp"
+                android:layout_height="36dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_drag_indicator"
+                app:tint="@color/colorAccentBlue"
+                android:scaleType="fitCenter" />
+        </FrameLayout>
 
         <!-- Episode Cover Image -->
         <com.google.android.material.imageview.ShapeableImageView
             android:id="@+id/ivCover"
             android:layout_width="52dp"
             android:layout_height="52dp"
-            android:layout_marginStart="4dp"
+            android:layout_marginStart="0dp"
+            app:layout_goneMarginStart="12dp"
             android:scaleType="centerCrop"
             android:background="@color/colorSurfaceContainerHighest"
             app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.SmallComponent"
             app:layout_constraintStart_toEndOf="@id/dragHandle"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
+            tools:layout_marginStart="0dp"
             tools:src="@tools:sample/avatars" />
 
         <!-- Episode info container -->

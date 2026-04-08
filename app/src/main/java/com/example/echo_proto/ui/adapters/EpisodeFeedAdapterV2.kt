@@ -1,10 +1,11 @@
 package com.example.echo_proto.ui.adapters
 
+import android.annotation.SuppressLint
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.PorterDuff
-import android.graphics.PorterDuffColorFilter
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import androidx.core.content.ContextCompat
@@ -187,6 +188,7 @@ class EpisodeFeedAdapterV2(
         private val colorSurface = ContextCompat.getColor(itemView.context, R.color.colorSurface)
         private val colorBackground = ContextCompat.getColor(itemView.context, R.color.colorBackground)
 
+        @SuppressLint("ClickableViewAccessibility")
         fun bind(episode: Episode, options: EpisodeDisplayOptions) {
             currentEpisode = episode
             binding.apply {
@@ -207,6 +209,14 @@ class EpisodeFeedAdapterV2(
                 updatePlaybackButton()
                 updateBackgroundAlpha()
                 updateDragHandleVisibility()
+                
+                // Set up touch listener for immediate drag starting
+                dragHandle.setOnTouchListener { _, event ->
+                    if (event.actionMasked == MotionEvent.ACTION_DOWN) {
+                        adapter.itemZoneHandler.onStartDrag(this@EpisodeViewHolder)
+                    }
+                    false
+                }
                 
                 btnPlayback.setOnClickListener { adapter.itemZoneHandler.playPauseStateChanger(episode) }
                 root.setOnClickListener { adapter.itemZoneHandler.navigateToEpisodeDetailScreen(episode) }
@@ -263,7 +273,7 @@ class EpisodeFeedAdapterV2(
         fun updateDragHandleVisibility() {
             val isVisible = adapter.itemZoneHandler.isDraggableFragment && adapter.dragHandleAlpha > 0f
             binding.dragHandle.apply {
-                visibility = if (isVisible) View.VISIBLE else View.INVISIBLE
+                visibility = if (isVisible) View.VISIBLE else View.GONE
                 alpha = adapter.dragHandleAlpha
             }
         }
