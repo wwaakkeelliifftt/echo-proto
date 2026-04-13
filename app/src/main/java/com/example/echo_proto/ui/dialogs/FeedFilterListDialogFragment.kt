@@ -124,7 +124,7 @@ class FeedFilterListDialogFragment : DialogFragment() {
         }
     }
 
-    private fun createNewChip(context: android.content.Context, tagName: String): Chip = Chip(context).apply {
+    private fun createNewChip(context: Context, tagName: String): Chip = Chip(context).apply {
         val chipDrawable = ChipDrawable.createFromAttributes(
             context, null, 0, R.style.FilterChips
         )

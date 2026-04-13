@@ -84,6 +84,7 @@ class DownloadsFragment : Fragment(), ItemZoneTouchHandler {
 
     private fun setupRecyclerView() {
         downloadsAdapter = EpisodeFeedAdapterV2(this)
+        downloadsAdapter.setPlaybackButtonMode(EpisodeFeedAdapterV2.Companion.PlaybackButtonMode.DELETE)
         binding.recyclerView.adapter = downloadsAdapter
         binding.recyclerView.layoutManager = LinearLayoutManager(requireContext())
     }
@@ -142,6 +143,22 @@ class DownloadsFragment : Fragment(), ItemZoneTouchHandler {
     
     override fun playPauseStateChanger(episode: Episode) {
         mainViewModel.playOrToggleEpisode(episode, true)
+    }
+
+    override fun toggleEpisodeFavorite(episode: Episode) {
+        mainViewModel.toggleEpisodeFavorite(episode)
+    }
+
+    override fun toggleEpisodeQueue(episode: Episode) {
+        mainViewModel.toggleEpisodeFavorite(episode)
+    }
+
+    override fun downloadEpisode(episode: Episode) {
+        mainViewModel.downloadEpisode(episode)
+    }
+
+    override fun deleteEpisode(episode: Episode) {
+        mainViewModel.deleteEpisode(episode)
     }
 
     override val isDraggableFragment: Boolean = false

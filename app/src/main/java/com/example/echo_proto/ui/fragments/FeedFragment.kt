@@ -108,6 +108,7 @@ class FeedFragment : Fragment(), ItemZoneTouchHandler {
 
     private fun setupRecyclerView() {
         feedAdapter = EpisodeFeedAdapterV2(this)
+        feedAdapter.setPlaybackButtonMode(EpisodeFeedAdapterV2.Companion.PlaybackButtonMode.DOWNLOAD)
         binding.recyclerViewFeed.apply {
             layoutManager = LinearLayoutManager(requireContext())
             adapter = feedAdapter
@@ -211,5 +212,21 @@ class FeedFragment : Fragment(), ItemZoneTouchHandler {
 
     override fun playPauseStateChanger(episode: Episode) {
         mainViewModel.playOrToggleEpisode(mediaItem = episode, true)
+    }
+
+    override fun toggleEpisodeFavorite(episode: Episode) {
+        mainViewModel.toggleEpisodeFavorite(episode)
+    }
+
+    override fun toggleEpisodeQueue(episode: Episode) {
+        mainViewModel.toggleEpisodeQueue(episode)
+    }
+
+    override fun downloadEpisode(episode: Episode) {
+        mainViewModel.downloadEpisode(episode)
+    }
+
+    override fun deleteEpisode(episode: Episode) {
+        mainViewModel.deleteEpisode(episode)
     }
 }

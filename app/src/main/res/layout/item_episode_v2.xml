@@ -93,7 +93,7 @@
 
         </LinearLayout>
 
-        <!-- Action buttons -->
+        <!-- Action buttons (Unified 32dp size with 4dp padding) -->
         <LinearLayout
             android:id="@+id/actionButtons"
             android:layout_width="wrap_content"
@@ -108,27 +108,30 @@
                 android:id="@+id/btnFavorite"
                 android:layout_width="32dp"
                 android:layout_height="32dp"
-                android:background="?attr/selectableItemBackground"
+                android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@drawable/ic_favorite"
-                app:tint="@color/colorOnSurfaceVariant" />
+                android:scaleType="fitCenter"
+                android:padding="4dp" />
 
             <ImageButton
                 android:id="@+id/btnQueue"
                 android:layout_width="32dp"
                 android:layout_height="32dp"
                 android:layout_marginStart="2dp"
-                android:background="?attr/selectableItemBackground"
+                android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@drawable/button_ic_queue_add"
-                app:tint="@color/colorOnSurfaceVariant" />
+                android:scaleType="fitCenter"
+                android:padding="4dp" />
 
             <ImageButton
                 android:id="@+id/btnPlayback"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
                 android:layout_marginStart="4dp"
-                android:background="?attr/selectableItemBackground"
+                android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@drawable/ic_play_circle"
-                app:tint="@color/colorAccentBlue" />
+                android:scaleType="fitCenter"
+                android:padding="4dp" />
 
         </LinearLayout>
 

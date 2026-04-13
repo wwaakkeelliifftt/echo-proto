@@ -86,6 +86,7 @@ class FeedPersonalFragment: Fragment(), ItemZoneTouchHandler {
 
     private fun setupRecycler() {
         feedPersonalAdapter = EpisodeFeedAdapterV2(this)
+        feedPersonalAdapter.setPlaybackButtonMode(EpisodeFeedAdapterV2.Companion.PlaybackButtonMode.DOWNLOAD)
         binding.recyclerViewFeedPersonal.apply {
             adapter = feedPersonalAdapter
             layoutManager = LinearLayoutManager(requireContext())
@@ -187,6 +188,22 @@ class FeedPersonalFragment: Fragment(), ItemZoneTouchHandler {
     
     override fun playPauseStateChanger(episode: Episode) {
         mainViewModel.playOrToggleEpisode(episode, true)
+    }
+
+    override fun toggleEpisodeFavorite(episode: Episode) {
+        mainViewModel.toggleEpisodeFavorite(episode)
+    }
+
+    override fun toggleEpisodeQueue(episode: Episode) {
+        mainViewModel.toggleEpisodeQueue(episode)
+    }
+
+    override fun downloadEpisode(episode: Episode) {
+        mainViewModel.downloadEpisode(episode)
+    }
+
+    override fun deleteEpisode(episode: Episode) {
+        mainViewModel.deleteEpisode(episode)
     }
 
     override fun navigateToEpisodeDetailScreen(episode: Episode) {

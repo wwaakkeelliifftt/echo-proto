@@ -8,6 +8,7 @@ import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
@@ -18,18 +19,21 @@ import com.example.echo_proto.databinding.ItemEpisodeV2Binding
 import com.example.echo_proto.domain.model.Episode
 import com.example.echo_proto.ui.common.PlaybackStateAware
 import com.example.echo_proto.util.*
+import timber.log.Timber
 
 /**
  * Unified Adapter for Episode Feed V2.
  * Supports date headers, background animations, and various display options.
  */
 class EpisodeFeedAdapterV2(
-    private val itemZoneHandler: ItemZoneTouchHandler
+    private val itemZoneHandler: ItemZoneTouchHandler,
+    initialOptions: EpisodeDisplayOptions = EpisodeDisplayOptions()
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>(), PlaybackStateAware {
     
     private var currentPlayingEpisodeId: Int? = null
     private var isCurrentlyPlaying: Boolean = false
-    private var displayOptions: EpisodeDisplayOptions = EpisodeDisplayOptions()
+    private var displayOptions: EpisodeDisplayOptions = initialOptions
+    private var playbackButtonMode: PlaybackButtonMode = PlaybackButtonMode.PLAY_DOWNLOADED
     
     // Background animation support
     var itemsBackgroundFactor: Float = 0f
@@ -52,13 +56,21 @@ class EpisodeFeedAdapterV2(
     companion object {
         const val TYPE_DATE_HEADER = 0
         const val TYPE_EPISODE = 1
-        
+
         const val PAYLOAD_PLAYBACK = "playback"
         const val PAYLOAD_SELECTED = "selected"
+        const val PAYLOAD_FAVORITE = "favorite"
         const val PAYLOAD_QUEUE = "queue"
         const val PAYLOAD_DISPLAY_OPTIONS = "display_options"
         const val PAYLOAD_BACKGROUND = "background_alpha"
         const val PAYLOAD_DRAG_ALPHA = "drag_alpha"
+
+        enum class PlaybackButtonMode {
+            PLAY_DOWNLOADED,  // Синий play/pause для скачанных эпизодов
+            PLAY_STREAMING,   // Акцентный золотой круг play/pause (QueueFragment)
+            DOWNLOAD,         // Акцентный золотой круг download (FeedFragment, ChannelFragment)
+            DELETE            // Красный круг delete (DownloadsFragment)
+        }
     }
 
     override fun getItemViewType(position: Int): Int {
@@ -93,7 +105,11 @@ class EpisodeFeedAdapterV2(
             if (item is FeedItem.EpisodeItem && holder is EpisodeViewHolder) {
                 val payloadSet = (payloads.firstOrNull() as? Set<*>) ?: payloads.toSet()
                 
+                // 🚀 CRITICAL: Update the internal reference in ViewHolder for subsequent clicks
+                holder.refreshCurrentEpisode(item.episode)
+
                 if (payloadSet.contains(PAYLOAD_DISPLAY_OPTIONS)) holder.updateVisibility(displayOptions)
+                if (payloadSet.contains(PAYLOAD_FAVORITE)) holder.updateFavoriteButton(item.episode.isFavorite)
                 if (payloadSet.contains(PAYLOAD_QUEUE)) holder.updateQueueButton(item.episode.isInQueue)
                 if (payloadSet.contains(PAYLOAD_PLAYBACK)) holder.updatePlaybackButton()
                 if (payloadSet.contains(PAYLOAD_BACKGROUND)) holder.updateBackgroundAlpha()
@@ -105,6 +121,11 @@ class EpisodeFeedAdapterV2(
     fun updateDisplayOptions(newOptions: EpisodeDisplayOptions) {
         this.displayOptions = newOptions
         notifyItemRangeChanged(0, itemCount, PAYLOAD_DISPLAY_OPTIONS)
+    }
+
+    fun setPlaybackButtonMode(mode: PlaybackButtonMode) {
+        this.playbackButtonMode = mode
+        notifyItemRangeChanged(0, itemCount, PAYLOAD_PLAYBACK)
     }
 
     /**
@@ -123,6 +144,8 @@ class EpisodeFeedAdapterV2(
         } else {
             list.forEach { newList.add(FeedItem.EpisodeItem(it)) }
         }
+        
+        Timber.tag("ADAPTER").d("submitList: oldSize=${oldList.size}, newSize=${newList.size}")
         
         val diffCallback = object : DiffUtil.Callback() {
             override fun getOldListSize(): Int = oldList.size
@@ -158,10 +181,38 @@ class EpisodeFeedAdapterV2(
 
     fun moveItem(fromPosition: Int, toPosition: Int) {
         if (fromPosition == toPosition) return
-        if (fromPosition !in items.indices || toPosition !in items.indices) return
+        if (fromPosition !in items.indices || toPosition !in items.indices) {
+            Timber.tag("ADAPTER").e("moveItem: Index out of bounds: from=$fromPosition, to=$toPosition, size=${items.size}")
+            return
+        }
+        
         val item = items.removeAt(fromPosition)
         items.add(toPosition, item)
+        
+        Timber.tag("ADAPTER").d("moveItem: moved from $fromPosition to $toPosition. New sequence IDs: ${items.filterIsInstance<FeedItem.EpisodeItem>().map { it.episode.id }}")
+        
         notifyItemMoved(fromPosition, toPosition)
+    }
+
+    // 🔧 Internal update method for optimistic UI
+    fun updateInternalItemState(episodeId: Int, update: (Episode) -> Episode) {
+        val index = items.indexOfFirst { it is FeedItem.EpisodeItem && it.episode.id == episodeId }
+        if (index != -1) {
+            val oldItem = items[index] as FeedItem.EpisodeItem
+            val newEpisode = update(oldItem.episode)
+            items[index] = FeedItem.EpisodeItem(newEpisode)
+            
+            // Determine what actually changed to send specific payloads
+            if (newEpisode.isFavorite != oldItem.episode.isFavorite) {
+                notifyItemChanged(index, PAYLOAD_FAVORITE)
+            }
+            if (newEpisode.isInQueue != oldItem.episode.isInQueue) {
+                notifyItemChanged(index, PAYLOAD_QUEUE)
+            }
+            if (newEpisode.isDownloaded != oldItem.episode.isDownloaded) {
+                notifyItemChanged(index, PAYLOAD_PLAYBACK)
+            }
+        }
     }
 
     sealed class FeedItem {
@@ -187,6 +238,10 @@ class EpisodeFeedAdapterV2(
         private var currentEpisode: Episode? = null
         private val colorSurface = ContextCompat.getColor(itemView.context, R.color.colorSurface)
         private val colorBackground = ContextCompat.getColor(itemView.context, R.color.colorBackground)
+
+        fun refreshCurrentEpisode(episode: Episode) {
+            currentEpisode = episode
+        }
 
         @SuppressLint("ClickableViewAccessibility")
         fun bind(episode: Episode, options: EpisodeDisplayOptions) {
@@ -218,7 +273,39 @@ class EpisodeFeedAdapterV2(
                     false
                 }
                 
-                btnPlayback.setOnClickListener { adapter.itemZoneHandler.playPauseStateChanger(episode) }
+                // 🔧 ACTION BUTTONS CLICK LISTENERS (Stage 2)
+                btnPlayback.setOnClickListener { 
+                    when (adapter.playbackButtonMode) {
+                        PlaybackButtonMode.PLAY_DOWNLOADED, 
+                        PlaybackButtonMode.PLAY_STREAMING -> adapter.itemZoneHandler.playPauseStateChanger(episode)
+                        PlaybackButtonMode.DOWNLOAD -> {
+                            Toast.makeText(itemView.context, "Starting download: ${episode.title}", Toast.LENGTH_SHORT).show()
+                            // Mock optimistic update for download start
+                            adapter.updateInternalItemState(episode.id) { it.copy(isDownloaded = true) }
+                            adapter.itemZoneHandler.downloadEpisode(episode)
+                        }
+                        PlaybackButtonMode.DELETE -> {
+                            Toast.makeText(itemView.context, "Deleting episode: ${episode.title}", Toast.LENGTH_SHORT).show()
+                            adapter.updateInternalItemState(episode.id) { it.copy(isDownloaded = false) }
+                            adapter.itemZoneHandler.deleteEpisode(episode)
+                        }
+                    }
+                }
+                
+                btnFavorite.setOnClickListener { 
+                    // 🚀 TRULY Optimistic UI update: change the model inside adapter list
+                    val currentStatus = currentEpisode?.isFavorite ?: episode.isFavorite
+                    adapter.updateInternalItemState(episode.id) { it.copy(isFavorite = !currentStatus) }
+                    adapter.itemZoneHandler.toggleEpisodeFavorite(episode)
+                }
+                
+                btnQueue.setOnClickListener { 
+                    // 🚀 TRULY Optimistic UI update: change the model inside adapter list
+                    val currentStatus = currentEpisode?.isInQueue ?: episode.isInQueue
+                    adapter.updateInternalItemState(episode.id) { it.copy(isInQueue = !currentStatus) }
+                    adapter.itemZoneHandler.toggleEpisodeQueue(episode)
+                }
+                
                 root.setOnClickListener { adapter.itemZoneHandler.navigateToEpisodeDetailScreen(episode) }
                 root.setOnLongClickListener { 
                     adapter.itemZoneHandler.onEpisodeLongClick(episode, bindingAdapterPosition)
@@ -256,6 +343,7 @@ class EpisodeFeedAdapterV2(
 
         fun updateFavoriteButton(isFavorite: Boolean) {
             val color = ContextCompat.getColor(itemView.context, if (isFavorite) R.color.colorPrimary else R.color.colorOnSurfaceVariant)
+            binding.btnFavorite.setImageResource(if (isFavorite) R.drawable.ic_favorite else R.drawable.ic_favorite_outline)
             binding.btnFavorite.setColorFilter(color, PorterDuff.Mode.SRC_ATOP)
         }
 
@@ -265,9 +353,36 @@ class EpisodeFeedAdapterV2(
         }
 
         fun updatePlaybackButton() {
-            val isCurrent = currentEpisode?.id == adapter.currentPlayingEpisodeId
-            binding.btnPlayback.setImageResource(if (isCurrent && adapter.isCurrentlyPlaying) R.drawable.ic_pause_circle else R.drawable.ic_play_circle)
-            binding.btnPlayback.setColorFilter(ContextCompat.getColor(itemView.context, R.color.colorAccentBlue), PorterDuff.Mode.SRC_ATOP)
+            val episode = currentEpisode ?: return
+            val isCurrent = episode.id == adapter.currentPlayingEpisodeId
+            
+            // ARCHITECTURAL RULE: Use BLUE for downloaded episodes WITH progress. Use YELLOW/GOLD for others.
+            val useBlueStyle = episode.isDownloaded && episode.stopListeningAt > 0
+
+            when (adapter.playbackButtonMode) {
+                PlaybackButtonMode.PLAY_DOWNLOADED, PlaybackButtonMode.PLAY_STREAMING -> {
+                    binding.btnPlayback.clearColorFilter()
+                    if (useBlueStyle) {
+                        // Blue style for downloaded content with progress
+                        binding.btnPlayback.setImageResource(if (isCurrent && adapter.isCurrentlyPlaying) R.drawable.ic_pause_circle_blue else R.drawable.ic_play_circle)
+                        // If it's the standard ic_play_circle (not blue), we need to tint it blue manually or use a blue drawable
+                        if (!(isCurrent && adapter.isCurrentlyPlaying)) {
+                            binding.btnPlayback.setColorFilter(ContextCompat.getColor(itemView.context, R.color.colorAccentBlue), PorterDuff.Mode.SRC_ATOP)
+                        }
+                    } else {
+                        // Standard gold style
+                        binding.btnPlayback.setImageResource(if (isCurrent && adapter.isCurrentlyPlaying) R.drawable.ic_pause_circle_yellow else R.drawable.ic_play_circle_yellow)
+                    }
+                }
+                PlaybackButtonMode.DOWNLOAD -> {
+                    binding.btnPlayback.clearColorFilter()
+                    binding.btnPlayback.setImageResource(R.drawable.ic_download_circle_yellow)
+                }
+                PlaybackButtonMode.DELETE -> {
+                    binding.btnPlayback.clearColorFilter()
+                    binding.btnPlayback.setImageResource(R.drawable.ic_delete_circle_red)
+                }
+            }
         }
 
         fun updateDragHandleVisibility() {

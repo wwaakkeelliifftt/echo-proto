@@ -28,6 +28,26 @@ interface ItemZoneTouchHandler {
     fun playPauseStateChanger(episode: Episode)
 
     /**
+     * Toggles favorite status for an episode.
+     */
+    fun toggleEpisodeFavorite(episode: Episode)
+
+    /**
+     * Toggles queue status for an episode.
+     */
+    fun toggleEpisodeQueue(episode: Episode)
+
+    /**
+     * Starts downloading an episode.
+     */
+    fun downloadEpisode(episode: Episode)
+
+    /**
+     * Deletes a downloaded episode from storage.
+     */
+    fun deleteEpisode(episode: Episode)
+
+    /**
      * Handles long click on an episode item to show context actions.
      * @param episode The clicked episode.
      * @param position Adapter position.

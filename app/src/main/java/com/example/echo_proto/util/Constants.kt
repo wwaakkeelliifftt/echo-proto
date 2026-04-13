@@ -26,6 +26,7 @@ object Constants {
     const val SHARED_PREFERENCE_PLAYBACK_SPEED_KEY = "playback_speed"
     const val SHARED_PREFERENCE_SPEED_PRESETS_KEY = "playback_speed_presets"
     const val MEDIA_SESSION_ACTION_SET_SPEED = "media_action_set_speed"
+    const val MEDIA_SESSION_ACTION_UPDATE_QUEUE = "media_action_update_queue"
     const val EXTRA_PLAYBACK_SPEED = "extra_playback_speed"
     const val DEFAULT_PLAYBACK_SPEED = 1.0f
     const val PLAYBACK_SPEED_MIN = 0.5f

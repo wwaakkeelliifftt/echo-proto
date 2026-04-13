@@ -107,7 +107,10 @@ class MediaService : MediaBrowserServiceCompat() {
             setPlaybackPreparer(mediaPlaybackPreparer)
             setQueueNavigator(MusicQueueNavigator())
             setPlayer(exoPlayer)
-            setCustomActionProviders(createSetSpeedActionProvider())
+            setCustomActionProviders(
+                createSetSpeedActionProvider(),
+                createUpdateQueueActionProvider()
+            )
         }
 
         mediaPlayerEventListener = MediaPlayerEventListener(this, mediaSession)
@@ -370,6 +373,25 @@ class MediaService : MediaBrowserServiceCompat() {
         }
     }
 
+    private fun createUpdateQueueActionProvider(): CustomActionProvider {
+        return object : CustomActionProvider {
+            override fun onCustomAction(player: Player, action: String, extras: Bundle?) {
+                if (action == Constants.MEDIA_SESSION_ACTION_UPDATE_QUEUE) {
+                    Timber.tag("PLAY").d("🔄 MediaService -> received update queue action")
+                    updatePlaylist()
+                }
+            }
+
+            override fun getCustomAction(player: Player): PlaybackStateCompat.CustomAction? {
+                return PlaybackStateCompat.CustomAction.Builder(
+                    Constants.MEDIA_SESSION_ACTION_UPDATE_QUEUE,
+                    "Update Queue",
+                    R.drawable.ic_menu_play
+                ).build()
+            }
+        }
+    }
+
     /** mozhet v prepare i dobavit' obertku scope ? */
     fun startPlayback(episode: Episode) {
         serviceScope.launch {
@@ -386,7 +408,7 @@ class MediaService : MediaBrowserServiceCompat() {
         serviceScope.launch {
             mediaSource.refreshMediaData()
             // Обновляем плейлист ExoPlayer если он уже инициализирован
-            if (isPlayerInitialized && mediaSource.episodes.isNotEmpty()) {
+            if (mediaSource.episodes.isNotEmpty()) {
                 val currentMediaItemIndex = exoPlayer.currentMediaItemIndex
                 val currentPosition = exoPlayer.currentPosition
                 val wasPlaying = exoPlayer.isPlaying
@@ -406,13 +428,14 @@ class MediaService : MediaBrowserServiceCompat() {
                         currentMediaItemIndex >= currentEpisodes.size
                 
                 if (needsUpdate) {
-                    Timber.d("Updating playlist: ${currentEpisodes.size} episodes (was ${exoPlayer.mediaItemCount}), currentIndex=$currentMediaItemIndex, wasPlaying=$wasPlaying, orderChanged=$playlistOrderChanged")
+                    Timber.tag("PLAY").d("Updating ExoPlayer playlist: ${currentEpisodes.size} episodes (was ${exoPlayer.mediaItemCount}), currentIndex=$currentMediaItemIndex, wasPlaying=$wasPlaying, orderChanged=$playlistOrderChanged")
                     exoPlayer.setMediaSource(mediaSource.asMediaSource(dataSourceFactory = dataSourceFactory))
                     exoPlayer.prepare()
+                    
                     // Восстанавливаем позицию если возможно
                     val currentEpisodeId = currentPlayingEpisode?.id
                         ?: exoPlayer.currentMediaItem?.mediaId?.toIntOrNull()
-                    val targetIndex = currentEpisodeId?.let { newSnapshot.indexOf(it) }
+                    val targetIndex = currentEpisodeId?.let { id -> newSnapshot.indexOf(id) }
                         ?: currentMediaItemIndex.takeIf { it in currentEpisodes.indices }
                         ?: if (currentEpisodes.isNotEmpty()) 0 else -1
                     
@@ -429,7 +452,7 @@ class MediaService : MediaBrowserServiceCompat() {
                     }
                     lastPlaylistSnapshot = newSnapshot
                 } else {
-                    Timber.d("Playlist unchanged (${currentEpisodes.size} episodes), skipping update to prevent unnecessary state changes")
+                    Timber.tag("PLAY").d("ExoPlayer Playlist unchanged (${currentEpisodes.size} episodes), skipping update")
                     lastPlaylistSnapshot = newSnapshot
                 }
             }

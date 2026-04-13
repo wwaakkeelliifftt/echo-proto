@@ -137,7 +137,7 @@ abstract class SwipeToDeleteCallback_Queue(
         val toPosition = target.bindingAdapterPosition
         if (fromPosition == RecyclerView.NO_POSITION || toPosition == RecyclerView.NO_POSITION) return false
 
-        Timber.tag("DRAG").d("from=$fromPosition -> to=$toPosition")
+        Timber.tag("DRAG").d("onMove: from=$fromPosition -> to=$toPosition")
 
         queueAdapter.moveItem(fromPosition, toPosition)
         return true
@@ -172,11 +172,14 @@ abstract class SwipeToDeleteCallback_Queue(
     override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
         super.clearView(recyclerView, viewHolder)
         viewHolder.itemView.alpha = 1f
+        
         val episodes = queueAdapter.currentEpisodes()
+        val episodeIds = episodes.map { it.id }
+        
+        Timber.tag("DRAG").d("clearView: Saving NEW order of ${episodeIds.size} items: $episodeIds")
+        
         (sourceViewModel as? QueueViewModel)?.let { vm ->
-            episodes.forEachIndexed { index, episode ->
-                vm.updateEpisodeIndex(episodeId = episode.id, newIndex = index)
-            }
+            vm.updateFullQueueOrder(episodeIds)
         }
     }
 

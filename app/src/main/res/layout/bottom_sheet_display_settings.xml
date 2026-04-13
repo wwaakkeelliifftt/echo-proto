@@ -139,16 +139,34 @@
                 app:thumbTint="@color/colorPrimary"
                 app:trackTint="@color/colorInactiveChipBackground"/>
 
-            <com.google.android.material.switchmaterial.SwitchMaterial
-                android:id="@+id/switchDateHeaders"
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Show Date Headers"
-                android:textAppearance="@style/TextAppearance.EpisodeFeed.Title"
-                android:textSize="14sp"
-                android:layout_marginBottom="12dp"
-                app:thumbTint="@color/colorPrimary"
-                app:trackTint="@color/colorInactiveChipBackground"/>
+                android:orientation="vertical"
+                android:layout_marginBottom="12dp">
+                
+                <com.google.android.material.switchmaterial.SwitchMaterial
+                    android:id="@+id/switchDateHeaders"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Show Date Headers"
+                    android:textAppearance="@style/TextAppearance.EpisodeFeed.Title"
+                    android:textSize="14sp"
+                    app:thumbTint="@color/colorPrimary"
+                    app:trackTint="@color/colorInactiveChipBackground"/>
+
+                <TextView
+                    android:id="@+id/tvDateHeadersWarning"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Disabled for Queue screen to support drag-handler"
+                    android:textAppearance="@style/TextAppearance.EpisodeFeed.Metadata"
+                    android:textColor="@color/snackbar_error_background"
+                    android:textSize="10sp"
+                    android:layout_marginStart="4dp"
+                    android:visibility="gone"
+                    tools:visibility="visible"/>
+            </LinearLayout>
 
             <!-- Metadata Section Group -->
             <LinearLayout

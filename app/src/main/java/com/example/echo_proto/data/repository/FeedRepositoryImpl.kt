@@ -1,5 +1,6 @@
 package com.example.echo_proto.data.repository
 
+import androidx.room.withTransaction
 import com.example.echo_proto.data.local.FeedDatabase
 import com.example.echo_proto.data.remote.FeedApi
 import com.example.echo_proto.data.remote.FeedChannel
@@ -148,10 +149,30 @@ class FeedRepositoryImpl @Inject constructor(
         db.dao.insertEpisode(episodeNewState)
     }
 
+    override suspend fun changeEpisodeFavoriteStatus(id: Int) {
+        val episode = db.dao.getEpisodeById(id = id)
+        val episodeNewState = episode.copy(isFavorite = !episode.isFavorite)
+        db.dao.insertEpisode(episodeNewState)
+    }
+
     override suspend fun changeEpisodeQueueIndex(id: Int, newPositionIndex: Int) {
         val episode = db.dao.getEpisodeById(id = id)
         val episodeWithNewIndex = episode.copy(indexInQueue = newPositionIndex)
         db.dao.insertEpisode(episodeWithNewIndex)
+    }
+
+    override suspend fun updateQueueOrder(episodeIds: List<Int>) {
+        Timber.d("📦 DRAG: updateQueueOrder starting for ${episodeIds.size} items")
+        db.withTransaction {
+            episodeIds.forEachIndexed { index, id ->
+                val entity = db.dao.getEpisodeById(id)
+                if (entity.indexInQueue != index) {
+                    db.dao.insertEpisode(entity.copy(indexInQueue = index))
+                    Timber.d("📦 DRAG: Updated index for episode $id: $index")
+                }
+            }
+        }
+        Timber.d("📦 DRAG: updateQueueOrder finished")
     }
 
     override fun getRssChannelFromDatabase(channel: FeedChannel): Flow<Resource<List<Episode>>> = flow {

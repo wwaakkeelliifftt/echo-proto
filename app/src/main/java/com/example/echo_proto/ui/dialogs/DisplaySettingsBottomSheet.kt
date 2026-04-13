@@ -133,6 +133,27 @@ class DisplaySettingsBottomSheet : BottomSheetDialogFragment() {
             switchQueue.isChecked = currentOptions.showQueueButton
 
             layoutOptimizeSpace.visibility = if (!currentOptions.showMetadata) View.VISIBLE else View.GONE
+            
+            updateQueueSpecificState()
+        }
+    }
+
+    private fun updateQueueSpecificState() {
+        val isQueue = currentScreenKey == QUEUE_SCREEN
+        binding.apply {
+            if (isQueue) {
+                switchDateHeaders.isEnabled = false
+                switchDateHeaders.isChecked = false
+                switchDateHeaders.alpha = 0.5f
+                tvDateHeadersWarning.visibility = View.VISIBLE
+                
+                // Also update currentOptions since we forced isChecked to false
+                currentOptions = currentOptions.copy(showDateHeaders = false)
+            } else {
+                switchDateHeaders.isEnabled = true
+                switchDateHeaders.alpha = 1.0f
+                tvDateHeadersWarning.visibility = View.GONE
+            }
         }
     }
 
@@ -144,7 +165,7 @@ class DisplaySettingsBottomSheet : BottomSheetDialogFragment() {
                 currentOptions = EpisodeDisplayOptions(
                     isCompactMode = switchCompactMode.isChecked,
                     showImageCover = switchImageCover.isChecked,
-                    showDateHeaders = switchDateHeaders.isChecked,
+                    showDateHeaders = if (currentScreenKey == QUEUE_SCREEN) false else switchDateHeaders.isChecked,
                     showMetadata = switchMetadata.isChecked,
                     isSpaceOptimized = if (!switchMetadata.isChecked) switchOptimizeSpace.isChecked else false,
                     showFavoriteButton = switchFavorite.isChecked,
@@ -167,7 +188,7 @@ class DisplaySettingsBottomSheet : BottomSheetDialogFragment() {
                 val defaultOptions = EpisodeDisplayOptions(
                     showDateHeaders = currentScreenKey == FEED_SCREEN 
                 )
-                currentOptions = defaultOptions
+                currentOptions = if (currentScreenKey == QUEUE_SCREEN) defaultOptions.copy(showDateHeaders = false) else defaultOptions
                 updateSwitchesFromOptions()
                 updatePreviewVisibility(currentOptions)
             }

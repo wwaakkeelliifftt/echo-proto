@@ -23,7 +23,11 @@ interface FeedRepository {
 
     suspend fun changeEpisodeQueueStatus(id: Int)
 
+    suspend fun changeEpisodeFavoriteStatus(id: Int)
+
     suspend fun changeEpisodeQueueIndex(id: Int, newPositionIndex: Int)
+
+    suspend fun updateQueueOrder(episodeIds: List<Int>)
 
     fun getRssChannelFromDatabase(channel: FeedChannel): Flow<Resource<List<Episode>>>
 

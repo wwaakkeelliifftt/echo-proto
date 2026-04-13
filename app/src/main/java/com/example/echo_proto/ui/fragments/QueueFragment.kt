@@ -14,6 +14,7 @@ import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.echo_proto.R
+import com.example.echo_proto.data.local.prefs.EpisodeDisplayOptions
 import com.example.echo_proto.databinding.FragmentQueueBinding
 import com.example.echo_proto.domain.model.Episode
 import com.example.echo_proto.ui.adapters.*
@@ -56,8 +57,8 @@ class QueueFragment : Fragment(), ItemZoneTouchHandler {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         
+        setupRecyclerView() // 🚀 Move this BEFORE subscribeToObservers
         subscribeToObservers()
-        setupRecyclerView()
         viewModel.updateQueueRss()
         setupMenu()
         updateQueueSummary()
@@ -98,16 +99,9 @@ class QueueFragment : Fragment(), ItemZoneTouchHandler {
 
         viewLifecycleOwner.lifecycleScope.launchWhenStarted {
             viewModel.displayOptions.collectLatest { options ->
-                val oldHasHeaders = queueAdapter.actualList.any { it is EpisodeFeedAdapterV2.FeedItem.DateHeader }
-                val newHasHeaders = options.showDateHeaders
-                
-                queueAdapter.updateDisplayOptions(options)
-                
-                if (oldHasHeaders != newHasHeaders) {
-                    viewModel.rssQueue.value?.let { list ->
-                        queueAdapter.submitList(list)
-                    }
-                }
+                // Ensure headers are ALWAYS disabled for Queue Fragment in the adapter
+                val queueSpecificOptions = options.copy(showDateHeaders = false)
+                queueAdapter.updateDisplayOptions(queueSpecificOptions)
             }
         }
     }
@@ -116,12 +110,18 @@ class QueueFragment : Fragment(), ItemZoneTouchHandler {
         val newSnapshot = queueList.map { it.id }
         if (newSnapshot != lastQueueIdsSnapshot) {
             lastQueueIdsSnapshot = newSnapshot
+            mainViewModel.updateQueueInService()
             mainViewModel.refreshPlayerPlaylist()
         }
     }
 
     private fun setupRecyclerView() {
-        queueAdapter = EpisodeFeedAdapterV2(this)
+        // 🚀 Initialize with showDateHeaders = false to prevent UI jump on load
+        queueAdapter = EpisodeFeedAdapterV2(
+            this, 
+            EpisodeDisplayOptions(showDateHeaders = false)
+        )
+        queueAdapter.setPlaybackButtonMode(EpisodeFeedAdapterV2.Companion.PlaybackButtonMode.PLAY_STREAMING)
         binding.recyclerView.apply {
             adapter = queueAdapter
             layoutManager = LinearLayoutManager(requireContext())
@@ -173,6 +173,22 @@ class QueueFragment : Fragment(), ItemZoneTouchHandler {
 
     override fun playPauseStateChanger(episode: Episode) {
         mainViewModel.playOrToggleEpisode(mediaItem = episode, true)
+    }
+
+    override fun toggleEpisodeFavorite(episode: Episode) {
+        mainViewModel.toggleEpisodeFavorite(episode)
+    }
+
+    override fun toggleEpisodeQueue(episode: Episode) {
+        mainViewModel.toggleEpisodeQueue(episode)
+    }
+
+    override fun downloadEpisode(episode: Episode) {
+        mainViewModel.downloadEpisode(episode)
+    }
+
+    override fun deleteEpisode(episode: Episode) {
+        mainViewModel.deleteEpisode(episode)
     }
 
     override fun onEpisodeLongClick(episode: Episode, position: Int) {

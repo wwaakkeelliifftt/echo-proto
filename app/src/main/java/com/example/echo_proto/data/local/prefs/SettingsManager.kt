@@ -50,7 +50,7 @@ class SettingsManager @Inject constructor(
         // Default value for headers depends on screen
         val defaultHeaders = screenKey == "feed"
         
-        return EpisodeDisplayOptions(
+        val options = EpisodeDisplayOptions(
             isCompactMode = prefs.getBoolean("${screenKey}_compact_mode", false),
             showImageCover = prefs.getBoolean("${screenKey}_show_image_cover", true),
             showMetadata = prefs.getBoolean("${screenKey}_show_metadata", true),
@@ -59,23 +59,30 @@ class SettingsManager @Inject constructor(
             showQueueButton = prefs.getBoolean("${screenKey}_show_queue", true),
             showDateHeaders = prefs.getBoolean("${screenKey}_show_date_headers", defaultHeaders)
         )
+
+        // 🔧 ARCHITECTURAL CONSTRAINT: 
+        // Always force-disable headers for Queue screen to prevent drag-and-drop conflicts.
+        return if (screenKey == "queue") options.copy(showDateHeaders = false) else options
     }
 
     /**
      * Save options for a specific screen and notify observers instantly
      */
     fun saveDisplayOptions(screenKey: String, options: EpisodeDisplayOptions) {
+        // Enforce the same constraint on save
+        val finalOptions = if (screenKey == "queue") options.copy(showDateHeaders = false) else options
+
         prefs.edit().apply {
-            putBoolean("${screenKey}_compact_mode", options.isCompactMode)
-            putBoolean("${screenKey}_show_image_cover", options.showImageCover)
-            putBoolean("${screenKey}_show_metadata", options.showMetadata)
-            putBoolean("${screenKey}_is_space_optimized", options.isSpaceOptimized)
-            putBoolean("${screenKey}_show_favorite", options.showFavoriteButton)
-            putBoolean("${screenKey}_show_queue", options.showQueueButton)
-            putBoolean("${screenKey}_show_date_headers", options.showDateHeaders)
+            putBoolean("${screenKey}_compact_mode", finalOptions.isCompactMode)
+            putBoolean("${screenKey}_show_image_cover", finalOptions.showImageCover)
+            putBoolean("${screenKey}_show_metadata", finalOptions.showMetadata)
+            putBoolean("${screenKey}_is_space_optimized", finalOptions.isSpaceOptimized)
+            putBoolean("${screenKey}_show_favorite", finalOptions.showFavoriteButton)
+            putBoolean("${screenKey}_show_queue", finalOptions.showQueueButton)
+            putBoolean("${screenKey}_show_date_headers", finalOptions.showDateHeaders)
             apply()
         }
         
-        flows[screenKey]?.value = options
+        flows[screenKey]?.value = finalOptions
     }
 }

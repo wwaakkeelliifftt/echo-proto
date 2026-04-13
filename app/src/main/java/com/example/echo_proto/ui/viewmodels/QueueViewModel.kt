@@ -78,6 +78,13 @@ class QueueViewModel @Inject constructor(
         }
     }
 
+    fun updateFullQueueOrder(episodeIds: List<Int>) {
+        viewModelScope.launch {
+            Timber.d("📦 DRAG: VM calling updateQueueOrder for ${episodeIds.size} ids")
+            repository.updateQueueOrder(episodeIds)
+        }
+    }
+
     fun changeEpisodeInQueueStatus(position: Int, source: LiveData<List<Episode>>) {
         viewModelScope.launch {
             val episode = source.value?.get(position)

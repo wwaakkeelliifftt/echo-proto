@@ -90,17 +90,41 @@ class MainViewModel @Inject constructor(
             override fun onChildrenLoaded(parentId: String, children: MutableList<MediaBrowserCompat.MediaItem>) {
                 super.onChildrenLoaded(parentId, children)
                 Timber.tag("PLAY").d("✅ Queue playlist refreshed: ${children.size} items")
-                children.forEachIndexed { index, item ->
-                    Timber.tag("PLAY").d("  [$index] id=${item.mediaId}, title=${item.description.title}")
-                }
             }
         })
     }
 
+    fun updateQueueInService() {
+        Timber.tag("PLAY").d("📡 MainViewModel -> sending update queue command to service")
+        mediaServiceConnection.transportControls.sendCustomAction(
+            Constants.MEDIA_SESSION_ACTION_UPDATE_QUEUE,
+            null
+        )
+    }
+
+    fun toggleEpisodeFavorite(episode: Episode) {
+        viewModelScope.launch {
+            repository.changeEpisodeFavoriteStatus(episode.id)
+        }
+    }
+
+    fun toggleEpisodeQueue(episode: Episode) {
+        viewModelScope.launch {
+            repository.changeEpisodeQueueStatus(episode.id)
+        }
+    }
+
+    fun downloadEpisode(episode: Episode) {
+        // TODO: Implement download logic via WorkManager
+        Timber.d("Download requested for: ${episode.title}")
+    }
+
+    fun deleteEpisode(episode: Episode) {
+        // TODO: Implement delete logic
+        Timber.d("Delete requested for: ${episode.title}")
+    }
+
     fun playSingleEpisode(episode: Episode) {
-        // Для одиночного воспроизведения просто используем обычный метод
-        // Эпизод будет воспроизведен, даже если не в очереди
-        // TODO: В будущем можно добавить временный плейлист для одиночных эпизодов
         playOrToggleEpisode(mediaItem = episode, toggle = false)
     }
 
@@ -227,7 +251,6 @@ class MainViewModel @Inject constructor(
 
     private fun updateCurrentPlayerPosition() {
         viewModelScope.launch {
-            // Периодически опрашиваем позицию из MediaController напрямую
             while (true) {
                 try {
                     val playbackState = mediaServiceConnection.playbackState.value
@@ -272,7 +295,6 @@ class MainViewModel @Inject constructor(
             .apply()
     }
 
-    // добавлена 7.04.26 / нужно почистить все персональные вьюмодели и использовать общий метод отсюда. либо переработать логику перехода и вынести ее куда-нибудь еще
     fun navigateToDetailWithSharedPref(episodeId: Int) {
         sharedPreferences.edit()
             .putInt(Constants.SHARED_PREFERENCE_EPISODE_DETAIL_ID_KEY, episodeId)
