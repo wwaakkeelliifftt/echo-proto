@@ -364,11 +364,7 @@ class EpisodeFeedAdapterV2(
                     binding.btnPlayback.clearColorFilter()
                     if (useBlueStyle) {
                         // Blue style for downloaded content with progress
-                        binding.btnPlayback.setImageResource(if (isCurrent && adapter.isCurrentlyPlaying) R.drawable.ic_pause_circle_blue else R.drawable.ic_play_circle)
-                        // If it's the standard ic_play_circle (not blue), we need to tint it blue manually or use a blue drawable
-                        if (!(isCurrent && adapter.isCurrentlyPlaying)) {
-                            binding.btnPlayback.setColorFilter(ContextCompat.getColor(itemView.context, R.color.colorAccentBlue), PorterDuff.Mode.SRC_ATOP)
-                        }
+                        binding.btnPlayback.setImageResource(if (isCurrent && adapter.isCurrentlyPlaying) R.drawable.ic_pause_circle_blue else R.drawable.ic_play_circle_blue)
                     } else {
                         // Standard gold style
                         binding.btnPlayback.setImageResource(if (isCurrent && adapter.isCurrentlyPlaying) R.drawable.ic_pause_circle_yellow else R.drawable.ic_play_circle_yellow)
