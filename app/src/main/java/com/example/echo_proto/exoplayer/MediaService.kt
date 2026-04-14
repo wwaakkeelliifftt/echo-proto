@@ -50,6 +50,7 @@ class MediaService : MediaBrowserServiceCompat() {
     private var lastPlaybackState: Int = PlaybackStateCompat.STATE_NONE
     private var lastPlaybackPosition: Long = 0L
     private var lastPlaybackSpeed: Float = 1f
+    private var lastDbBackupTime: Long = 0L // Track last DB backup save time
 
     @Inject lateinit var mediaSource: MediaSource
     @Inject lateinit var dataSourceFactory: DefaultDataSource.Factory
@@ -143,11 +144,16 @@ class MediaService : MediaBrowserServiceCompat() {
                     val stateChanged = playbackState != lastPlaybackState
                     val speedChanged = abs(currentSpeed - lastPlaybackSpeed) > 0.001f
 
+                    // Отслеживаем изменение playWhenReady (playing -> paused)
+                    val wasPlaying = lastPlaybackState == PlaybackStateCompat.STATE_PLAYING
+                    val isPlaying = playbackState == PlaybackStateCompat.STATE_PLAYING
+                    val playbackStateChangedToPaused = wasPlaying && !isPlaying
+
                     if (stateChanged || positionChanged || speedChanged) {
                         lastPlaybackState = playbackState
                         lastPlaybackPosition = position
                         lastPlaybackSpeed = currentSpeed
-                        
+
                         val playbackStateBuilder = PlaybackStateCompat.Builder()
                             .setState(playbackState, position, currentSpeed)
                             .setActions(
@@ -168,19 +174,28 @@ class MediaService : MediaBrowserServiceCompat() {
                         playbackStateBuilder.addCustomAction(speedAction)
 
                         mediaSession.setPlaybackState(playbackStateBuilder.build())
-                        
-                        // Сохраняем позицию в БД каждые 5 секунд
-                        if (positionChanged && currentPlayingEpisode != null && playWhenReady) {
-                            val currentEpisodeId = currentPlayingEpisode?.id
-                            if (currentEpisodeId != null && position > 0) {
-                                // Сохраняем позицию в миллисекундах
+
+                        // Event-driven DB save strategy:
+                        // 1. Save to DB on pause/stop (when playback state changes from playing to paused)
+                        // 2. Save to DB periodically as backup (every 30 seconds)
+                        // 3. Always save to SharedPreferences (doesn't trigger Flow emissions)
+                        val currentEpisodeId = currentPlayingEpisode?.id
+                        if (currentEpisodeId != null && position > 0) {
+                            val shouldSaveToDb = playbackStateChangedToPaused ||
+                                    (System.currentTimeMillis() - lastDbBackupTime > Constants.DB_BACKUP_SAVE_INTERVAL)
+
+                            if (shouldSaveToDb) {
+                                // Сохраняем позицию в БД
                                 mediaSource.updateEpisodePosition(currentEpisodeId, position)
-                                // Также сохраняем в SharedPreferences для быстрого доступа
-                                sharedPreferences.edit()
-                                    .putString(Constants.SHARED_PREFERENCE_LAST_EPISODE_ID_KEY, currentEpisodeId.toString())
-                                    .putLong(Constants.SHARED_PREFERENCE_LAST_EPISODE_PAUSE_TIME_KEY, position)
-                                    .apply()
+                                lastDbBackupTime = System.currentTimeMillis()
+                                Timber.tag("PLAYBACK").d("DB save: episodeId=$currentEpisodeId, position=$position, reason=${if (playbackStateChangedToPaused) "pause" else "backup"}")
                             }
+
+                            // Всегда сохраняем в SharedPreferences для быстрого доступа (не триггерит Flow emissions)
+                            sharedPreferences.edit()
+                                .putString(Constants.SHARED_PREFERENCE_LAST_EPISODE_ID_KEY, currentEpisodeId.toString())
+                                .putLong(Constants.SHARED_PREFERENCE_LAST_EPISODE_PAUSE_TIME_KEY, position)
+                                .apply()
                         }
                     }
                 } catch (e: Exception) {

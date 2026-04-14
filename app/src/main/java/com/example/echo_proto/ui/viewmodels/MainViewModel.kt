@@ -68,11 +68,21 @@ class MainViewModel @Inject constructor(
                 .putFloat(Constants.SHARED_PREFERENCE_PLAYBACK_SPEED_KEY, speed)
                 .apply()
         }
+
+        // Update position and duration from playbackState (no separate polling loop needed)
+        val position = state?.currentStatePosition ?: 0L
+        if (_currentPlayerPosition.value != position && position > 0) {
+            _currentPlayerPosition.postValue(position)
+        }
+
+        val metadata = currentPlayingEpisodeFromMediaServiceConnection.value
+        val duration = metadata?.getLong(MediaMetadataCompat.METADATA_KEY_DURATION) ?: 0L
+        if (_currentEpisodeDuration.value != duration && duration > 0) {
+            _currentEpisodeDuration.postValue(duration)
+        }
     }
 
     init {
-        updateCurrentPlayerPosition()
-
         _currentPlaybackSpeed.value = sharedPreferences.getFloat(
             Constants.SHARED_PREFERENCE_PLAYBACK_SPEED_KEY,
             Constants.DEFAULT_PLAYBACK_SPEED
@@ -246,29 +256,6 @@ class MainViewModel @Inject constructor(
         } else {
             Timber.tag("PLAY").d("🆕 New episode or not prepared, calling playFromMediaId(${mediaItem.id})...")
             mediaServiceConnection.transportControls.playFromMediaId(mediaItem.id.toString(), null)
-        }
-    }
-
-    private fun updateCurrentPlayerPosition() {
-        viewModelScope.launch {
-            while (true) {
-                try {
-                    val playbackState = mediaServiceConnection.playbackState.value
-                    val position = playbackState?.currentStatePosition ?: 0L
-                    val metadata = currentPlayingEpisodeFromMediaServiceConnection.value
-                    val duration = metadata?.getLong(MediaMetadataCompat.METADATA_KEY_DURATION) ?: 0L
-
-                    if (currentPlayerPosition.value != position && position > 0) {
-                        _currentPlayerPosition.postValue(position)
-                    }
-                    if (currentEpisodeDuration.value != duration && duration > 0) {
-                        _currentEpisodeDuration.postValue(duration)
-                    }
-                } catch (e: Exception) {
-                    Timber.e(e, "Error updating player position")
-                }
-                delay(Constants.UPDATE_PLAYER_POSITION_INTERVAL)
-            }
         }
     }
 

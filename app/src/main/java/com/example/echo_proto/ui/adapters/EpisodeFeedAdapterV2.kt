@@ -10,6 +10,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.core.content.ContextCompat
+import androidx.recyclerview.widget.AsyncListDiffer
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import com.example.echo_proto.R
@@ -34,22 +35,59 @@ class EpisodeFeedAdapterV2(
     private var isCurrentlyPlaying: Boolean = false
     private var displayOptions: EpisodeDisplayOptions = initialOptions
     private var playbackButtonMode: PlaybackButtonMode = PlaybackButtonMode.PLAY_DOWNLOADED
-    
+
+    // Drag & drop protection flag
+    var isDragAndDropActive: Boolean = false
+
     // Background animation support
     var itemsBackgroundFactor: Float = 0f
         set(value) {
             field = value
             notifyItemRangeChanged(0, itemCount, PAYLOAD_BACKGROUND)
         }
-    
+
     // Drag handle alpha support
     var dragHandleAlpha: Float = 0f
         set(value) {
             field = value
             notifyItemRangeChanged(0, itemCount, PAYLOAD_DRAG_ALPHA)
         }
-    
-    private val items = mutableListOf<FeedItem>()
+
+    // AsyncListDiffer for background thread diff calculation
+    private val differCallback = object : DiffUtil.ItemCallback<FeedItem>() {
+        override fun areItemsTheSame(oldItem: FeedItem, newItem: FeedItem): Boolean {
+            return when {
+                oldItem is FeedItem.DateHeader && newItem is FeedItem.DateHeader -> oldItem.date == newItem.date
+                oldItem is FeedItem.EpisodeItem && newItem is FeedItem.EpisodeItem -> oldItem.episode.id == newItem.episode.id
+                else -> false
+            }
+        }
+
+        override fun areContentsTheSame(oldItem: FeedItem, newItem: FeedItem): Boolean {
+            return if (oldItem is FeedItem.EpisodeItem && newItem is FeedItem.EpisodeItem) {
+                // Skip stopListeningAt comparison for non-playing episodes to avoid unnecessary re-binds
+                val oldEpisode = oldItem.episode
+                val newEpisode = newItem.episode
+                val isCurrentEpisode = oldEpisode.id == currentPlayingEpisodeId
+
+                oldEpisode.hasListened == newEpisode.hasListened &&
+                oldEpisode.isInQueue == newEpisode.isInQueue &&
+                oldEpisode.isFavorite == newEpisode.isFavorite &&
+                oldEpisode.isDownloaded == newEpisode.isDownloaded &&
+                // Only compare stopListeningAt for current episode or when transitioning 0 -> >0
+                (isCurrentEpisode || oldEpisode.stopListeningAt == newEpisode.stopListeningAt ||
+                 (oldEpisode.stopListeningAt == 0L && newEpisode.stopListeningAt > 0L) ||
+                 (oldEpisode.stopListeningAt > 0L && newEpisode.stopListeningAt == 0L)) &&
+                oldEpisode.title == newEpisode.title
+            } else {
+                oldItem == newItem
+            }
+        }
+    }
+
+    private val differ = AsyncListDiffer(this, differCallback)
+
+    private val items: List<FeedItem> get() = differ.currentList
     var isActionModeActive: Boolean = false
     val actualList: List<FeedItem> get() = items
 
@@ -135,9 +173,16 @@ class EpisodeFeedAdapterV2(
 
     /**
      * Submits a list of episodes, optionally grouping them by date.
+     * Uses AsyncListDiffer for background thread diff calculation.
+     * Skips updates during drag & drop to prevent conflicts.
      */
     fun submitList(list: List<Episode>): List<FeedItem> {
-        val oldList = ArrayList(items)
+        // Skip updates during drag & drop to prevent conflicts
+        if (isDragAndDropActive) {
+            Timber.tag("ADAPTER").d("submitList: skipped due to active drag & drop")
+            return items
+        }
+
         val newList = mutableListOf<FeedItem>()
 
         if (displayOptions.showDateHeaders) {
@@ -149,41 +194,11 @@ class EpisodeFeedAdapterV2(
         } else {
             list.forEach { newList.add(FeedItem.EpisodeItem(it)) }
         }
-        
-        Timber.tag("ADAPTER").d("submitList: oldSize=${oldList.size}, newSize=${newList.size}")
-        
-        val diffCallback = object : DiffUtil.Callback() {
-            override fun getOldListSize(): Int = oldList.size
-            override fun getNewListSize(): Int = newList.size
-            override fun areItemsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
-                val oldItem = oldList[oldItemPosition]
-                val newItem = newList[newItemPosition]
-                return when {
-                    oldItem is FeedItem.DateHeader && newItem is FeedItem.DateHeader -> oldItem.date == newItem.date
-                    oldItem is FeedItem.EpisodeItem && newItem is FeedItem.EpisodeItem -> oldItem.episode.id == newItem.episode.id
-                    else -> false
-                }
-            }
-            override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
-                val oldItem = oldList[oldItemPosition]
-                val newItem = newList[newItemPosition]
-                return if (oldItem is FeedItem.EpisodeItem && newItem is FeedItem.EpisodeItem) {
-                    oldItem.episode.hasListened == newItem.episode.hasListened && 
-                    oldItem.episode.isInQueue == newItem.episode.isInQueue &&
-                    oldItem.episode.isFavorite == newItem.episode.isFavorite &&
-                    oldItem.episode.isDownloaded == newItem.episode.isDownloaded &&
-                    oldItem.episode.stopListeningAt == newItem.episode.stopListeningAt &&
-                    oldItem.episode.title == newItem.episode.title
-                } else {
-                    oldItem == newItem
-                }
-            }
-        }
-        
-        val diffResult = DiffUtil.calculateDiff(diffCallback)
-        items.clear()
-        items.addAll(newList)
-        diffResult.dispatchUpdatesTo(this)
+
+        Timber.tag("ADAPTER").d("submitList: oldSize=${items.size}, newSize=${newList.size}")
+
+        // AsyncListDiffer handles diff calculation on background thread
+        differ.submitList(newList)
         return newList
     }
 
@@ -199,26 +214,35 @@ class EpisodeFeedAdapterV2(
 
     fun moveItem(fromPosition: Int, toPosition: Int) {
         if (fromPosition == toPosition) return
-        if (fromPosition !in items.indices || toPosition !in items.indices) {
-            Timber.tag("ADAPTER").e("moveItem: Index out of bounds: from=$fromPosition, to=$toPosition, size=${items.size}")
+        val currentList = differ.currentList.toMutableList()
+        if (fromPosition !in currentList.indices || toPosition !in currentList.indices) {
+            Timber.tag("ADAPTER").e("moveItem: Index out of bounds: from=$fromPosition, to=$toPosition, size=${currentList.size}")
             return
         }
-        
-        val item = items.removeAt(fromPosition)
-        items.add(toPosition, item)
-        
-        Timber.tag("ADAPTER").d("moveItem: moved from $fromPosition to $toPosition. New sequence IDs: ${items.filterIsInstance<FeedItem.EpisodeItem>().map { it.episode.id }}")
-        
-        notifyItemMoved(fromPosition, toPosition)
+
+        val item = currentList.removeAt(fromPosition)
+        currentList.add(toPosition, item)
+
+        Timber.tag("ADAPTER").d("moveItem: moved from $fromPosition to $toPosition. New sequence IDs: ${currentList.filterIsInstance<FeedItem.EpisodeItem>().map { it.episode.id }}")
+
+        // Update AsyncListDiffer with new order
+        differ.submitList(currentList)
+    }
+
+    fun onDragAndDropFinished() {
+        isDragAndDropActive = false
+        Timber.tag("ADAPTER").d("onDragAndDropFinished: flag reset")
     }
 
     // 🔧 Internal update method for optimistic UI
     fun updateInternalItemState(episodeId: Int, update: (Episode) -> Episode) {
-        val index = items.indexOfFirst { it is FeedItem.EpisodeItem && it.episode.id == episodeId }
+        val currentList = differ.currentList.toMutableList()
+        val index = currentList.indexOfFirst { it is FeedItem.EpisodeItem && it.episode.id == episodeId }
         if (index != -1) {
-            val oldItem = items[index] as FeedItem.EpisodeItem
+            val oldItem = currentList[index] as FeedItem.EpisodeItem
             val newEpisode = update(oldItem.episode)
-            items[index] = FeedItem.EpisodeItem(newEpisode)
+            currentList[index] = FeedItem.EpisodeItem(newEpisode)
+            differ.submitList(currentList)
             
             // Determine what actually changed to send specific payloads
             if (newEpisode.isFavorite != oldItem.episode.isFavorite) {

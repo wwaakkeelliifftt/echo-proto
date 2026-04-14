@@ -166,18 +166,22 @@ abstract class SwipeToDeleteCallback_Queue(
         super.onSelectedChanged(viewHolder, actionState)
         if (actionState == ItemTouchHelper.ACTION_STATE_DRAG) {
             viewHolder?.itemView?.alpha = 0.75f
+            queueAdapter.isDragAndDropActive = true
         }
     }
 
     override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
         super.clearView(recyclerView, viewHolder)
         viewHolder.itemView.alpha = 1f
-        
+
+        // Reset drag & drop flag to allow background updates
+        queueAdapter.onDragAndDropFinished()
+
         val episodes = queueAdapter.currentEpisodes()
         val episodeIds = episodes.map { it.id }
-        
+
         Timber.tag("DRAG").d("clearView: Saving NEW order of ${episodeIds.size} items: $episodeIds")
-        
+
         (sourceViewModel as? QueueViewModel)?.let { vm ->
             vm.updateFullQueueOrder(episodeIds)
         }

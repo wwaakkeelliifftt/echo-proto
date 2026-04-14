@@ -16,6 +16,7 @@ object Constants {
     const val MEDIA_QUEUE_ID = "queue_id"
 
     const val UPDATE_PLAYER_POSITION_INTERVAL = 500L
+    const val DB_BACKUP_SAVE_INTERVAL = 30000L // 30 seconds
 
     const val SHARED_PREFERENCES_INIT_KEY = "sharedPref"
     const val SHARED_PREFERENCE_EPISODE_DETAIL_ID_KEY = "id_episodeDetail"
