@@ -12,7 +12,7 @@ import com.example.echo_proto.util.Resource
 import com.example.echo_proto.util.getTimeInMillisFromString
 import com.prof.rssparser.Channel
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.distinctUntilChangedBy
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import timber.log.Timber
@@ -126,17 +126,9 @@ class FeedRepositoryImpl @Inject constructor(
     }
 
     override fun getRssQueueFromDatabase(): Flow<Resource<List<Episode>>> = db.dao.getQueueFeedFlow()
-        .distinctUntilChangedBy { entities ->
-            entities.map { Triple(it.id, it.isInQueue, it.indexInQueue) }
-        }
-        .map { episodeEntities ->
-            val result = episodeEntities.map { it.toEpisode() }
-            if (result.isNotEmpty()) {
-                Resource.Success(data = result)
-            } else {
-                Resource.Success(data = emptyList())
-            }
-        }
+        .map { entities -> entities.map { it.toEpisode() } }
+        .distinctUntilChanged()
+        .map { result -> Resource.Success(data = result) }
 
     override suspend fun changeEpisodeQueueStatus(id: Int) {
         val queueSize = db.dao.getQueueFeed().size
@@ -220,15 +212,7 @@ class FeedRepositoryImpl @Inject constructor(
     }
 
     override fun getRssDownloadsFromDatabase(): Flow<Resource<List<Episode>>> = db.dao.getDownloadedEpisodes()
-        .distinctUntilChangedBy { entities ->
-            entities.map { it.id to it.isDownloaded }
-        }
-        .map { episodeEntities ->
-            val result = episodeEntities.map { it.toEpisode() }
-            if (result.isNotEmpty()) {
-                Resource.Success(result)
-            } else {
-                Resource.Success(emptyList())
-            }
-        }
+        .map { entities -> entities.map { it.toEpisode() } }
+        .distinctUntilChanged()
+        .map { result -> Resource.Success(result) }
 }

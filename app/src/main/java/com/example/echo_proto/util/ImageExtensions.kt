@@ -71,6 +71,34 @@ fun ImageView.loadFullScreenBackground(url: String?) {
 }
 
 /**
+ * Загружает маленькую квадратную картинку для bottom playback
+ */
+fun ImageView.loadSmallThumbnail(url: String?, fallbackUrl: String? = null, sizeDp: Int = 48) {
+    val finalUrl = when {
+        !url.isNullOrEmpty() -> url
+        !fallbackUrl.isNullOrEmpty() -> fallbackUrl
+        else -> null
+    }
+
+    if (finalUrl == null) {
+        setImageResource(R.drawable.ic_image_holder)
+        return
+    }
+
+    val px = (sizeDp * resources.displayMetrics.density).toInt()
+
+    Glide.with(this)
+        .load(finalUrl)
+        .transition(DrawableTransitionOptions.withCrossFade())
+        .placeholder(R.drawable.ic_image_holder)
+        .error(R.drawable.ic_image_holder)
+        .centerCrop()
+        .override(px, px)
+        .transform(CenterCrop(), RoundedCorners(8))
+        .into(this)
+}
+
+/**
  * Загружает Bitmap из Uri для системных нужд (например, для нотификации)
  */
 fun Context.loadBitmapFromUri(uri: Uri?, callback: (Bitmap) -> Unit) {

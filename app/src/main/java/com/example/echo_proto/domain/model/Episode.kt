@@ -20,11 +20,8 @@ data class Episode(
     val hasListened: Boolean = false,
     var isSelected: Boolean = false,
     val stopListeningAt: Long = 0L,
-    // TEMP FIX: Add channelId for proper channel filtering
     val channelId: String = "",
-    // TEMP FIX: Add channel image URL
     val channelImageUrl: String = "",
-    // TEMP FIX: Add episode image URL
     val episodeImageUrl: String = ""
 ) {
     fun toEpisodeEntity(): EpisodeEntity {

@@ -47,8 +47,9 @@ class DownloadsFragment : Fragment(), ItemZoneTouchHandler {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         
-        subscribeToObservers()
+        // 🚀 CRITICAL: Initialize RecyclerView and Adapter BEFORE subscribing to observers
         setupRecyclerView()
+        subscribeToObservers()
         observePlaybackState(mainViewModel, downloadsAdapter)
         setupMenu()
     }

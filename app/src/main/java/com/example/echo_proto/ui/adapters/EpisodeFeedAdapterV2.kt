@@ -61,6 +61,7 @@ class EpisodeFeedAdapterV2(
         const val PAYLOAD_SELECTED = "selected"
         const val PAYLOAD_FAVORITE = "favorite"
         const val PAYLOAD_QUEUE = "queue"
+        const val PAYLOAD_LISTENED = "listened"
         const val PAYLOAD_DISPLAY_OPTIONS = "display_options"
         const val PAYLOAD_BACKGROUND = "background_alpha"
         const val PAYLOAD_DRAG_ALPHA = "drag_alpha"
@@ -111,7 +112,11 @@ class EpisodeFeedAdapterV2(
                 if (payloadSet.contains(PAYLOAD_DISPLAY_OPTIONS)) holder.updateVisibility(displayOptions)
                 if (payloadSet.contains(PAYLOAD_FAVORITE)) holder.updateFavoriteButton(item.episode.isFavorite)
                 if (payloadSet.contains(PAYLOAD_QUEUE)) holder.updateQueueButton(item.episode.isInQueue)
-                if (payloadSet.contains(PAYLOAD_PLAYBACK)) holder.updatePlaybackButton()
+                if (payloadSet.contains(PAYLOAD_PLAYBACK)) {
+                    holder.updatePlaybackButton()
+                    holder.updateListenedState() // Update alpha when playback state changes
+                }
+                if (payloadSet.contains(PAYLOAD_LISTENED)) holder.updateListenedState()
                 if (payloadSet.contains(PAYLOAD_BACKGROUND)) holder.updateBackgroundAlpha()
                 if (payloadSet.contains(PAYLOAD_DRAG_ALPHA)) holder.updateDragHandleVisibility()
             }
@@ -159,7 +164,20 @@ class EpisodeFeedAdapterV2(
                     else -> false
                 }
             }
-            override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean = oldList[oldItemPosition] == newList[newItemPosition]
+            override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
+                val oldItem = oldList[oldItemPosition]
+                val newItem = newList[newItemPosition]
+                return if (oldItem is FeedItem.EpisodeItem && newItem is FeedItem.EpisodeItem) {
+                    oldItem.episode.hasListened == newItem.episode.hasListened && 
+                    oldItem.episode.isInQueue == newItem.episode.isInQueue &&
+                    oldItem.episode.isFavorite == newItem.episode.isFavorite &&
+                    oldItem.episode.isDownloaded == newItem.episode.isDownloaded &&
+                    oldItem.episode.stopListeningAt == newItem.episode.stopListeningAt &&
+                    oldItem.episode.title == newItem.episode.title
+                } else {
+                    oldItem == newItem
+                }
+            }
         }
         
         val diffResult = DiffUtil.calculateDiff(diffCallback)
@@ -211,6 +229,9 @@ class EpisodeFeedAdapterV2(
             }
             if (newEpisode.isDownloaded != oldItem.episode.isDownloaded) {
                 notifyItemChanged(index, PAYLOAD_PLAYBACK)
+            }
+            if (newEpisode.hasListened != oldItem.episode.hasListened) {
+                notifyItemChanged(index, PAYLOAD_LISTENED)
             }
         }
     }
@@ -264,6 +285,7 @@ class EpisodeFeedAdapterV2(
                 updatePlaybackButton()
                 updateBackgroundAlpha()
                 updateDragHandleVisibility()
+                updateListenedState()
                 
                 // Set up touch listener for immediate drag starting
                 dragHandle.setOnTouchListener { _, event ->
@@ -386,6 +408,20 @@ class EpisodeFeedAdapterV2(
             binding.dragHandle.apply {
                 visibility = if (isVisible) View.VISIBLE else View.GONE
                 alpha = adapter.dragHandleAlpha
+            }
+        }
+
+        fun updateListenedState() {
+            val episode = currentEpisode ?: return
+            val isCurrent = episode.id == adapter.currentPlayingEpisodeId
+            
+            // Apply dimming for listened episodes in all fragments except QueueFragment
+            // QueueFragment uses PLAY_STREAMING mode and removes listened episodes from queue
+            // ARCHITECTURAL RULE: Current playing episode is NEVER dimmed.
+            if (episode.hasListened && !isCurrent && adapter.playbackButtonMode != PlaybackButtonMode.PLAY_STREAMING) {
+                binding.cardEpisode.alpha = 0.5f
+            } else {
+                binding.cardEpisode.alpha = 1.0f
             }
         }
         

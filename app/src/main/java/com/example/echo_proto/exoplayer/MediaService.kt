@@ -237,51 +237,65 @@ class MediaService : MediaBrowserServiceCompat() {
         exoPlayer.stop()
     }
 
-    fun onEpisodePlaybackEnded() {
+    fun onEpisodePlaybackEnded(isAutoTransition: Boolean = false) {
         serviceScope.launch {
             try {
-                val currentEpisodeId = currentPlayingEpisode?.id
-                val currentEpisodeIndex = exoPlayer.currentMediaItemIndex
-                if (currentEpisodeId != null) {
-                    Timber.d("Episode playback ended: episodeId=$currentEpisodeId, index=$currentEpisodeIndex")
-                    // Помечаем эпизод как прослушанный и удаляем из очереди
-                    mediaSource.markEpisodeAsListened(currentEpisodeId)
-                    // Обновляем плейлист, убирая прослушанный эпизод
+                val finishedEpisodeId = currentPlayingEpisode?.id
+                val currentExoIndex = exoPlayer.currentMediaItemIndex
+                val currentExoPosition = exoPlayer.currentPosition
+                
+                if (finishedEpisodeId != null) {
+                    Timber.tag("PLAY_FLOW").d("Episode finished: id=$finishedEpisodeId, currentExoIndex=$currentExoIndex, isAutoTransition=$isAutoTransition")
+                    
+                    // 1. Помечаем эпизод как прослушанный (это уберет его из очереди в БД)
+                    mediaSource.markEpisodeAsListened(finishedEpisodeId)
+                    
+                    // 2. Обновляем локальный список в mediaSource (он теперь без прослушанного эпизода)
                     mediaSource.refreshMediaData()
                     
-                    // Обновляем плейлист в ExoPlayer после удаления прослушанного эпизода
-                    val wasPlaying = exoPlayer.isPlaying
+                    val newPlaylist = mediaSource.episodes
+                    val wasPlaying = exoPlayer.playWhenReady || exoPlayer.isPlaying
                     
-                    // Обновляем плейлист ExoPlayer
-                    if (mediaSource.episodes.isNotEmpty()) {
-                        exoPlayer.setMediaSource(mediaSource.asMediaSource(dataSourceFactory = dataSourceFactory))
-                        exoPlayer.prepare()
-                        
-                        // После удаления текущего эпизода, следующий эпизод займет его индекс
-                        // Если текущий был не последним, следующий будет на том же индексе
-                        val nextEpisodeIndex = if (currentEpisodeIndex < mediaSource.episodes.size) {
-                            currentEpisodeIndex
+                    if (newPlaylist.isNotEmpty()) {
+                        // Определяем, какой индекс должен быть следующим в НОВОМ плейлисте.
+                        val nextIndexInNewList = if (isAutoTransition) {
+                            (currentExoIndex - 1).coerceAtLeast(0)
                         } else {
-                            // Если текущий был последним, берем предыдущий (или 0 если список пуст)
-                            (mediaSource.episodes.size - 1).coerceAtLeast(0)
+                            currentExoIndex.coerceAtMost(newPlaylist.size - 1)
                         }
                         
-                        if (nextEpisodeIndex >= 0 && nextEpisodeIndex < mediaSource.episodes.size) {
-                            val nextEpisode = mediaSource.episodes[nextEpisodeIndex]
+                        Timber.tag("PLAY_FLOW").d("Updating ExoPlayer with new playlist. nextIndexInNewList=$nextIndexInNewList, size=${newPlaylist.size}")
+                        
+                        // 🔧 FIXED: Use resetPosition = false to avoid unnecessary gaps if possible
+                        // But since we are changing the underlying media source, we still need to seek.
+                        exoPlayer.setMediaSource(mediaSource.asMediaSource(dataSourceFactory = dataSourceFactory), false)
+                        exoPlayer.prepare()
+                        
+                        if (nextIndexInNewList in newPlaylist.indices) {
+                            val nextEpisode = newPlaylist[nextIndexInNewList]
                             currentPlayingEpisode = nextEpisode
-                            exoPlayer.seekTo(nextEpisodeIndex, 0L)
+                            
+                            // 🔧 FIXED: Preserve position if auto-transitioned, to avoid "restart from 0" feel
+                            val seekPosition = if (isAutoTransition) {
+                                // If it's auto-transition, the player already moved forward.
+                                // We take the CURRENT position it managed to reach during DB update.
+                                exoPlayer.currentPosition.coerceAtLeast(currentExoPosition)
+                            } else {
+                                0L
+                            }
+                            
+                            exoPlayer.seekTo(nextIndexInNewList, seekPosition)
                             exoPlayer.playWhenReady = wasPlaying
-                            Timber.d("Auto-playing next episode: ${nextEpisode.title}")
+                            Timber.tag("PLAY_FLOW").d("Playing next: ${nextEpisode.title} at $seekPosition ms")
                         } else {
-                            // Если очередь пуста, останавливаем воспроизведение
+                            Timber.tag("PLAY_FLOW").d("No more episodes to play, stopping.")
                             exoPlayer.stop()
                             currentPlayingEpisode = null
                         }
                     } else {
-                        // Если очередь пуста, останавливаем воспроизведение
+                        Timber.tag("PLAY_FLOW").d("Queue is empty, stopping playback")
                         exoPlayer.stop()
                         currentPlayingEpisode = null
-                        Timber.d("Queue is empty, stopping playback")
                     }
                 }
             } catch (e: Exception) {
@@ -429,7 +443,7 @@ class MediaService : MediaBrowserServiceCompat() {
                 
                 if (needsUpdate) {
                     Timber.tag("PLAY").d("Updating ExoPlayer playlist: ${currentEpisodes.size} episodes (was ${exoPlayer.mediaItemCount}), currentIndex=$currentMediaItemIndex, wasPlaying=$wasPlaying, orderChanged=$playlistOrderChanged")
-                    exoPlayer.setMediaSource(mediaSource.asMediaSource(dataSourceFactory = dataSourceFactory))
+                    exoPlayer.setMediaSource(mediaSource.asMediaSource(dataSourceFactory = dataSourceFactory), false)
                     exoPlayer.prepare()
                     
                     // Восстанавливаем позицию если возможно

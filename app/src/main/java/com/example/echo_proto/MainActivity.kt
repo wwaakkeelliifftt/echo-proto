@@ -19,6 +19,7 @@ import com.example.echo_proto.util.Resource
 import com.example.echo_proto.util.SnackbarHelper
 import com.example.echo_proto.util.getCurrentTimeFromLong
 import com.example.echo_proto.util.getTimeFromSeconds
+import com.example.echo_proto.util.loadSmallThumbnail
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
@@ -169,8 +170,12 @@ class MainActivity : AppCompatActivity() {
     private fun bindEpisodeData(episode: Episode) {
         binding.bottomPlayback.apply {
             tvTitle.text = episode.title
-            tvTotalTime.text = episode.duration.getTimeFromSeconds()
+            tvTotalTime.text = " • ${episode.duration.getTimeFromSeconds()}"
             progressBar.max = episode.duration
+            ivEpisodeThumbnail.loadSmallThumbnail(
+                url = episode.episodeImageUrl,
+                fallbackUrl = episode.channelImageUrl
+            )
         }
     }
 
