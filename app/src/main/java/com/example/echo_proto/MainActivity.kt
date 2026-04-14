@@ -146,7 +146,6 @@ class MainActivity : AppCompatActivity() {
         val currentProgress = (ms / 1000).toInt()
         binding.bottomPlayback.progressBar.progress = currentProgress
         val currentTime = ms.getCurrentTimeFromLong()
-        Timber.d("-------->>>>>>>>curTime=$currentTime")
         binding.bottomPlayback.tvCurrentTime.text = currentTime
     }
 

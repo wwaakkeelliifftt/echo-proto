@@ -258,10 +258,20 @@ class MediaService : MediaBrowserServiceCompat() {
                 val finishedEpisodeId = currentPlayingEpisode?.id
                 val currentExoIndex = exoPlayer.currentMediaItemIndex
                 val currentExoPosition = exoPlayer.currentPosition
-                
+
                 if (finishedEpisodeId != null) {
                     Timber.tag("PLAY_FLOW").d("Episode finished: id=$finishedEpisodeId, currentExoIndex=$currentExoIndex, isAutoTransition=$isAutoTransition")
-                    
+
+                    // Save final position to DB before marking as listened
+                    if (currentExoPosition > 0) {
+                        mediaSource.updateEpisodePosition(finishedEpisodeId, currentExoPosition)
+                        sharedPreferences.edit()
+                            .putString(Constants.SHARED_PREFERENCE_LAST_EPISODE_ID_KEY, finishedEpisodeId.toString())
+                            .putLong(Constants.SHARED_PREFERENCE_LAST_EPISODE_PAUSE_TIME_KEY, currentExoPosition)
+                            .apply()
+                        Timber.tag("PLAY_FLOW").d("Saved final position: episodeId=$finishedEpisodeId, position=$currentExoPosition")
+                    }
+
                     // 1. Помечаем эпизод как прослушанный (это уберет его из очереди в БД)
                     mediaSource.markEpisodeAsListened(finishedEpisodeId)
                     

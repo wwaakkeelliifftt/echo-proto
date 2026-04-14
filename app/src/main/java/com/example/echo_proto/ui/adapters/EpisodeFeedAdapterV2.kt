@@ -32,6 +32,7 @@ class EpisodeFeedAdapterV2(
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>(), PlaybackStateAware {
     
     private var currentPlayingEpisodeId: Int? = null
+    private var previousPlayingEpisodeId: Int? = null
     private var isCurrentlyPlaying: Boolean = false
     private var displayOptions: EpisodeDisplayOptions = initialOptions
     private var playbackButtonMode: PlaybackButtonMode = PlaybackButtonMode.PLAY_DOWNLOADED
@@ -43,6 +44,8 @@ class EpisodeFeedAdapterV2(
     var itemsBackgroundFactor: Float = 0f
         set(value) {
             field = value
+            // Note: Updating only visible items requires RecyclerView reference
+            // For now keeping full update as this is P2 optimization
             notifyItemRangeChanged(0, itemCount, PAYLOAD_BACKGROUND)
         }
 
@@ -203,9 +206,47 @@ class EpisodeFeedAdapterV2(
     }
 
     override fun updatePlaybackState(playingEpisodeId: Int?, isPlaying: Boolean) {
+        previousPlayingEpisodeId = currentPlayingEpisodeId
         currentPlayingEpisodeId = playingEpisodeId
         isCurrentlyPlaying = isPlaying
-        notifyItemRangeChanged(0, itemCount, PAYLOAD_PLAYBACK)
+
+        // Update only the old and new track positions instead of entire list
+        val positionsToUpdate = mutableListOf<Int>()
+
+        // Find position of previous playing episode
+        previousPlayingEpisodeId?.let { oldId ->
+            val oldPosition = items.indexOfFirst { it is FeedItem.EpisodeItem && it.episode.id == oldId }
+            if (oldPosition != -1) {
+                positionsToUpdate.add(oldPosition)
+            }
+        }
+
+        // Find position of current playing episode
+        playingEpisodeId?.let { newId ->
+            val newPosition = items.indexOfFirst { it is FeedItem.EpisodeItem && it.episode.id == newId }
+            if (newPosition != -1 && newPosition !in positionsToUpdate) {
+                positionsToUpdate.add(newPosition)
+            }
+        }
+
+        // If track changed, update only specific positions
+        if (positionsToUpdate.isNotEmpty() && previousPlayingEpisodeId != playingEpisodeId) {
+            positionsToUpdate.forEach { position ->
+                notifyItemChanged(position, PAYLOAD_PLAYBACK)
+            }
+            Timber.tag("ADAPTER").d("updatePlaybackState: updated positions $positionsToUpdate (old=$previousPlayingEpisodeId, new=$playingEpisodeId)")
+        } else if (previousPlayingEpisodeId == playingEpisodeId) {
+            // Same track, just play/pause state changed - update only current position
+            playingEpisodeId?.let { id ->
+                val position = items.indexOfFirst { it is FeedItem.EpisodeItem && it.episode.id == id }
+                if (position != -1) {
+                    notifyItemChanged(position, PAYLOAD_PLAYBACK)
+                }
+            }
+        } else {
+            // Fallback: update all items (should rarely happen)
+            notifyItemRangeChanged(0, itemCount, PAYLOAD_PLAYBACK)
+        }
     }
 
     fun currentEpisodes(): List<Episode> {

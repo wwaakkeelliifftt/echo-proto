@@ -230,7 +230,7 @@ class MainViewModel @Inject constructor(
     fun playOrToggleEpisode(mediaItem: Episode, toggle: Boolean = false) {
         val isPrepared = playbackState.value?.isPrepared ?: false
         val currentMediaId = currentPlayingEpisodeFromMediaServiceConnection.value?.getString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID)
-        
+
         Timber.tag("PLAY").d("🎮 playOrToggleEpisode called")
         Timber.tag("PLAY").d("Episode: id=${mediaItem.id}, mediaId=${mediaItem.mediaId}, title=${mediaItem.title}")
         Timber.tag("PLAY").d("Player state: isPrepared=$isPrepared, currentMediaId=$currentMediaId")
@@ -254,6 +254,26 @@ class MainViewModel @Inject constructor(
                 }
             }
         } else {
+            // Save current episode position before switching to new episode
+            val currentPosition = playbackState.value?.currentStatePosition ?: 0L
+            val currentEpisodeId = currentPlayingEpisodeFromMediaServiceConnection.value?.getString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID)?.toIntOrNull()
+            if (currentEpisodeId != null && currentPosition > 0 && currentEpisodeId != mediaItem.id) {
+                viewModelScope.launch {
+                    try {
+                        // Save to DB via repository
+                        repository.updateEpisodePosition(currentEpisodeId, currentPosition)
+                        // Also save to SharedPreferences for quick access
+                        sharedPreferences.edit()
+                            .putString(Constants.SHARED_PREFERENCE_LAST_EPISODE_ID_KEY, currentEpisodeId.toString())
+                            .putLong(Constants.SHARED_PREFERENCE_LAST_EPISODE_PAUSE_TIME_KEY, currentPosition)
+                            .apply()
+                        Timber.tag("PLAY").d("💾 Saved position before switch: episodeId=$currentEpisodeId, position=$currentPosition")
+                    } catch (e: Exception) {
+                        Timber.e(e, "Error saving position before episode switch")
+                    }
+                }
+            }
+
             Timber.tag("PLAY").d("🆕 New episode or not prepared, calling playFromMediaId(${mediaItem.id})...")
             mediaServiceConnection.transportControls.playFromMediaId(mediaItem.id.toString(), null)
         }

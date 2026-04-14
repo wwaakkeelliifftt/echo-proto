@@ -167,6 +167,10 @@ class FeedRepositoryImpl @Inject constructor(
         Timber.d("📦 DRAG: updateQueueOrder finished")
     }
 
+    override suspend fun updateEpisodePosition(episodeId: Int, position: Long) {
+        db.dao.updateEpisodePosition(episodeId, position)
+    }
+
     override fun getRssChannelFromDatabase(channel: FeedChannel): Flow<Resource<List<Episode>>> = flow {
         emit(Resource.Loading())
         try {
