@@ -24,6 +24,9 @@ import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
 import timber.log.Timber
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
@@ -61,7 +64,6 @@ class MainActivity : AppCompatActivity() {
         setupBottomSheet()
         setupClickListeners()
         subscribeToObservers()
-
     }
 
     override fun onSupportNavigateUp(): Boolean {
@@ -85,7 +87,6 @@ class MainActivity : AppCompatActivity() {
         binding.bottomPlayback.apply {
             ivPlayPause.setOnClickListener { onPlayPauseClickListener.invoke() }
         }
-
     }
 
     private fun subscribeToObservers() {
@@ -93,7 +94,7 @@ class MainActivity : AppCompatActivity() {
             if (metadataEpisode == null) return@observe
             metadataEpisode.description.mediaId?.toInt()?.let { id ->
                 mainViewModel.getCurrentPlayEpisode(id = id)
-                Timber.d("MainActivity::subscribeToObservers:mediaId=$id")
+                Timber.tag("PLAY").d("MainActivity: metadata changed, mediaId=$id")
             }
         }
         mainViewModel.currentEpisodeFromDb.observe(this) { episode ->
@@ -108,20 +109,27 @@ class MainActivity : AppCompatActivity() {
         }
         mainViewModel.currentPlayerPosition.observe(this) { setCurrentTimeToTextView(ms = it) }
 
-        // observer for handling error only
-        mainViewModel.isConnected.observe(this) {
-            it?.getContentIfNotHandled()?.let { result ->
-                when (result) {
-                    is Resource.Error ->
-                        Snackbar.make(
-                            binding.root,
-                            result.message ?: "connection error was happened..",
-                            Snackbar.LENGTH_LONG
-                        ).show()
-                    else -> Unit
+        mainViewModel.isConnected.observe(this) { event ->
+            val resource = event?.peekContent()
+            if (resource is Resource.Success && resource.data == true) {
+                Timber.tag("PLAY").d("MainActivity: Media connected, initiating refresh after delay")
+                lifecycleScope.launch {
+                    delay(800)
+                    mainViewModel.refreshPlayerPlaylist()
+                }
+            }
+            
+            event?.getContentIfNotHandled()?.let { result ->
+                if (result is Resource.Error) {
+                    Snackbar.make(
+                        binding.root,
+                        result.message ?: "connection error was happened..",
+                        Snackbar.LENGTH_LONG
+                    ).show()
                 }
             }
         }
+        
         mainViewModel.networkError.observe(this) { event ->
             event?.getContentIfNotHandled()?.let { result ->
                 when (result) {

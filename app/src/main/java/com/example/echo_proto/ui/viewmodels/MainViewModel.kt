@@ -69,7 +69,6 @@ class MainViewModel @Inject constructor(
                 .apply()
         }
 
-        // Update position and duration from playbackState (no separate polling loop needed)
         val position = state?.currentStatePosition ?: 0L
         if (_currentPlayerPosition.value != position && position > 0) {
             _currentPlayerPosition.postValue(position)
@@ -93,8 +92,11 @@ class MainViewModel @Inject constructor(
     }
 
     fun refreshPlayerPlaylist() {
+        if (mediaServiceConnection.mediaController == null) {
+            Timber.tag("PLAY").w("⚠️ Cannot refresh playlist: mediaController is null")
+            return
+        }
         Timber.tag("PLAY").d("🔄 refreshPlayerPlaylist() called")
-        // Обновляем подписку на MEDIA_QUEUE_ID для обновления MediaSource и плейлиста
         mediaServiceConnection.unsubscribe(Constants.MEDIA_QUEUE_ID, object : MediaBrowserCompat.SubscriptionCallback() {})
         mediaServiceConnection.subscribe(Constants.MEDIA_QUEUE_ID, object : MediaBrowserCompat.SubscriptionCallback() {
             override fun onChildrenLoaded(parentId: String, children: MutableList<MediaBrowserCompat.MediaItem>) {
@@ -105,8 +107,13 @@ class MainViewModel @Inject constructor(
     }
 
     fun updateQueueInService() {
+        val controls = mediaServiceConnection.transportControls
+        if (controls == null) {
+            Timber.tag("PLAY").w("⚠️ Cannot update queue: transportControls is null")
+            return
+        }
         Timber.tag("PLAY").d("📡 MainViewModel -> sending update queue command to service")
-        mediaServiceConnection.transportControls.sendCustomAction(
+        controls.sendCustomAction(
             Constants.MEDIA_SESSION_ACTION_UPDATE_QUEUE,
             null
         )
@@ -125,12 +132,10 @@ class MainViewModel @Inject constructor(
     }
 
     fun downloadEpisode(episode: Episode) {
-        // TODO: Implement download logic via WorkManager
         Timber.d("Download requested for: ${episode.title}")
     }
 
     fun deleteEpisode(episode: Episode) {
-        // TODO: Implement delete logic
         Timber.d("Delete requested for: ${episode.title}")
     }
 
@@ -162,30 +167,30 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    fun skipToNextEpisode(): Unit = mediaServiceConnection.transportControls.skipToNext()
-    fun skipToPreviousEpisode(): Unit = mediaServiceConnection.transportControls.skipToPrevious()
-    fun seekTo(position: Long): Unit = mediaServiceConnection.transportControls.seekTo(position)
+    fun skipToNextEpisode(): Unit? = mediaServiceConnection.transportControls?.skipToNext()
+    fun skipToPreviousEpisode(): Unit? = mediaServiceConnection.transportControls?.skipToPrevious()
+    fun seekTo(position: Long): Unit? = mediaServiceConnection.transportControls?.seekTo(position)
     fun seekForward(gap: Long = 10_000L) {
+        val controls = mediaServiceConnection.transportControls ?: return
         val result = (currentPlayerPosition.value ?: 0L) + gap
         currentEpisodeDuration.value?.let { totalEpisodeTime ->
-            mediaServiceConnection.transportControls.seekTo(
+            controls.seekTo(
                 if (result < totalEpisodeTime) result else totalEpisodeTime
             )
         }
     }
     fun seekReplay(gap: Long = 10_000L) {
+        val controls = mediaServiceConnection.transportControls ?: return
         val result = (currentPlayerPosition.value ?: 0L) - gap
-        mediaServiceConnection.transportControls.seekTo(
+        controls.seekTo(
             if (result > 0) result else 0L
         )
     }
 
     fun setPlaybackSpeed(requestedSpeed: Float) {
         val clamped = requestedSpeed.normalizePlaybackSpeed()
-        Timber.tag("SPEED").d("2) setPlaybackSpeed -> requested=%.2f clamped=%.2f", requestedSpeed, clamped)
         if (!_currentPlaybackSpeed.value.isCloseTo(clamped)) {
             _currentPlaybackSpeed.postValue(clamped)
-            Timber.tag("SPEED").d("2) setPlaybackSpeed -> posting LiveData value=%.2f", clamped)
         }
         mediaServiceConnection.setPlaybackSpeed(clamped)
         sharedPreferences.edit()
@@ -196,7 +201,6 @@ class MainViewModel @Inject constructor(
     fun adjustPlaybackSpeed(delta: Float) {
         val current = _currentPlaybackSpeed.value ?: Constants.DEFAULT_PLAYBACK_SPEED
         val target = current + delta
-        Timber.tag("SPEED").d("2) adjustPlaybackSpeed -> current=%.2f delta=%.2f target=%.2f", current, delta, target)
         setPlaybackSpeed(target)
     }
 
@@ -228,54 +232,44 @@ class MainViewModel @Inject constructor(
         .replace("X", "")
 
     fun playOrToggleEpisode(mediaItem: Episode, toggle: Boolean = false) {
+        val controls = mediaServiceConnection.transportControls
+        if (controls == null) {
+            Timber.tag("PLAY").w("⚠️ Cannot play/toggle: transportControls is null")
+            return
+        }
+
         val isPrepared = playbackState.value?.isPrepared ?: false
         val currentMediaId = currentPlayingEpisodeFromMediaServiceConnection.value?.getString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID)
 
-        Timber.tag("PLAY").d("🎮 playOrToggleEpisode called")
-        Timber.tag("PLAY").d("Episode: id=${mediaItem.id}, mediaId=${mediaItem.mediaId}, title=${mediaItem.title}")
-        Timber.tag("PLAY").d("Player state: isPrepared=$isPrepared, currentMediaId=$currentMediaId")
-        Timber.tag("PLAY").d("Toggle mode: $toggle")
-
         if (isPrepared && mediaItem.mediaId == currentMediaId) {
-            Timber.tag("PLAY").d("🔄 Same episode, toggling playback state...")
             playbackState.value?.let { playbackState ->
                 when {
                     playbackState.isPlaying -> {
-                        Timber.tag("PLAY").d("⏸️ Currently playing, ${if (toggle) "pausing" else "continuing"}...")
-                        if (toggle) mediaServiceConnection.transportControls.pause()
+                        if (toggle) controls.pause()
                     }
                     playbackState.isPlayEnabled -> {
-                        Timber.tag("PLAY").d("▶️ Currently paused, resuming...")
-                        mediaServiceConnection.transportControls.play()
+                        controls.play()
                     }
-                    else -> {
-                        Timber.tag("PLAY").w("⚠️ Unexpected playback state")
-                    }
+                    else -> Unit
                 }
             }
         } else {
-            // Save current episode position before switching to new episode
             val currentPosition = playbackState.value?.currentStatePosition ?: 0L
             val currentEpisodeId = currentPlayingEpisodeFromMediaServiceConnection.value?.getString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID)?.toIntOrNull()
             if (currentEpisodeId != null && currentPosition > 0 && currentEpisodeId != mediaItem.id) {
                 viewModelScope.launch {
                     try {
-                        // Save to DB via repository
                         repository.updateEpisodePosition(currentEpisodeId, currentPosition)
-                        // Also save to SharedPreferences for quick access
                         sharedPreferences.edit()
                             .putString(Constants.SHARED_PREFERENCE_LAST_EPISODE_ID_KEY, currentEpisodeId.toString())
                             .putLong(Constants.SHARED_PREFERENCE_LAST_EPISODE_PAUSE_TIME_KEY, currentPosition)
                             .apply()
-                        Timber.tag("PLAY").d("💾 Saved position before switch: episodeId=$currentEpisodeId, position=$currentPosition")
                     } catch (e: Exception) {
                         Timber.e(e, "Error saving position before episode switch")
                     }
                 }
             }
-
-            Timber.tag("PLAY").d("🆕 New episode or not prepared, calling playFromMediaId(${mediaItem.id})...")
-            mediaServiceConnection.transportControls.playFromMediaId(mediaItem.id.toString(), null)
+            controls.playFromMediaId(mediaItem.id.toString(), null)
         }
     }
 

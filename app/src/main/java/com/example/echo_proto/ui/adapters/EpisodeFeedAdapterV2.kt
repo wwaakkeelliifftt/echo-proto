@@ -12,6 +12,7 @@ import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.AsyncListDiffer
 import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.echo_proto.R
 import com.example.echo_proto.data.local.prefs.EpisodeDisplayOptions
@@ -37,24 +38,38 @@ class EpisodeFeedAdapterV2(
     private var displayOptions: EpisodeDisplayOptions = initialOptions
     private var playbackButtonMode: PlaybackButtonMode = PlaybackButtonMode.PLAY_DOWNLOADED
 
-    // Drag & drop protection flag
     var isDragAndDropActive: Boolean = false
+    // RecyclerView reference for visible item optimization
+    private var recyclerView: RecyclerView? = null
 
-    // Background animation support
     var itemsBackgroundFactor: Float = 0f
         set(value) {
             field = value
-            // Note: Updating only visible items requires RecyclerView reference
-            // For now keeping full update as this is P2 optimization
-            notifyItemRangeChanged(0, itemCount, PAYLOAD_BACKGROUND)
+            notifyVisibleItemsChanged_setter(PAYLOAD_BACKGROUND)
         }
 
-    // Drag handle alpha support
     var dragHandleAlpha: Float = 0f
         set(value) {
             field = value
-            notifyItemRangeChanged(0, itemCount, PAYLOAD_DRAG_ALPHA)
+            notifyVisibleItemsChanged_setter(PAYLOAD_DRAG_ALPHA)
         }
+
+    private fun notifyVisibleItemsChanged_setter(payload: Any) {
+        val lm = recyclerView?.layoutManager as? LinearLayoutManager ?: run {
+            notifyItemRangeChanged(0, itemCount, payload)
+            return
+        }
+
+        val first = lm.findFirstVisibleItemPosition()
+        val last = lm.findLastVisibleItemPosition()
+
+        if (first != RecyclerView.NO_POSITION && last != RecyclerView.NO_POSITION) {
+            notifyItemRangeChanged(first, last - first + 1, payload)
+        } else {
+            notifyItemRangeChanged(0, itemCount, payload)
+        }
+    }
+
 
     // AsyncListDiffer for background thread diff calculation
     private val differCallback = object : DiffUtil.ItemCallback<FeedItem>() {
@@ -505,8 +520,18 @@ class EpisodeFeedAdapterV2(
         }
 
         companion object {
-            fun create(parent: ViewGroup, adapter: EpisodeFeedAdapterV2) = 
+            fun create(parent: ViewGroup, adapter: EpisodeFeedAdapterV2) =
                 EpisodeViewHolder(ItemEpisodeV2Binding.inflate(LayoutInflater.from(parent.context), parent, false), adapter)
         }
+    }
+
+    override fun onAttachedToRecyclerView(recyclerView: RecyclerView) {
+        super.onAttachedToRecyclerView(recyclerView)
+        this.recyclerView = recyclerView
+    }
+
+    override fun onDetachedFromRecyclerView(recyclerView: RecyclerView) {
+        super.onDetachedFromRecyclerView(recyclerView)
+        this.recyclerView = null
     }
 }

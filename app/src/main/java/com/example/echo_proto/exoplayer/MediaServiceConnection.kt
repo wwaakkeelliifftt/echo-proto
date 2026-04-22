@@ -28,17 +28,17 @@ class MediaServiceConnection(context: Context) {
     private val _currentPlayingEpisode = MutableLiveData<MediaMetadataCompat?>()
     val currentPlayingEpisode: LiveData<MediaMetadataCompat?> get() = _currentPlayingEpisode
 
-    lateinit var mediaController: MediaControllerCompat
+    var mediaController: MediaControllerCompat? = null
 
-    val transportControls: MediaControllerCompat.TransportControls
-        get() = mediaController.transportControls
+    val transportControls: MediaControllerCompat.TransportControls?
+        get() = mediaController?.transportControls
 
     fun setPlaybackSpeed(speed: Float) {
         val extras = android.os.Bundle().apply {
             putFloat(Constants.EXTRA_PLAYBACK_SPEED, speed)
         }
         Timber.tag("SPEED").d("3) MediaServiceConnection -> sendCustomAction speed=%.2f", speed)
-        transportControls.sendCustomAction(Constants.MEDIA_SESSION_ACTION_SET_SPEED, extras)
+        transportControls?.sendCustomAction(Constants.MEDIA_SESSION_ACTION_SET_SPEED, extras)
     }
 
     private val mediaBrowserConnectionCallback = MediaBrowserConnectionCallback(context)
@@ -86,11 +86,13 @@ class MediaServiceConnection(context: Context) {
             _isConnected.postValue(Event(Resource.Success(data = true)))
         }
         override fun onConnectionSuspended() {
+            mediaController = null
             _isConnected.postValue(
                 Event(Resource.Error(message = "Connection to media was suspended", data = false))
             )
         }
         override fun onConnectionFailed() {
+            mediaController = null
             _isConnected.postValue(
                 Event(Resource.Error(message = "Couldn't connect to media browser", data = false))
             )

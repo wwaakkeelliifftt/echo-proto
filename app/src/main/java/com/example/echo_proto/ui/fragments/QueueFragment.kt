@@ -31,7 +31,9 @@ import androidx.core.graphics.drawable.DrawableCompat
 import androidx.core.view.children
 import androidx.lifecycle.lifecycleScope
 import com.example.echo_proto.ui.common.observePlaybackState
+import com.example.echo_proto.util.Resource
 import kotlinx.coroutines.flow.collectLatest
+import timber.log.Timber
 
 @AndroidEntryPoint
 class QueueFragment : Fragment(), ItemZoneTouchHandler {
@@ -57,7 +59,7 @@ class QueueFragment : Fragment(), ItemZoneTouchHandler {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         
-        setupRecyclerView() // 🚀 Move this BEFORE subscribeToObservers
+        setupRecyclerView()
         subscribeToObservers()
         viewModel.updateQueueRss()
         setupMenu()
@@ -67,7 +69,12 @@ class QueueFragment : Fragment(), ItemZoneTouchHandler {
 
     override fun onResume() {
         super.onResume()
-        mainViewModel.refreshPlayerPlaylist()
+        // Safety check: only refresh if connected
+        val isConnected = mainViewModel.isConnected.value?.peekContent()?.data == true
+        if (isConnected) {
+            Timber.tag("PLAY").d("QueueFragment.onResume -> refreshPlayerPlaylist()")
+            mainViewModel.refreshPlayerPlaylist()
+        }
     }
 
     private fun subscribeToObservers() {
@@ -80,6 +87,14 @@ class QueueFragment : Fragment(), ItemZoneTouchHandler {
                 binding.containerEmptyQueue.visibility = View.GONE
                 queueAdapter.submitList(queueList)
                 updatePlayerPlaylistIfNeeded(queueList)
+            }
+        }
+
+        mainViewModel.isConnected.observe(viewLifecycleOwner) { event ->
+            val resource = event.peekContent()
+            if (resource is Resource.Success && resource.data == true) {
+                Timber.tag("PLAY").d("QueueFragment: Media connected, refreshing playlist")
+                updatePlayerPlaylistIfNeeded(viewModel.rssQueue.value ?: emptyList(), force = true)
             }
         }
 
@@ -99,24 +114,28 @@ class QueueFragment : Fragment(), ItemZoneTouchHandler {
 
         viewLifecycleOwner.lifecycleScope.launchWhenStarted {
             viewModel.displayOptions.collectLatest { options ->
-                // Ensure headers are ALWAYS disabled for Queue Fragment in the adapter
                 val queueSpecificOptions = options.copy(showDateHeaders = false)
                 queueAdapter.updateDisplayOptions(queueSpecificOptions)
             }
         }
     }
 
-    private fun updatePlayerPlaylistIfNeeded(queueList: List<Episode>) {
+    private fun updatePlayerPlaylistIfNeeded(queueList: List<Episode>, force: Boolean = false) {
         val newSnapshot = queueList.map { it.id }
-        if (newSnapshot != lastQueueIdsSnapshot) {
+        if (force || (newSnapshot != lastQueueIdsSnapshot && newSnapshot.isNotEmpty())) {
             lastQueueIdsSnapshot = newSnapshot
-            mainViewModel.updateQueueInService()
-            mainViewModel.refreshPlayerPlaylist()
+            
+            val isConnected = mainViewModel.isConnected.value?.peekContent()?.data ?: false
+            if (isConnected) {
+                mainViewModel.updateQueueInService()
+                mainViewModel.refreshPlayerPlaylist()
+            } else {
+                Timber.tag("PLAY").w("QueueFragment: Cannot update service playlist, not connected yet")
+            }
         }
     }
 
     private fun setupRecyclerView() {
-        // 🚀 Initialize with showDateHeaders = false to prevent UI jump on load
         queueAdapter = EpisodeFeedAdapterV2(
             this, 
             EpisodeDisplayOptions(showDateHeaders = false)
