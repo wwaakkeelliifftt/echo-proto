@@ -28,7 +28,6 @@ import androidx.core.view.MenuProvider
 import androidx.lifecycle.Lifecycle
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.DrawableCompat
-import androidx.core.view.children
 import androidx.lifecycle.lifecycleScope
 import com.example.echo_proto.ui.common.observePlaybackState
 import com.example.echo_proto.util.Resource
@@ -85,8 +84,14 @@ class QueueFragment : Fragment(), ItemZoneTouchHandler {
                 updatePlayerPlaylistIfNeeded(emptyList())
             } else {
                 binding.containerEmptyQueue.visibility = View.GONE
+                
+                // Submit list. If isDragAndDropActive is true, it will be skipped inside adapter
                 queueAdapter.submitList(queueList)
-                updatePlayerPlaylistIfNeeded(queueList)
+                
+                // If the adapter is NOT in drag/swipe mode, update the snapshot and player playlist
+                if (!queueAdapter.isDragAndDropActive) {
+                    updatePlayerPlaylistIfNeeded(queueList)
+                }
             }
         }
 
@@ -121,6 +126,12 @@ class QueueFragment : Fragment(), ItemZoneTouchHandler {
     }
 
     private fun updatePlayerPlaylistIfNeeded(queueList: List<Episode>, force: Boolean = false) {
+        // Skip background updates if user is currently interacting with items to prevent flickering/interruptions
+        if (queueAdapter.isDragAndDropActive) {
+            Timber.tag("DRAG").d("updatePlayerPlaylistIfNeeded: skipping while DND/Swipe is active")
+            return
+        }
+
         val newSnapshot = queueList.map { it.id }
         if (force || (newSnapshot != lastQueueIdsSnapshot && newSnapshot.isNotEmpty())) {
             lastQueueIdsSnapshot = newSnapshot
@@ -202,6 +213,17 @@ class QueueFragment : Fragment(), ItemZoneTouchHandler {
         mainViewModel.toggleEpisodeQueue(episode)
     }
 
+    override fun toggleEpisodeQueueInQueueFragment(episode: Episode) {
+        // Optimistically remove from adapter
+        val position = queueAdapter.actualList.indexOfFirst { 
+            it is EpisodeFeedAdapterV2.FeedItem.EpisodeItem && it.episode.id == episode.id 
+        }
+        if (position != -1) {
+            queueAdapter.removeItem(position)
+        }
+        mainViewModel.toggleEpisodeQueue(episode)
+    }
+
     override fun downloadEpisode(episode: Episode) {
         mainViewModel.downloadEpisode(episode)
     }
@@ -234,14 +256,45 @@ class QueueFragment : Fragment(), ItemZoneTouchHandler {
     }
 
     private fun getSwipeCallback(context: Context, source: ViewModel, adapter: EpisodeFeedAdapterV2): SwipeToDeleteCallback_Queue {
-        return object : SwipeToDeleteCallback_Queue(context = context, sourceViewModel = source, queueAdapter = adapter) {
+        return object : SwipeToDeleteCallback_Queue(
+            context = context, 
+            sourceViewModel = source, 
+            mainViewModel = mainViewModel,
+            queueAdapter = adapter
+        ) {
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
                 val pos = viewHolder.bindingAdapterPosition
+                if (pos == RecyclerView.NO_POSITION) return
+
+                Timber.tag("DRAG").d("onSwiped: removing item at $pos")
+
+                // 1. Block background updates
+                queueAdapter.isDragAndDropActive = true
+
+                // 2. 🚀 OPTIMISTIC REMOVAL: Remove from UI memory immediately
+                queueAdapter.removeItem(pos)
+
+                // 3. Remove from Player for smooth transition
+                mainViewModel.removeItemFromService(pos)
+
+                // 4. Update Database
                 viewModel.changeEpisodeInQueueStatus(
                     position = pos,
                     source = viewModel.rssQueue
                 )
-                queueAdapter.notifyItemRemoved(pos)
+
+                // 5. Reset lock and force final sync from DB
+                viewLifecycleOwner.lifecycleScope.launchWhenStarted {
+                    kotlinx.coroutines.delay(450) // Wait for swipe animation + DB processing
+                    queueAdapter.onDragAndDropFinished()
+                    
+                    // Final sync: push whatever is in ViewModel now that we are unlocked
+                    viewModel.rssQueue.value?.let { currentList ->
+                        queueAdapter.submitList(currentList)
+                        updatePlayerPlaylistIfNeeded(currentList)
+                    }
+                }
+
                 Toast.makeText(requireContext(), "Removed from queue", Toast.LENGTH_SHORT).show()
             }
         }

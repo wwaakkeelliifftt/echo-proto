@@ -1,6 +1,7 @@
 package com.example.echo_proto.ui.viewmodels
 
 import android.content.SharedPreferences
+import android.os.Bundle
 import android.support.v4.media.MediaBrowserCompat
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.PlaybackStateCompat
@@ -11,6 +12,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.echo_proto.domain.model.Episode
 import com.example.echo_proto.domain.repository.FeedRepository
+import com.example.echo_proto.domain.worker.DownloadRepository
 import com.example.echo_proto.exoplayer.MediaServiceConnection
 import com.example.echo_proto.exoplayer.currentStatePosition
 import com.example.echo_proto.exoplayer.isPlayEnabled
@@ -22,6 +24,7 @@ import com.example.echo_proto.util.isCloseTo
 import com.example.echo_proto.util.normalizePlaybackSpeed
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.util.Locale
@@ -32,6 +35,7 @@ import kotlin.math.roundToInt
 class MainViewModel @Inject constructor(
     private val mediaServiceConnection: MediaServiceConnection,
     private val repository: FeedRepository,
+    private val downloadRepository: DownloadRepository,
     private val sharedPreferences: SharedPreferences
 ): ViewModel() {
 
@@ -119,6 +123,25 @@ class MainViewModel @Inject constructor(
         )
     }
 
+    fun moveItemInService(from: Int, to: Int) {
+        val controls = mediaServiceConnection.transportControls ?: return
+        Timber.tag("PLAY").d("📡 MainViewModel -> moving item in service: $from -> $to")
+        val extras = Bundle().apply {
+            putInt("from_index", from)
+            putInt("to_index", to)
+        }
+        controls.sendCustomAction(Constants.MEDIA_SESSION_ACTION_MOVE_ITEM, extras)
+    }
+
+    fun removeItemFromService(index: Int) {
+        val controls = mediaServiceConnection.transportControls ?: return
+        Timber.tag("PLAY").d("📡 MainViewModel -> removing item in service at index: $index")
+        val extras = Bundle().apply {
+            putInt("index", index)
+        }
+        controls.sendCustomAction(Constants.MEDIA_SESSION_ACTION_REMOVE_ITEM, extras)
+    }
+
     fun toggleEpisodeFavorite(episode: Episode) {
         viewModelScope.launch {
             repository.changeEpisodeFavoriteStatus(episode.id)
@@ -132,11 +155,20 @@ class MainViewModel @Inject constructor(
     }
 
     fun downloadEpisode(episode: Episode) {
-        Timber.d("Download requested for: ${episode.title}")
+        viewModelScope.launch {
+            downloadRepository.downloadEpisodeToDatabase(episode.id).collect()
+        }
     }
 
     fun deleteEpisode(episode: Episode) {
-        Timber.d("Delete requested for: ${episode.title}")
+        viewModelScope.launch {
+            try {
+                downloadRepository.deleteEpisodeFromDeviceAndDatabase(episode.id)
+                Timber.d("Delete successful for: ${episode.title}")
+            } catch (e: Exception) {
+                Timber.e(e, "Error deleting episode: ${episode.title}")
+            }
+        }
     }
 
     fun playSingleEpisode(episode: Episode) {

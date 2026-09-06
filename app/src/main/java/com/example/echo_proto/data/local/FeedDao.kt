@@ -27,7 +27,7 @@ interface FeedDao {
     fun getAllFeedFlow(): Flow<List<EpisodeEntity>>
 
     // special list for exoplayer ??
-    @Query("SELECT * FROM episodes_table WHERE isDownloaded = 1")
+    @Query("SELECT * FROM episodes_table WHERE isDownloaded = 1 ORDER BY timestamp DESC")
     fun getDownloadedEpisodes(): Flow<List<EpisodeEntity>>
 
     @Query("SELECT * FROM episodes_table WHERE isInQueue = 1 ORDER BY indexInQueue ASC")

@@ -39,7 +39,7 @@ class DownloadsFragment : Fragment(), ItemZoneTouchHandler {
     private val binding get() = _binding!!
     private lateinit var downloadsAdapter: EpisodeFeedAdapterV2
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentDownloadsBinding.inflate(layoutInflater)
         return binding.root
     }
@@ -47,7 +47,6 @@ class DownloadsFragment : Fragment(), ItemZoneTouchHandler {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         
-        // 🚀 CRITICAL: Initialize RecyclerView and Adapter BEFORE subscribing to observers
         setupRecyclerView()
         subscribeToObservers()
         observePlaybackState(mainViewModel, downloadsAdapter)
@@ -86,8 +85,12 @@ class DownloadsFragment : Fragment(), ItemZoneTouchHandler {
     private fun setupRecyclerView() {
         downloadsAdapter = EpisodeFeedAdapterV2(this)
         downloadsAdapter.setPlaybackButtonMode(EpisodeFeedAdapterV2.Companion.PlaybackButtonMode.DELETE)
-        binding.recyclerView.adapter = downloadsAdapter
-        binding.recyclerView.layoutManager = LinearLayoutManager(requireContext())
+        binding.recyclerView.apply {
+            adapter = downloadsAdapter
+            layoutManager = LinearLayoutManager(requireContext())
+            // 🔧 FIX: Disable item animator to prevent flickering and jumping on initial load
+            itemAnimator = null
+        }
     }
 
     private fun setupMenu() {
@@ -151,7 +154,11 @@ class DownloadsFragment : Fragment(), ItemZoneTouchHandler {
     }
 
     override fun toggleEpisodeQueue(episode: Episode) {
-        mainViewModel.toggleEpisodeFavorite(episode)
+        mainViewModel.toggleEpisodeQueue(episode)
+    }
+
+    override fun toggleEpisodeQueueInQueueFragment(episode: Episode) {
+        // Not used in this fragment
     }
 
     override fun downloadEpisode(episode: Episode) {

@@ -12,6 +12,7 @@ import com.example.echo_proto.domain.repository.FeedRepository
 import com.example.echo_proto.util.Constants
 import com.example.echo_proto.util.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -36,6 +37,8 @@ class QueueViewModel @Inject constructor(
 
     private val _isLockedQueue = MutableLiveData(true)
     val isLockedQueue: LiveData<Boolean> get() = _isLockedQueue
+
+    private var updateOrderJob: Job? = null
 
     // Display options for Queue screen
     val displayOptions: StateFlow<EpisodeDisplayOptions> = settingsManager.getOptionsFlow("queue")
@@ -79,7 +82,11 @@ class QueueViewModel @Inject constructor(
     }
 
     fun updateFullQueueOrder(episodeIds: List<Int>) {
-        viewModelScope.launch {
+        updateOrderJob?.cancel()
+        updateOrderJob = viewModelScope.launch {
+            // Add a small delay to debounce multiple rapid calls (though clearView should only fire once per drag end)
+            // but we keep it for safety and potential multi-item updates
+            delay(500)
             Timber.d("📦 DRAG: VM calling updateQueueOrder for ${episodeIds.size} ids")
             repository.updateQueueOrder(episodeIds)
         }

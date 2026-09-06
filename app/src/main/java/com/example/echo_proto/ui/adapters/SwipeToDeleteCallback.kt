@@ -8,6 +8,7 @@ import androidx.lifecycle.ViewModel
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
 import com.example.echo_proto.R
+import com.example.echo_proto.ui.viewmodels.MainViewModel
 import com.example.echo_proto.ui.viewmodels.QueueViewModel
 import timber.log.Timber
 
@@ -69,6 +70,7 @@ abstract class SwipeToDeleteCallback(context: Context):
 abstract class SwipeToDeleteCallback_Queue(
     context: Context,
     private val sourceViewModel: ViewModel,
+    private val mainViewModel: MainViewModel?,
     private val queueAdapter: EpisodeFeedAdapterV2
 ) : ItemTouchHelper.Callback() {
 
@@ -139,6 +141,9 @@ abstract class SwipeToDeleteCallback_Queue(
 
         Timber.tag("DRAG").d("onMove: from=$fromPosition -> to=$toPosition")
 
+        // 🚀 Sync ExoPlayer playlist immediately during drag for smoothness
+        mainViewModel?.moveItemInService(fromPosition, toPosition)
+        
         queueAdapter.moveItem(fromPosition, toPosition)
         return true
     }

@@ -1,5 +1,7 @@
 package com.example.echo_proto.util
 
+import android.content.Context
+import android.graphics.Color
 import timber.log.Timber
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -97,30 +99,28 @@ fun Float.normalizePlaybackSpeed(): Float {
 }
 
 /**
- * Выделяет таймкоды в тексте и оборачивает их в span с цветом Nocturne Gold
+ * Выделяет таймкоды в тексте и оборачивает их в span с указанным цветом
  */
-fun String.highlightTimestamps(): String {
-    val goldColor = "#E6AF2E" 
+fun String.highlightTimestamps(timestampColor: String = "#E6AF2E"): String {
     val timestampPattern = Regex("""\b(\d{1,2}:\d{2}(?::\d{2})?)\b""")
 
     return timestampPattern.replace(this) { match ->
         val timestamp = match.value
-        // Добавляем пробелы по бокам, чтобы фон выглядел как рамочка
-        "<a href=\"seek://$timestamp\" style=\"text-decoration: none;\">&nbsp;$timestamp&nbsp;</a>"
+        // Добавляем цвет и жирность, чтобы таймкод выделялся на фоне обычных ссылок
+        "<a href=\"seek://$timestamp\" style=\"color: $timestampColor; text-decoration: none; font-weight: 600;\">$timestamp</a>"
     }
 }
 
 /**
- * Конвертирует URL в тексте в кликабельные HTML ссылки Nocturne Gold
+ * Конвертирует URL в тексте в кликабельные HTML ссылки с указанным цветом
  */
-fun String.makeLinksClickable(): String {
-    val goldColor = "#E6AF2E"
+fun String.makeLinksClickable(linkColor: String = "#4FC3F7"): String {
     val urlPattern = Regex("""\b((?:https?://|www\.)[^\s<>]+)\b""")
     
     return urlPattern.replace(this) { match ->
         val url = match.value
         val fullUrl = if (url.startsWith("www.")) "https://$url" else url
-        "<a href=\"$fullUrl\" target=\"_blank\" rel=\"noopener noreferrer\" style=\"color: $goldColor; text-decoration: underline; font-weight: 600;\">$url</a>"
+        "<a href=\"$fullUrl\" target=\"_blank\" rel=\"noopener noreferrer\" style=\"color: $linkColor; text-decoration: underline; font-weight: 600;\">$url</a>"
     }
 }
 
@@ -132,13 +132,71 @@ fun String.enrichForWebView(): String {
     }
 }
 
+/**
+ * Обогащает текст для WebView с цветами, адаптированными под тему
+ */
+fun String.enrichForWebView(context: Context): String {
+    val linkColor = getLinkColorForTheme(context)
+    val timestampColor = getTimestampColorForTheme(context)
+    
+    return if (this.containsHtmlTags()) {
+        this.highlightTimestamps(timestampColor)
+    } else {
+        this.makeLinksClickable(linkColor).highlightTimestamps(timestampColor)
+    }
+}
+
+/**
+ * Возвращает цвет текста в зависимости от темы
+ */
+fun getTextColorForTheme(context: Context): String {
+    return if (isDarkTheme(context)) {
+        "#FFFFFF" // белый для темной темы
+    } else {
+        "#000000" // черный для светлой темы
+    }
+}
+
+/**
+ * Возвращает цвет ссылок в зависимости от темы
+ */
+fun getLinkColorForTheme(context: Context): String {
+    return if (isDarkTheme(context)) {
+        "#4FC3F7" // голубой для темной темы
+    } else {
+        "#1976D2" // синий для светлой темы
+    }
+}
+
+/**
+ * Возвращает голубой цвет ссылок для обеих тем
+ */
+fun getLinkTextColorBlue(): Int = Color.parseColor("#4FC3F7") // голубой для обеих тем
+
+/**
+ * Возвращает цвет таймкодов в зависимости от темы
+ */
+fun getTimestampColorForTheme(context: Context): String {
+    return "#E6AF2E" // золотый для обеих тем
+}
+
+/**
+ * Проверяет, включена ли темная тема
+ */
+fun isDarkTheme(context: Context): Boolean {
+    return when (context.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) {
+        android.content.res.Configuration.UI_MODE_NIGHT_YES -> true
+        else -> false
+    }
+}
+
 private fun String.containsHtmlTags(): Boolean {
     val htmlPatterns = listOf(
         Regex("""<a[^>]+>"""),
         Regex("""<img[^>]+>"""),
         Regex("""<p[^>]*>"""),
         Regex("""<strong>"""),
-        Regex("""<em>"""),
+        Regex("""em>"""),
         Regex("""<ul>"""),
         Regex("""<ol>"""),
         Regex("""<li>""")

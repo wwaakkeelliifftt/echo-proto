@@ -39,7 +39,6 @@ class FeedRepositoryImpl @Inject constructor(
             return true
         }
         
-        // 1. Используем channel.title (для RSSParser 4.0.2)
         val finalChannelId = forcedChannelId ?: channel.title ?: "Unknown Channel"
         
         Timber.d("🎯 RSS_PARSE: Processing ${channel.articles.size} articles for channelId='$finalChannelId'")
@@ -87,7 +86,6 @@ class FeedRepositoryImpl @Inject constructor(
         return false
     }
 
-    // 🔧 FIXED: Now returns reactive Flow from database
     override fun getRssFeedFromDatabase(): Flow<Resource<List<Episode>>> = 
         db.dao.getAllFeedFlow().map { entities ->
             if (entities.isNullOrEmpty()) {
@@ -105,8 +103,6 @@ class FeedRepositoryImpl @Inject constructor(
             if (emptyListFlag) {
                 emit(Resource.Error(data = emptyList(), message = Constants.ERROR_EMPTY_SERVER_RESPONSE))
             } else {
-                // При реактивном Flow нам не нужно делать повторный запрос здесь, 
-                // база сама "пушнет" изменения. Но для обратной совместимости метода:
                 val episodesList = db.dao.getAllFeed().map { it.toEpisode() }
                 emit(Resource.Success(data = episodesList))
             }
@@ -131,14 +127,25 @@ class FeedRepositoryImpl @Inject constructor(
         .map { result -> Resource.Success(data = result) }
 
     override suspend fun changeEpisodeQueueStatus(id: Int) {
-        val queueSize = db.dao.getQueueFeed().size
-        val episode = db.dao.getEpisodeById(id = id)
-        val episodeNewState = if (episode.isInQueue) {
-            episode.copy(isInQueue = false, indexInQueue = -1)
-        } else {
-            episode.copy(isInQueue = true, indexInQueue = queueSize)
+        db.withTransaction {
+            val episode = db.dao.getEpisodeById(id = id)
+            if (episode.isInQueue) {
+                // Removing from queue: reset fields
+                db.dao.insertEpisode(episode.copy(isInQueue = false, indexInQueue = -1))
+                
+                // 🚀 RECALCULATE: Re-order remaining items to fill the gap
+                val remainingQueue = db.dao.getQueueFeed()
+                remainingQueue.forEachIndexed { index, entity ->
+                    if (entity.indexInQueue != index) {
+                        db.dao.insertEpisode(entity.copy(indexInQueue = index))
+                    }
+                }
+            } else {
+                // Adding to queue: add to end
+                val queueSize = db.dao.getQueueFeed().size
+                db.dao.insertEpisode(episode.copy(isInQueue = true, indexInQueue = queueSize))
+            }
         }
-        db.dao.insertEpisode(episodeNewState)
     }
 
     override suspend fun changeEpisodeFavoriteStatus(id: Int) {

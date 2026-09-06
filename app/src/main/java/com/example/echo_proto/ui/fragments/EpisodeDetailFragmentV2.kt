@@ -35,6 +35,9 @@ import com.example.echo_proto.util.Resource
 import com.example.echo_proto.util.getDateFromLong
 import com.example.echo_proto.util.getSizeFromTimeDuration
 import com.example.echo_proto.util.enrichForWebView
+import com.example.echo_proto.util.getTextColorForTheme
+import com.example.echo_proto.util.getLinkColorForTheme
+import com.example.echo_proto.util.timestampToMillis
 import dagger.hilt.android.AndroidEntryPoint
 import java.util.UUID
 import androidx.core.view.MenuHost
@@ -131,13 +134,26 @@ class EpisodeDetailFragmentV2 : Fragment() {
                 }
                 
                 override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean {
-                    // Открывать ссылки во внешнем браузере
+                    val uri = Uri.parse(url)
+                    
+                    // 🚀 Обработка таймкодов (seek://xx:xx)
+                    if (uri.scheme == "seek") {
+                        val timestamp = uri.host ?: ""
+                        val millis = timestamp.timestampToMillis()
+                        if (millis >= 0) {
+                            mainViewModel.seekTo(millis)
+                            Timber.d("🎯 WebView: Seeking to $timestamp ($millis ms)")
+                        }
+                        return true
+                    }
+
+                    // Открывать обычные ссылки во внешнем браузере
                     try {
-                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                        val intent = Intent(Intent.ACTION_VIEW, uri)
                         startActivity(intent)
                         Timber.d("🎯 WebView: Opening link in external browser: $url")
                     } catch (e: Exception) {
-                        Timber.e("🚨 WebView: Failed to open link: $url", e)
+                        Timber.e("🚨 WebView: Failed to open link: $url")
                     }
                     return true // Блокируем загрузку в WebView
                 }
@@ -170,13 +186,13 @@ class EpisodeDetailFragmentV2 : Fragment() {
                         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
                         font-size: 16sp;
                         line-height: 1.6;
-                        color: ${getCurrentTextColor()};
+                        color: ${getTextColorForTheme(requireContext())};
                         margin: 0;
                         padding: 0;
                         background-color: transparent;
                     }
                     a {
-                        color: ${getCurrentLinkColor()};
+                        color: ${getLinkColorForTheme(requireContext())};
                         text-decoration: underline;
                     }
                     p {
@@ -204,34 +220,12 @@ class EpisodeDetailFragmentV2 : Fragment() {
                 </style>
             </head>
             <body>
-                ${description.enrichForWebView()}
+                ${description.enrichForWebView(requireContext())}
             </body>
             </html>
         """.trimIndent()
     }
 
-    private fun getCurrentTextColor(): String {
-        return if (isDarkTheme()) {
-            "#FFFFFF" // белый для темной темы
-        } else {
-            "#000000" // черный для светлой темы
-        }
-    }
-
-    private fun getCurrentLinkColor(): String {
-        return if (isDarkTheme()) {
-            "#4FC3F7" // голубой для темной темы
-        } else {
-            "#1976D2" // синий для светлой темы
-        }
-    }
-
-    private fun isDarkTheme(): Boolean {
-        return when (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) {
-            android.content.res.Configuration.UI_MODE_NIGHT_YES -> true
-            else -> false
-        }
-    }
 
     private fun updateActionButtons(episode: Episode) {
         val context = requireContext()

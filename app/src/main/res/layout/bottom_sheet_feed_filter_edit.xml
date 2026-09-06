@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/bg_bottom_sheet_rounded"
+    android:clipToOutline="true"
+    android:outlineProvider="background"
+    android:paddingBottom="24dp"
+    android:paddingStart="20dp"
+    android:paddingEnd="20dp">
+
+    <View
+        android:id="@+id/dragHandle"
+        android:layout_width="48dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="12dp"
+        android:layout_marginBottom="24dp"
+        android:background="@color/colorDisabled"
+        android:alpha="0.3" />
+
+    <LinearLayout
+        android:id="@+id/headerSection"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_marginBottom="24dp">
+
+        <TextView
+            android:id="@+id/tvTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/manage_filters"
+            android:textSize="24sp"
+            android:fontFamily="@font/manrope_bold"
+            android:textColor="@color/colorTextPrimary" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="4dp"
+            android:gravity="center_vertical"
+            android:background="@drawable/bg_speed_button"
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="2dp">
+
+            <ImageView
+                android:layout_width="12dp"
+                android:layout_height="12dp"
+                android:src="@drawable/ic_edit"
+                app:tint="@color/colorPrimary" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:text="@string/editing_mode"
+                android:textSize="10sp"
+                android:fontFamily="@font/manrope_bold"
+                android:textAllCaps="true"
+                android:textColor="@color/colorPrimary"
+                android:letterSpacing="0.1" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Search/Add Field -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/inputLayoutSearch"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="24dp"
+        app:boxBackgroundColor="@color/colorSurfaceContainerLow"
+        app:boxCornerRadius="12dp"
+        app:boxStrokeWidth="0dp"
+        app:boxStrokeWidthFocused="1dp"
+        app:boxStrokeColor="@color/colorPrimary"
+        app:startIconDrawable="@drawable/ic_search"
+        app:startIconTint="@color/colorTextSecondary"
+        app:hintEnabled="false">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/inputSearch"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/add_custom_filter"
+            android:inputType="text"
+            android:maxLines="1"
+            android:padding="16dp"
+            android:textColor="@color/colorTextPrimary"
+            android:fontFamily="@font/manrope" />
+
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <com.google.android.material.chip.ChipGroup
+        android:id="@+id/chipGroupFilter"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="32dp"
+        app:chipSpacingHorizontal="8dp"
+        app:chipSpacingVertical="8dp">
+
+        <!-- Preview Chips for Editing Mode (Red-ish delete style) -->
+        <com.google.android.material.chip.Chip
+            style="@style/SpeedControlChipV2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Sound Design"
+            app:closeIconEnabled="true"
+            app:closeIconVisible="true"
+            app:closeIconTint="@color/pink_300"
+            app:chipStrokeColor="@color/pink_300"
+            app:chipStrokeWidth="1dp" />
+
+        <com.google.android.material.chip.Chip
+            style="@style/SpeedControlChipV2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Acoustics"
+            app:closeIconEnabled="true"
+            app:closeIconVisible="true"
+            app:closeIconTint="@color/pink_300"
+            app:chipStrokeColor="@color/pink_300"
+            app:chipStrokeWidth="1dp" />
+
+        <com.google.android.material.chip.Chip
+            style="@style/SpeedControlChipV2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Studio"
+            app:closeIconEnabled="true"
+            app:closeIconVisible="true"
+            app:closeIconTint="@color/pink_300"
+            app:chipStrokeColor="@color/pink_300"
+            app:chipStrokeWidth="1dp" />
+
+    </com.google.android.material.chip.ChipGroup>
+
+    <!-- Action Buttons -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnDiscard"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="0dp"
+            android:layout_height="56dp"
+            android:layout_weight="1"
+            android:text="@string/discard"
+            android:textColor="@color/colorTextPrimary"
+            app:strokeColor="@color/colorSurfaceVariant"
+            app:cornerRadius="16dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnSaveChanges"
+            android:layout_width="0dp"
+            android:layout_height="56dp"
+            android:layout_weight="1.2"
+            android:layout_marginStart="12dp"
+            android:text="@string/save_changes"
+            android:textColor="@color/colorChipActiveText"
+            android:backgroundTint="@color/colorPrimary"
+            app:cornerRadius="16dp" />
+
+    </LinearLayout>
+</LinearLayout>

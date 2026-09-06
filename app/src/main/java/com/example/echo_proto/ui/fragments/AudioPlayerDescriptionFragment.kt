@@ -26,6 +26,7 @@ import com.example.echo_proto.databinding.FragmentAudioplayerDescriptionBinding
 import com.example.echo_proto.ui.viewmodels.MainViewModel
 import com.example.echo_proto.util.enrichForWebView
 import com.example.echo_proto.util.timestampToMillis
+import com.example.echo_proto.util.getLinkTextColorBlue
 import dagger.hilt.android.AndroidEntryPoint
 import timber.log.Timber
 
@@ -59,11 +60,12 @@ class AudioPlayerDescriptionFragment : Fragment() {
         binding.tvPlayerDescription.apply {
             movementMethod = LinkMovementMethod.getInstance()
             highlightColor = Color.TRANSPARENT
+            setLinkTextColor(getLinkTextColorBlue())
         }
     }
 
     private fun updateDescription(description: String) {
-        val enrichedHtml = description.enrichForWebView()
+        val enrichedHtml = description.enrichForWebView(requireContext())
         
         val spannedText = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             Html.fromHtml(enrichedHtml, Html.FROM_HTML_MODE_COMPACT)

@@ -36,6 +36,11 @@ interface ItemZoneTouchHandler {
      * Toggles queue status for an episode.
      */
     fun toggleEpisodeQueue(episode: Episode)
+    
+    /**
+     * Specialized method for Queue screen to handle optimistic removal.
+     */
+    fun toggleEpisodeQueueInQueueFragment(episode: Episode)
 
     /**
      * Starts downloading an episode.

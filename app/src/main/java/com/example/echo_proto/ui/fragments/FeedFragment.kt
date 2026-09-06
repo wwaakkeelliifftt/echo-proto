@@ -222,6 +222,10 @@ class FeedFragment : Fragment(), ItemZoneTouchHandler {
         mainViewModel.toggleEpisodeQueue(episode)
     }
 
+    override fun toggleEpisodeQueueInQueueFragment(episode: Episode) {
+        TODO("Not yet implemented")
+    }
+
     override fun downloadEpisode(episode: Episode) {
         mainViewModel.downloadEpisode(episode)
     }

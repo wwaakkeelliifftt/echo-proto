@@ -104,7 +104,9 @@ class MediaService : MediaBrowserServiceCompat() {
             setPlayer(exoPlayer)
             setCustomActionProviders(
                 createSetSpeedActionProvider(),
-                createUpdateQueueActionProvider()
+                createUpdateQueueActionProvider(),
+                createMoveItemActionProvider(),
+                createRemoveItemActionProvider()
             )
         }
 
@@ -114,7 +116,6 @@ class MediaService : MediaBrowserServiceCompat() {
         
         startPeriodicPositionUpdate()
 
-        // 🚀 CRITICAL: We must initialize BEFORE anything else can touch the player
         isInitializing = true
         serviceScope.launch {
             mediaSource.fetchMediaData()
@@ -377,6 +378,49 @@ class MediaService : MediaBrowserServiceCompat() {
             }
             override fun getCustomAction(player: Player): PlaybackStateCompat.CustomAction? {
                 return PlaybackStateCompat.CustomAction.Builder(Constants.MEDIA_SESSION_ACTION_UPDATE_QUEUE, "Update Queue", R.drawable.ic_menu_play).build()
+            }
+        }
+    }
+
+    private fun createMoveItemActionProvider(): CustomActionProvider {
+        return object : CustomActionProvider {
+            override fun onCustomAction(player: Player, action: String, extras: Bundle?) {
+                if (action == Constants.MEDIA_SESSION_ACTION_MOVE_ITEM) {
+                    val from = extras?.getInt("from_index", -1) ?: -1
+                    val to = extras?.getInt("to_index", -1) ?: -1
+                    if (from != -1 && to != -1 && from != to) {
+                        Timber.tag("PLAY").d("📦 ExoPlayer: Moving item from $from to $to")
+                        exoPlayer.moveMediaItem(from, to)
+                        serviceScope.launch {
+                            mediaSource.refreshMediaData()
+                            lastPlaylistSnapshot = mediaSource.episodes.map { it.id }
+                        }
+                    }
+                }
+            }
+            override fun getCustomAction(player: Player): PlaybackStateCompat.CustomAction? {
+                return null
+            }
+        }
+    }
+
+    private fun createRemoveItemActionProvider(): CustomActionProvider {
+        return object : CustomActionProvider {
+            override fun onCustomAction(player: Player, action: String, extras: Bundle?) {
+                if (action == Constants.MEDIA_SESSION_ACTION_REMOVE_ITEM) {
+                    val index = extras?.getInt("index", -1) ?: -1
+                    if (index != -1 && index < exoPlayer.mediaItemCount) {
+                        Timber.tag("PLAY").d("📦 ExoPlayer: Removing item at index $index")
+                        exoPlayer.removeMediaItem(index)
+                        serviceScope.launch {
+                            mediaSource.refreshMediaData()
+                            lastPlaylistSnapshot = mediaSource.episodes.map { it.id }
+                        }
+                    }
+                }
+            }
+            override fun getCustomAction(player: Player): PlaybackStateCompat.CustomAction? {
+                return null
             }
         }
     }

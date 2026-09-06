@@ -22,6 +22,7 @@ import com.example.echo_proto.domain.model.Episode
 import com.example.echo_proto.ui.common.PlaybackStateAware
 import com.example.echo_proto.util.*
 import timber.log.Timber
+import kotlin.math.abs
 
 /**
  * Unified Adapter for Episode Feed V2.
@@ -82,24 +83,40 @@ class EpisodeFeedAdapterV2(
         }
 
         override fun areContentsTheSame(oldItem: FeedItem, newItem: FeedItem): Boolean {
-            return if (oldItem is FeedItem.EpisodeItem && newItem is FeedItem.EpisodeItem) {
-                // Skip stopListeningAt comparison for non-playing episodes to avoid unnecessary re-binds
-                val oldEpisode = oldItem.episode
-                val newEpisode = newItem.episode
-                val isCurrentEpisode = oldEpisode.id == currentPlayingEpisodeId
+            if (oldItem is FeedItem.EpisodeItem && newItem is FeedItem.EpisodeItem) {
+                val old = oldItem.episode
+                val new = newItem.episode
+                
+                // 1. Ключевые визуальные изменения — всегда триггерят обновление
+                if (old.title != new.title) return false
+                if (old.hasListened != new.hasListened) return false
+                if (old.isInQueue != new.isInQueue) return false
+                if (old.isFavorite != new.isFavorite) return false
+                if (old.isDownloaded != new.isDownloaded) return false
+                
+                // 2. Проверка состояния воспроизведения (текущий ли это трек)
+                val wasCurrent = old.id == currentPlayingEpisodeId
+                val isCurrent = new.id == currentPlayingEpisodeId
+                if (wasCurrent != isCurrent) return false
 
-                oldEpisode.hasListened == newEpisode.hasListened &&
-                oldEpisode.isInQueue == newEpisode.isInQueue &&
-                oldEpisode.isFavorite == newEpisode.isFavorite &&
-                oldEpisode.isDownloaded == newEpisode.isDownloaded &&
-                // Only compare stopListeningAt for current episode or when transitioning 0 -> >0
-                (isCurrentEpisode || oldEpisode.stopListeningAt == newEpisode.stopListeningAt ||
-                 (oldEpisode.stopListeningAt == 0L && newEpisode.stopListeningAt > 0L) ||
-                 (oldEpisode.stopListeningAt > 0L && newEpisode.stopListeningAt == 0L)) &&
-                oldEpisode.title == newEpisode.title
-            } else {
-                oldItem == newItem
+                // 3. Логика прогресса (stopListeningAt)
+                // Если это активный трек, мы игнорируем изменения прогресса в DiffUtil, 
+                // так как они приходят слишком часто и обновляются через updatePlaybackState.
+                if (isCurrent) return true
+                
+                // Для неактивных треков мы обновляемся только если прогресс изменился существенно 
+                // (например, появился или исчез), чтобы показать/скрыть индикаторы.
+                val oldHasProgress = old.stopListeningAt > 0L
+                val newHasProgress = new.stopListeningAt > 0L
+                if (oldHasProgress != newHasProgress) return false
+                
+                // Если прогресс был и остался, проверяем значительное изменение (например, более 10 сек)
+                // чтобы не перерисовывать список при мелких синхронизациях в фоне.
+                if (newHasProgress && abs(old.stopListeningAt - new.stopListeningAt) > 10000L) return false
+
+                return true
             }
+            return oldItem == newItem
         }
     }
 
@@ -194,7 +211,7 @@ class EpisodeFeedAdapterV2(
      * Uses AsyncListDiffer for background thread diff calculation.
      * Skips updates during drag & drop to prevent conflicts.
      */
-    fun submitList(list: List<Episode>): List<FeedItem> {
+    fun submitList(list: List<Episode>, commitCallback: Runnable? = null): List<FeedItem> {
         // Skip updates during drag & drop to prevent conflicts
         if (isDragAndDropActive) {
             Timber.tag("ADAPTER").d("submitList: skipped due to active drag & drop")
@@ -216,7 +233,7 @@ class EpisodeFeedAdapterV2(
         Timber.tag("ADAPTER").d("submitList: oldSize=${items.size}, newSize=${newList.size}")
 
         // AsyncListDiffer handles diff calculation on background thread
-        differ.submitList(newList)
+        differ.submitList(newList, commitCallback)
         return newList
     }
 
@@ -283,6 +300,15 @@ class EpisodeFeedAdapterV2(
 
         // Update AsyncListDiffer with new order
         differ.submitList(currentList)
+    }
+
+    fun removeItem(position: Int) {
+        val currentList = differ.currentList.toMutableList()
+        if (position in currentList.indices) {
+            currentList.removeAt(position)
+            Timber.tag("ADAPTER").d("removeItem: removed at $position. Remaining size: ${currentList.size}")
+            differ.submitList(currentList)
+        }
     }
 
     fun onDragAndDropFinished() {
@@ -375,37 +401,42 @@ class EpisodeFeedAdapterV2(
                     false
                 }
                 
-                // 🔧 ACTION BUTTONS CLICK LISTENERS (Stage 2)
+                // 🔧 ACTION BUTTONS CLICK LISTENERS
                 btnPlayback.setOnClickListener { 
                     when (adapter.playbackButtonMode) {
                         PlaybackButtonMode.PLAY_DOWNLOADED, 
                         PlaybackButtonMode.PLAY_STREAMING -> adapter.itemZoneHandler.playPauseStateChanger(episode)
                         PlaybackButtonMode.DOWNLOAD -> {
-                            Toast.makeText(itemView.context, "Starting download: ${episode.title}", Toast.LENGTH_SHORT).show()
-                            // Mock optimistic update for download start
+                            // Optimistic UI: assume download starts immediately
                             adapter.updateInternalItemState(episode.id) { it.copy(isDownloaded = true) }
                             adapter.itemZoneHandler.downloadEpisode(episode)
                         }
                         PlaybackButtonMode.DELETE -> {
-                            Toast.makeText(itemView.context, "Deleting episode: ${episode.title}", Toast.LENGTH_SHORT).show()
-                            adapter.updateInternalItemState(episode.id) { it.copy(isDownloaded = false) }
+                            // 🚀 TRULY OPTIMISTIC: Remove from UI list immediately for smooth feedback
+                            val pos = bindingAdapterPosition
+                            if (pos != RecyclerView.NO_POSITION) {
+                                adapter.removeItem(pos)
+                            }
                             adapter.itemZoneHandler.deleteEpisode(episode)
                         }
                     }
                 }
                 
                 btnFavorite.setOnClickListener { 
-                    // 🚀 TRULY Optimistic UI update: change the model inside adapter list
                     val currentStatus = currentEpisode?.isFavorite ?: episode.isFavorite
                     adapter.updateInternalItemState(episode.id) { it.copy(isFavorite = !currentStatus) }
                     adapter.itemZoneHandler.toggleEpisodeFavorite(episode)
                 }
                 
                 btnQueue.setOnClickListener { 
-                    // 🚀 TRULY Optimistic UI update: change the model inside adapter list
                     val currentStatus = currentEpisode?.isInQueue ?: episode.isInQueue
-                    adapter.updateInternalItemState(episode.id) { it.copy(isInQueue = !currentStatus) }
-                    adapter.itemZoneHandler.toggleEpisodeQueue(episode)
+                    
+                    if (adapter.playbackButtonMode == PlaybackButtonMode.PLAY_STREAMING && currentStatus) {
+                        adapter.itemZoneHandler.toggleEpisodeQueueInQueueFragment(episode)
+                    } else {
+                        adapter.updateInternalItemState(episode.id) { it.copy(isInQueue = !currentStatus) }
+                        adapter.itemZoneHandler.toggleEpisodeQueue(episode)
+                    }
                 }
                 
                 root.setOnClickListener { adapter.itemZoneHandler.navigateToEpisodeDetailScreen(episode) }
@@ -465,10 +496,8 @@ class EpisodeFeedAdapterV2(
                 PlaybackButtonMode.PLAY_DOWNLOADED, PlaybackButtonMode.PLAY_STREAMING -> {
                     binding.btnPlayback.clearColorFilter()
                     if (useBlueStyle) {
-                        // Blue style for downloaded content with progress
                         binding.btnPlayback.setImageResource(if (isCurrent && adapter.isCurrentlyPlaying) R.drawable.ic_pause_circle_blue else R.drawable.ic_play_circle_blue)
                     } else {
-                        // Standard gold style
                         binding.btnPlayback.setImageResource(if (isCurrent && adapter.isCurrentlyPlaying) R.drawable.ic_pause_circle_yellow else R.drawable.ic_play_circle_yellow)
                     }
                 }
@@ -496,8 +525,6 @@ class EpisodeFeedAdapterV2(
             val isCurrent = episode.id == adapter.currentPlayingEpisodeId
             
             // Apply dimming for listened episodes in all fragments except QueueFragment
-            // QueueFragment uses PLAY_STREAMING mode and removes listened episodes from queue
-            // ARCHITECTURAL RULE: Current playing episode is NEVER dimmed.
             if (episode.hasListened && !isCurrent && adapter.playbackButtonMode != PlaybackButtonMode.PLAY_STREAMING) {
                 binding.cardEpisode.alpha = 0.5f
             } else {
