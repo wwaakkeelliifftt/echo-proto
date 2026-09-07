@@ -34,7 +34,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="@string/manage_keywords"
+            android:text="Фильтры"
             android:textSize="24sp"
             android:fontFamily="@font/manrope_bold"
             android:textColor="@color/colorTextPrimary" />
@@ -44,7 +44,7 @@
             android:layout_width="40dp"
             android:layout_height="40dp"
             android:background="@drawable/bg_speed_button"
-            android:src="@drawable/ic_close"
+            android:src="@drawable/ic_check_circle"
             app:tint="@color/colorTextPrimary" />
     </LinearLayout>
 
@@ -54,7 +54,6 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="24dp"
         app:boxBackgroundColor="@color/colorSurfaceContainerLow"
-        app:boxCornerRadius="16dp"
         app:boxStrokeWidth="2dp"
         app:boxStrokeColor="@color/colorPrimary"
         app:startIconDrawable="@drawable/ic_search"
@@ -65,7 +64,7 @@
             android:id="@+id/inputPrimary"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="@string/add_keyword_hint"
+            android:hint="Введите поисковой паттерн"
             android:inputType="text"
             android:maxLines="1"
             android:padding="20dp"
@@ -79,7 +78,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginBottom="12dp"
-        android:text="@string/active_filters"
+        android:text="Список активных фильтров"
         android:textSize="10sp"
         android:fontFamily="@font/manrope_bold"
         android:textAllCaps="true"
@@ -126,7 +125,7 @@
             android:layout_width="0dp"
             android:layout_height="56dp"
             android:layout_weight="1"
-            android:text="@string/clear_all"
+            android:text="Отменить"
             android:textColor="@color/colorTextPrimary"
             app:strokeColor="@color/colorSurfaceVariant"
             app:cornerRadius="16dp" />
@@ -137,7 +136,7 @@
             android:layout_height="56dp"
             android:layout_weight="1"
             android:layout_marginStart="12dp"
-            android:text="@string/save_changes"
+            android:text="Сохранить"
             android:textColor="@color/colorChipActiveText"
             android:backgroundTint="@color/colorPrimary"
             app:cornerRadius="16dp" />
